@@ -5,7 +5,7 @@ let clicked = false;
 
 function preload() {
   for (let i = 1; i <= 8; i++) {
-    images.push(loadImage(`p${i}.jpeg`));
+    images.push(loadImage(`./p${i}.jpeg`));
   }
 }
 
