@@ -33,45 +33,51 @@ function draw() {
     drawWidth = height * bgAspect;
   }
 
+  // Fundal
   image(bgImg, width / 2, height / 2, drawWidth, drawHeight);
 
-  // doar după ce se termină de scris textul
-  if (displayedCharCount >= message.length/1.5) {
+  // Undele (valurile), fade in după ce textul a început să apară semnificativ
+  if (displayedCharCount >= message.length / 1.5) {
     waveAlpha += 1;
-    waveAlpha = constrain(waveAlpha, 0, 90); 
+    waveAlpha = constrain(waveAlpha, 0, 90);
     drawWaves(waveAlpha);
   }
 
-  // mati jos
+  // Imagine jos (prietenul)
   let targetHeight = height * 0.6;
   let aspectRatio = boyfriendImg.width / boyfriendImg.height;
   let targetWidth = targetHeight * aspectRatio;
   image(boyfriendImg, width / 2, height - targetHeight / 2, targetWidth, targetHeight);
 
-  // text box area scris
+  // Zona text
   let textBoxX = width * 0.1;
   let textBoxY = height * 0.05;
   let textBoxWidth = width * 0.8;
-  let textBoxHeight = height * 0.5; // top half of screen
-  let currentTime = millis();
+  let textBoxHeight = height * 0.35;
 
-  // Increase character count for typewriter effect
+  // Tipărire text tip mașină de scris
+  let currentTime = millis();
   if (displayedCharCount < message.length && currentTime - lastTypeTime > 1000 / typingSpeed) {
     displayedCharCount++;
     lastTypeTime = currentTime;
   }
 
-  // Display the wrapped text up to the current character
   let currentText = message.substring(0, displayedCharCount);
-  let conturC = color('#C71585');
+
+  // Text responsive
+  let fontSize = height * 0.035; // 3.5% din înălțimea ecranului
+  textSize(fontSize);
+  textAlign(CENTER, TOP);
+
   fill('black');
+  let conturC = color('#C71585');
   conturC.setAlpha(160);
   stroke(conturC);
   strokeWeight(1);
-  textSize(37.5);
-  textAlign(CENTER);
+
   text(currentText, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
 }
+
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
