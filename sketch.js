@@ -1,70 +1,99 @@
-
-let stickers = [];
-let images = [];
-let clicked = false;
+let message = "Bine ai venit în universul meu. \n Fii diferit, fii curajos, urmează-ți visele. \n Pofta mersi pentru fiecare moment creativ.";
+let displayedCharCount = 0;
+let typingSpeed = 20; // ch / second
+let lastTypeTime = 0;
+let boyfriendImg;
+let bgImg;
+let waveAlpha = 0;
 
 function preload() {
-  for (let i = 1; i <= 8; i++) {
-    images.push(loadImage(`./p${i}.jpeg`));
-  }
+  boyfriendImg = loadImage('matiasszeus.png');
+  bgImg = loadImage('bcg.jpg');
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  textAlign(CENTER, CENTER);
-  textSize(64);
-  fill(0);
+  imageMode(CENTER);
+  textFont('Rubik Glitch');
+  //textStyle(BOLDITALIC);
 }
 
 function draw() {
-  background(255);
+  imageMode(CENTER);
+  let bgAspect = bgImg.width / bgImg.height;
+  let canvasAspect = width / height;
 
-  if (!clicked) {
-    text("NSFW", width / 2, height / 2);
+  let drawWidth, drawHeight;
+
+  if (canvasAspect > bgAspect) {
+    drawWidth = width;
+    drawHeight = width / bgAspect;
   } else {
-    for (let s of stickers) {
-      s.update();
-      s.display();
+    drawHeight = height;
+    drawWidth = height * bgAspect;
+  }
+
+  image(bgImg, width / 2, height / 2, drawWidth, drawHeight);
+
+  // doar după ce se termină de scris textul
+  if (displayedCharCount >= message.length/1.5) {
+    waveAlpha += 1;
+    waveAlpha = constrain(waveAlpha, 0, 90); 
+    drawWaves(waveAlpha);
+  }
+
+  // mati jos
+  let targetHeight = height * 0.6;
+  let aspectRatio = boyfriendImg.width / boyfriendImg.height;
+  let targetWidth = targetHeight * aspectRatio;
+  image(boyfriendImg, width / 2, height - targetHeight / 2, targetWidth, targetHeight);
+
+  // text box area scris
+  let textBoxX = width * 0.1;
+  let textBoxY = height * 0.05;
+  let textBoxWidth = width * 0.8;
+  let textBoxHeight = height * 0.5; // top half of screen
+  let currentTime = millis();
+
+  // Increase character count for typewriter effect
+  if (displayedCharCount < message.length && currentTime - lastTypeTime > 1000 / typingSpeed) {
+    displayedCharCount++;
+    lastTypeTime = currentTime;
+  }
+
+  // Display the wrapped text up to the current character
+  let currentText = message.substring(0, displayedCharCount);
+  let conturC = color('#C71585');
+  fill('black');
+  conturC.setAlpha(160);
+  stroke(conturC);
+  strokeWeight(1);
+  textSize(37.5);
+  textAlign(CENTER);
+  text(currentText, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+function drawWaves(alpha) {
+  noFill();
+  let waveColor = color('blue');
+  waveColor.setAlpha(alpha);
+  stroke(waveColor);
+  strokeWeight(2);
+
+  let waveHeight = 25;
+  let waveCount = 10;
+
+  for (let j = 0; j < waveCount; j++) {
+    beginShape();
+    for (let x = 0; x < width; x += 10) {
+      let y = height - (height * 0.8) + j * 20 + sin(x * 0.02 + frameCount * 0.04 + j * 15) * waveHeight;
+      vertex(x, y);
     }
+    endShape();
   }
 }
 
-function mousePressed() {
-  if (!clicked) {
-    clicked = true;
-    for (let i = 0; i < images.length; i++) {
-      let x = random([-100, width + 100]);
-      let y = random([-100, height + 100]);
-      let vx = (width / 2 - x) / 60 + random(-1, 1);
-      let vy = (height / 2 - y) / 60 + random(-1, 1);
-      let angle = random(TWO_PI);
-      let rSpeed = random(-0.05, 0.05);
-      stickers.push(new Sticker(images[i], x, y, vx, vy, angle, rSpeed));
-    }
-  }
-}
-
-class Sticker {
-  constructor(img, x, y, vx, vy, angle, rSpeed) {
-    this.img = img;
-    this.x = x;
-    this.y = y;
-    this.vx = vx;
-    this.vy = vy;
-    this.angle = angle;
-    this.rSpeed = rSpeed;
-  }
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.angle += this.rSpeed;
-  }
-  display() {
-    push();
-    translate(this.x, this.y);
-    rotate(this.angle);
-    imageMode(CENTER);
-    image(this.img, 0, 0, this.img.width / 3, this.img.height / 3);
-    pop();
-  }
-}
