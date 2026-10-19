@@ -228,6 +228,57 @@ export const theme = {
       // page opens (the dive ends on exactly that green).
       fadeIn: 0.45, // seconds
     },
+
+    // A few letters from the landing, lying on the mat. When coming from the
+    // landing's dive they land with a bounce; otherwise they are just there.
+    // Units: CSS pixels and degrees.
+    letters: {
+      // Each letter: where its middle lies, measured inwards from a corner of
+      // the screen (tl = top-left, tr, bl, br), its font size, and its turn.
+      // Keep the top-left (logo, content) and the middle free; letters near
+      // an edge may be partly cut off by it.
+      phone: [
+        { char: "P", corner: "tr", x: 50, y: 175, size: 120, rotation: -18 },
+        { char: "O", corner: "tr", x: 18, y: 430, size: 105, rotation: 12 },
+        { char: "M", corner: "bl", x: 70, y: 120, size: 125, rotation: 16 },
+        { char: "I", corner: "br", x: 85, y: 70, size: 115, rotation: -62 },
+      ],
+      // Screens from `wideFrom` px wide: same letters along a wider frame.
+      wide: [
+        { char: "P", corner: "tr", x: 150, y: 190, size: 165, rotation: -16 },
+        { char: "O", corner: "br", x: 70, y: 260, size: 150, rotation: 10 },
+        { char: "M", corner: "bl", x: 190, y: 120, size: 170, rotation: 14 },
+        { char: "I", corner: "br", x: 430, y: 75, size: 160, rotation: -64 },
+      ],
+      wideFrom: 768,
+      // How the camera looks down at the mat (vertical field of view, degrees).
+      // Narrower = flatter, less "falling towards you".
+      fov: 35,
+      // The landing animation. Total: stagger * 3 + fall + bounce (< 1 s).
+      fall: {
+        stagger: 0.07, // seconds between letters
+        duration: 0.5, // seconds from the start height down to the mat
+        // Start height, as a fraction of the camera's height above the mat
+        // (0.6 = 60% of the way up: the letter looks ~2.5x bigger).
+        startHeight: 0.6,
+        spin: 25, // extra turn at the start, unwinding as it falls (degrees)
+        bounceHeight: 0.15, // in letter sizes
+        bounceDuration: 0.2, // seconds
+      },
+      // Coming from the landing = the dive ended at most this long ago.
+      arrivalWindow: 5, // seconds
+      // Soft shadow on the mat, cast by a light from high up, slightly to
+      // the upper left: far from the mat the shadow is offset and blurred,
+      // and it gathers under the letter as it lands.
+      shadow: {
+        color: palette.ink,
+        opacity: 0.35,
+        lightDirection: [-0.3, 0.4, 1] as Vec3, // towards the light
+        blurLanded: 6,
+        blurHigh: 24,
+        mapSize: 1024,
+      },
+    },
   },
 
   // The header of every page after the landing: only the logo, top left.

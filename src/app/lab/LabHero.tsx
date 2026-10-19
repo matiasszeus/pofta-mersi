@@ -8,6 +8,7 @@ import { PageBackground } from "@/components/PageBackground";
 import { FlowerBackground } from "@/components/hero/FlowerBackground";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
+import { markDiveArrival } from "@/lib/arrival";
 
 // WebGL only exists in the browser, so the canvas is never rendered on the server.
 // The <main> below already has the background color, which doubles as placeholder.
@@ -36,8 +37,13 @@ export function LabHero() {
 
   const arrive = useCallback(() => setPhase((p) => (p === "idle" ? p : "arrived")), []);
 
-  // Download the next page in the background so the switch is instant.
-  useEffect(() => router.prefetch(href), [router, href]);
+  // Download the next page in the background so the switch is instant,
+  // including the atelier's 3D letters (otherwise they would only start
+  // loading once the atelier opens, and land late).
+  useEffect(() => {
+    router.prefetch(href);
+    void import("@/components/atelier/MatLettersCanvas");
+  }, [router, href]);
 
   // Safety net: arrive even if some letter never reports that it is gone.
   useEffect(() => {
@@ -53,9 +59,12 @@ export function LabHero() {
     return () => clearTimeout(timer);
   }, [phase, arrive, fadeDuration]);
 
-  // The screen already shows the atelier's color: switch pages right away.
+  // The screen already shows the atelier's color: switch pages right away,
+  // telling the atelier to play its landing animation.
   useEffect(() => {
-    if (phase === "arrived") router.push(href);
+    if (phase !== "arrived") return;
+    markDiveArrival();
+    router.push(href);
   }, [phase, router, href]);
 
   // Coming back with the browser's back button normally rebuilds this page from

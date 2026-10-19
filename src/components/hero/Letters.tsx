@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
-import { Text3D } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { theme } from "@/config/theme";
 import type { DiveState } from "./dive";
+import { LetterGlyph } from "./LetterGlyph";
 import type { Slot, Wall } from "./useSceneLayout";
 
 type Vec3 = [number, number, number];
@@ -144,23 +144,7 @@ function Letter(props: LetterProps) {
       ccd
     >
       <group ref={pivot}>
-        <Text3D
-          ref={mesh}
-          castShadow
-          font={theme.fonts[theme.font].typeface}
-          size={size}
-          height={size * cfg.depth}
-          bevelEnabled
-          bevelSize={size * cfg.bevelSize}
-          // Negative offset = the rounding starts inside the font's outline.
-          bevelOffset={-size * cfg.bevelInset}
-          bevelThickness={size * cfg.bevelThickness}
-          bevelSegments={cfg.bevelSegments}
-          curveSegments={cfg.curveSegments}
-        >
-          {char}
-          <meshStandardMaterial color={color} roughness={cfg.roughness} metalness={cfg.metalness} />
-        </Text3D>
+        <LetterGlyph ref={mesh} char={char} size={size} color={color} />
       </group>
     </RigidBody>
   );

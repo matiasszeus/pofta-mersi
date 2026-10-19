@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import { AtelierLetters } from "@/components/atelier/AtelierLetters";
 import { CuttingMat } from "@/components/atelier/CuttingMat";
 import { PageBackground } from "@/components/PageBackground";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -9,7 +10,7 @@ export const viewport: Viewport = {
   themeColor: theme.atelier.background,
 };
 
-// Only the header and the background for now. The green is there from the very first frame,
+// Only the header, the background and the letters on it for now. The green is there from the very first frame,
 // in exactly the color the landing's dive ended on, so the switch between
 // pages cannot be seen; the mat's lines then fade in over it.
 export default function AtelierPage() {
@@ -17,6 +18,7 @@ export default function AtelierPage() {
     <main className="min-h-dvh" style={{ background: theme.atelier.background }}>
       <PageBackground color={theme.atelier.background} />
       <CuttingMat />
+      <AtelierLetters />
       <SiteHeader />
     </main>
   );
