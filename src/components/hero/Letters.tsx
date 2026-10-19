@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type RefObject } from "react";
 import { Text3D } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { theme } from "@/config/theme";
+import type { DiveState } from "./dive";
 import type { Slot, Wall } from "./useSceneLayout";
 
 type Vec3 = [number, number, number];
@@ -30,13 +31,14 @@ type LetterProps = {
   // false = no idle animation (prefers-reduced-motion).
   animate: boolean;
   seed: number;
-  // Bottom edge of the screen; past it the letter is out of view.
+  // Bottom edge of the screen at the start; past it the letter is out of view.
   bottom: Wall;
+  dive: RefObject<DiveState>;
   onGone: () => void;
 };
 
 function Letter(props: LetterProps) {
-  const { char, color, size, position, falling, dropAt, animate, seed, bottom, onGone } = props;
+  const { char, color, size, position, falling, dropAt, animate, seed, bottom, dive, onGone } = props;
   const { rapier } = useRapier();
   const body = useRef<RapierRigidBody>(null);
   // pivot sits at the middle of the letter and is what the idle animation and
@@ -101,8 +103,10 @@ function Letter(props: LetterProps) {
     }
 
     // --- Falling: report once when it has left through the bottom ---
-    const pos = rb.translation();
-    const belowBottom = -scratch.copy(pos).sub(bottom.point).dot(bottom.normal);
+    // The bottom edge moves down with the diving camera.
+    scratch.copy(rb.translation()).sub(bottom.point);
+    scratch.y += dive.current.drop;
+    const belowBottom = -scratch.dot(bottom.normal);
     if (!gone.current && belowBottom > theme.fall.exitMargin * size) {
       gone.current = true;
       onGone();
@@ -184,11 +188,12 @@ type LettersProps = {
   falling: boolean;
   animate: boolean;
   bottom: Wall;
+  dive: RefObject<DiveState>;
   // Called once, when the last letter has left the screen.
   onAllGone: () => void;
 };
 
-export function Letters({ slots, size, z, falling, animate, bottom, onAllGone }: LettersProps) {
+export function Letters({ slots, size, z, falling, animate, bottom, dive, onAllGone }: LettersProps) {
   const palette = theme.colors.letters;
   const goneCount = useRef(0);
 
@@ -213,6 +218,7 @@ export function Letters({ slots, size, z, falling, animate, bottom, onAllGone }:
           animate={animate}
           seed={slot.index}
           bottom={bottom}
+          dive={dive}
           onGone={onGone}
         />
       ))}

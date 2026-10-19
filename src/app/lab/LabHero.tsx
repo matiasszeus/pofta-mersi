@@ -13,9 +13,10 @@ import { theme } from "@/config/theme";
 const HeroCanvas = dynamic(() => import("@/components/hero/HeroCanvas"), { ssr: false });
 
 // idle    = letters wait in their outlines
-// falling = a tap happened; letters drop out of the screen
-// leaving = the screen fades to the next page's color, then we navigate
-type Phase = "idle" | "falling" | "leaving";
+// diving  = a tap happened; letters fall and the camera dives after them
+// fading  = reduced motion only: the screen fades to the next page's color
+// arrived = the screen shows the next page's color; navigate
+type Phase = "idle" | "diving" | "fading" | "arrived";
 
 export function LabHero() {
   const router = useRouter();
@@ -26,32 +27,37 @@ export function LabHero() {
   const [hintTop, setHintTop] = useState<number | null>(null);
   // Changing this rebuilds the canvas from scratch (letters back in their outlines).
   const [run, setRun] = useState(0);
-  const { href, duration, color } = theme.transition;
+  const { href, fadeDuration, color } = theme.transition;
 
   // One tap starts the sequence; taps while it is running do nothing.
   // With reduced motion there is no fall, only the fade.
   const start = () => {
-    if (phase === "idle") setPhase(reducedMotion ? "leaving" : "falling");
+    if (phase === "idle") setPhase(reducedMotion ? "fading" : "diving");
   };
 
-  const leave = useCallback(() => setPhase((p) => (p === "falling" ? "leaving" : p)), []);
+  const arrive = useCallback(() => setPhase((p) => (p === "idle" ? p : "arrived")), []);
 
   // Download the next page in the background so the switch is instant.
   useEffect(() => router.prefetch(href), [router, href]);
 
-  // Safety net: leave even if some letter never reports that it is gone.
+  // Safety net: arrive even if some letter never reports that it is gone.
   useEffect(() => {
-    if (phase !== "falling") return;
-    const timer = setTimeout(leave, theme.fall.maxDuration * 1000);
+    if (phase !== "diving") return;
+    const timer = setTimeout(arrive, theme.fall.maxDuration * 1000);
     return () => clearTimeout(timer);
-  }, [phase, leave]);
+  }, [phase, arrive]);
 
-  // Once the fade has covered the screen, go to the next page.
+  // Reduced motion: arrive once the fade has covered the screen.
   useEffect(() => {
-    if (phase !== "leaving") return;
-    const timer = setTimeout(() => router.push(href), duration * 1000);
+    if (phase !== "fading") return;
+    const timer = setTimeout(arrive, fadeDuration * 1000);
     return () => clearTimeout(timer);
-  }, [phase, router, href, duration]);
+  }, [phase, arrive, fadeDuration]);
+
+  // The screen already shows the gallery's color: switch pages right away.
+  useEffect(() => {
+    if (phase === "arrived") router.push(href);
+  }, [phase, router, href]);
 
   // Coming back with the browser's back button normally rebuilds this page from
   // scratch. Some browsers instead restore a frozen copy of it ("persisted"),
@@ -74,14 +80,16 @@ export function LabHero() {
       style={{ background: theme.colors.background }}
       onClick={start}
     >
-      <PageBackground color={theme.colors.background} />
+      {/* On arrival the page itself already takes the gallery's color, so
+          nothing else can show through while the pages switch. */}
+      <PageBackground color={phase === "arrived" ? color : theme.colors.background} />
 
       <HeroCanvas
         key={run}
-        falling={phase === "falling"}
+        falling={phase === "diving" || (phase === "arrived" && !reducedMotion)}
         animate={!reducedMotion}
         debug={debug}
-        onAllGone={leave}
+        onDiveEnd={arrive}
         onHintTop={setHintTop}
       />
 
@@ -103,7 +111,9 @@ export function LabHero() {
       <Link
         href={href}
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-2 text-sm opacity-60 transition-opacity hover:opacity-100"
+        className={`absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-2 text-sm transition-opacity duration-300 ${
+          phase === "idle" ? "opacity-60 hover:opacity-100" : "pointer-events-none opacity-0"
+        }`}
         style={{ color: theme.hint.color }}
       >
         {theme.hint.skip}
@@ -120,13 +130,14 @@ export function LabHero() {
         debug: {debug ? "on" : "off"}
       </button>
 
-      {/* The fade: a sheet in the next page's color, on top of everything. */}
+      {/* Reduced motion only: a sheet in the next page's color fades in on top
+          of everything. (The dive changes the color inside the 3D scene.) */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background: color,
-          opacity: phase === "leaving" ? 1 : 0,
-          transition: `opacity ${duration}s ease`,
+          opacity: phase === "fading" || (phase === "arrived" && reducedMotion) ? 1 : 0,
+          transition: `opacity ${fadeDuration}s ease`,
         }}
       />
     </main>

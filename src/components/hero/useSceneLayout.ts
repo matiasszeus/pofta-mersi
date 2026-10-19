@@ -37,6 +37,8 @@ export type SceneLayout = {
   z: number;
   // Where the hint text goes: distance from the top of the screen, 0..1.
   hintTop: number;
+  // Height of the screen, in world units, measured on the letters' plane.
+  visibleHeight: number;
 };
 
 // Highest point of a glyph outline, in font units. The outline is a list of
@@ -136,7 +138,7 @@ export function computeSceneLayout(aspect: number, font: FontMetrics): SceneLayo
 
   const hintTop = screenY(blockBottom) + hint.gap;
 
-  return { fov, walls, bottom, letterSize, slots, z, hintTop };
+  return { fov, walls, bottom, letterSize, slots, z, hintTop, visibleHeight };
 }
 
 export function useSceneLayout(font: FontMetrics): SceneLayout {

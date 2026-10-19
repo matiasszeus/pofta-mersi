@@ -19,13 +19,17 @@ const fonts = {
   },
 };
 
+// Used in more than one place below.
+const landingBackground = "#e6e0f8";
+const galleryBackground = "#fbe9dd";
+
 export const theme = {
   fonts,
   // Which of the fonts above to use: "bagel" or "fredoka".
   font: "bagel" as keyof typeof fonts,
 
   colors: {
-    background: "#e6e0f8",
+    background: landingBackground,
     // One color per letter, reused in a loop if there are more letters than colors.
     letters: [
       "#f7a8c8", // pink
@@ -119,24 +123,54 @@ export const theme = {
   },
 
   // What happens after the tap: letters let go one by one and fall out of the
-  // screen, then the page fades to the gallery.
+  // screen while the camera dives after them (see `dive`).
+  // stagger, gravity and exitMargin decide when the last letter is out; keep
+  // that just before dive.duration.
   fall: {
-    stagger: 0.09, // seconds between one letter and the next
+    stagger: 0.04, // seconds between one letter and the next
     sideSpeed: 1.5, // random push left/right (max)
     spin: 1.6, // random spin (max, radians per second)
     // A letter counts as gone once it is this far below the bottom edge of the
     // screen, in letter sizes.
-    exitMargin: 1.5,
+    exitMargin: 0.8,
     // Safety net: go to the gallery after this many seconds even if a letter
     // somehow never left the screen.
-    maxDuration: 5,
+    maxDuration: 4,
   },
 
-  // The fade to the next page.
+  // The camera following the letters down, from the tap to the gallery.
+  dive: {
+    // Seconds from the tap to the gallery. The gallery opens at this point,
+    // or as soon as the last letter is out if that takes longer.
+    duration: 1.6,
+    // Seconds after the tap before the camera starts moving.
+    cameraDelay: 0.08,
+    // How far the camera has moved down at `duration`, in screen heights.
+    distance: 0.5,
+    // Camera easing: 1 = constant speed; higher = slower start, then a harder
+    // acceleration (2 = like falling).
+    easePower: 2.2,
+    // The background goes from `from` to `to`: a soft band of the new color
+    // rises from the bottom of the screen until it fills it at `duration`.
+    colors: { from: landingBackground, to: galleryBackground },
+    // Height of that soft band, as a fraction of the screen height.
+    bandSoftness: 0.35,
+  },
+
+  // The way to the next page.
   transition: {
     href: "/galerie",
-    duration: 0.6, // seconds
-    color: "#fbe9dd", // also the gallery placeholder's background
+    // The gallery's background: the dive (and the fade) end on exactly it.
+    color: galleryBackground,
+    // prefers-reduced-motion only: no dive, just a fade of this many seconds.
+    fadeDuration: 0.6,
+  },
+
+  // The gallery's content slides in from below, continuing the dive's motion.
+  galleryEnter: {
+    distance: "30vh", // where it starts, below its place (CSS length)
+    duration: 0.4, // seconds
+    easing: "cubic-bezier(0.16, 1, 0.3, 1)", // fast start, soft landing
   },
 
   // The small texts over the scene.
@@ -151,7 +185,7 @@ export const theme = {
 
   physics: {
     // Starts only at the tap; until then nothing is simulated.
-    gravity: [0, -22, 0] as Vec3,
+    gravity: [0, -30, 0] as Vec3,
     restitution: 0.45, // bounciness, 0 = thud, 1 = bounces forever
     friction: 0.7,
     linearDamping: 0.15,

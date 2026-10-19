@@ -33,3 +33,22 @@ body {
     opacity: 1;
   }
 }
+
+/* Content rising into place from --enter-distance below it. */
+@keyframes enter-up {
+  from {
+    transform: translateY(var(--enter-distance));
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Less motion asked for: keep the timing, but only fade. */
+@media (prefers-reduced-motion: reduce) {
+  .enter-up {
+    animation-name: fade-in !important;
+  }
+}
