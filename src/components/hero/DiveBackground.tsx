@@ -6,7 +6,7 @@ import type { DiveState } from "./dive";
 
 // A flat quad that always covers the whole screen, in front of the page's
 // flower background (an image behind the transparent canvas). During the dive
-// a soft band of the gallery color rises from the bottom edge until it covers
+// a soft band of the atelier color rises from the bottom edge until it covers
 // everything, as if the camera sinks into that color.
 //
 // The vertex shader ignores the camera entirely: the quad's corners (-1..1)
@@ -26,7 +26,7 @@ const fragmentShader = /* glsl */ `
   varying float vScreenY;
   void main() {
     // The band's middle travels from just below the screen to just above it,
-    // so progress 0 = fully see-through, 1 = exactly the gallery color.
+    // so progress 0 = fully see-through, 1 = exactly the atelier color.
     float edge = mix(-uSoftness, 1.0 + uSoftness, uProgress);
     float k = 1.0 - smoothstep(edge - uSoftness, edge + uSoftness, vScreenY);
     gl_FragColor = vec4(uTo, k);

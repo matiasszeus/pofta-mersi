@@ -5,7 +5,7 @@ import { theme } from "@/config/theme";
 export type DiveState = {
   // How far the camera has moved down, in world units.
   drop: number;
-  // 0 = landing color everywhere, 1 = gallery color everywhere.
+  // 0 = landing color everywhere, 1 = atelier color everywhere.
   progress: number;
 };
 

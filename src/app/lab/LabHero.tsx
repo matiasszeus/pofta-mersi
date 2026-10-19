@@ -53,7 +53,7 @@ export function LabHero() {
     return () => clearTimeout(timer);
   }, [phase, arrive, fadeDuration]);
 
-  // The screen already shows the gallery's color: switch pages right away.
+  // The screen already shows the atelier's color: switch pages right away.
   useEffect(() => {
     if (phase === "arrived") router.push(href);
   }, [phase, router, href]);
@@ -79,7 +79,7 @@ export function LabHero() {
       style={{ background: theme.colors.background }}
       onClick={start}
     >
-      {/* On arrival the page itself already takes the gallery's color, so
+      {/* On arrival the page itself already takes the atelier's color, so
           nothing else can show through while the pages switch. */}
       <PageBackground color={phase === "arrived" ? color : theme.colors.background} />
       <FlowerBackground />

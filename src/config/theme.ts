@@ -30,14 +30,15 @@ const fonts = {
 export const palette = {
   sage: "#BFDDBA", // landing background
   lilac: "#C58BEA", // main accent (the glow of the flowers)
-  green: "#2F8A5C", // gallery / atelier background (the cutting mat)
+  green: "#2F8A5C", // atelier background (the cutting mat)
   ink: "#1D2633", // near-black: text and letters on light backgrounds
   neon: "#4CF23C", // only small accents on dark backgrounds, never text on light
+  white: "#FFFFFF", // text on the green (sage on green is too faint to read)
 };
 
 // Used in more than one place below.
 const landingBackground = palette.sage;
-const galleryBackground = palette.green;
+const atelierBackground = palette.green;
 
 export const theme = {
   fonts,
@@ -171,14 +172,14 @@ export const theme = {
     // A letter counts as gone once it is this far below the bottom edge of the
     // screen, in letter sizes.
     exitMargin: 0.8,
-    // Safety net: go to the gallery after this many seconds even if a letter
+    // Safety net: go to the atelier after this many seconds even if a letter
     // somehow never left the screen.
     maxDuration: 4,
   },
 
-  // The camera following the letters down, from the tap to the gallery.
+  // The camera following the letters down, from the tap to the atelier.
   dive: {
-    // Seconds from the tap to the gallery. The gallery opens at this point,
+    // Seconds from the tap to the atelier. The atelier opens at this point,
     // or as soon as the last letter is out if that takes longer.
     duration: 1.6,
     // Seconds after the tap before the camera starts moving.
@@ -190,28 +191,53 @@ export const theme = {
     easePower: 2.2,
     // A soft band of this color rises from the bottom of the screen over the
     // landing's background, until it fills the screen at `duration`.
-    color: galleryBackground,
+    color: atelierBackground,
     // Height of that soft band, as a fraction of the screen height.
     bandSoftness: 0.35,
   },
 
   // The way to the next page.
   transition: {
-    href: "/galerie",
-    // The gallery's background: the dive (and the fade) end on exactly it.
-    color: galleryBackground,
+    href: "/atelier",
+    // The atelier's background: the dive (and the fade) end on exactly it.
+    color: atelierBackground,
     // prefers-reduced-motion only: no dive, just a fade of this many seconds.
     fadeDuration: 0.6,
   },
 
-  gallery: {
-    text: palette.sage, // readable on the green background
-    // The content slides in from below, continuing the dive's motion.
-    enter: {
-      distance: "30vh", // where it starts, below its place (CSS length)
-      duration: 0.4, // seconds
-      easing: "cubic-bezier(0.16, 1, 0.3, 1)", // fast start, soft landing
+  // The page after the landing: a green cutting mat seen from above.
+  atelier: {
+    background: atelierBackground,
+    // The printed lines of the mat. All sizes in CSS pixels and fixed: a
+    // bigger screen shows more mat, it is never stretched.
+    mat: {
+      lineColor: palette.sage,
+      accentColor: palette.lilac,
+      smallGrid: 12, // spacing of the fine grid
+      smallGridOpacity: 0.18,
+      bigGrid: 60, // spacing of the coarse grid
+      bigGridOpacity: 0.45,
+      // Graduated rulers along the top and left edges.
+      ruler: { shortTick: 5, longTick: 12, opacity: 0.7 },
+      // Big arcs and one diagonal line: faint construction lines.
+      arcOpacity: 0.3,
+      diagonalAngle: 58, // degrees, rising from the bottom-left corner
+      protractorRadius: 64, // bottom-left corner
+      stencilOpacity: 0.55, // small circles and triangles, bottom-right
+      // The lines fade in over the green that is already on screen when the
+      // page opens (the dive ends on exactly that green).
+      fadeIn: 0.45, // seconds
     },
+  },
+
+  // The header of every page after the landing: only the logo, top left.
+  siteHeader: {
+    href: "/atelier",
+    // White: contrast 4.3 on the green, against 2.9 for sage.
+    logoColor: palette.white,
+    // Logo text size in CSS pixels: phones, and screens from 768px wide.
+    logoSize: 21,
+    logoSizeLarge: 26,
   },
 
   // The small texts over the scene.

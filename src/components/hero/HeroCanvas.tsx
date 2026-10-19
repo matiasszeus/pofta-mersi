@@ -20,7 +20,7 @@ export type HeroCanvasProps = {
   falling: boolean;
   debug?: boolean;
   // Called once the dive is over: its planned time has passed and the last
-  // letter has left the screen. The screen is the gallery's color by then.
+  // letter has left the screen. The screen is the atelier's color by then.
   onDiveEnd: () => void;
 };
 
