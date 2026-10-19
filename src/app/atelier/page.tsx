@@ -1,8 +1,6 @@
 import type { Viewport } from "next";
-import { AtelierLetters } from "@/components/atelier/AtelierLetters";
-import { CuttingMat } from "@/components/atelier/CuttingMat";
-import { PageBackground } from "@/components/PageBackground";
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { AtelierStage } from "@/components/atelier/AtelierStage";
+import { MatBackground } from "@/components/atelier/MatBackground";
 import { theme } from "@/config/theme";
 
 // Tints the mobile browser's own bars (Safari, Chrome) to match the page.
@@ -10,16 +8,19 @@ export const viewport: Viewport = {
   themeColor: theme.atelier.background,
 };
 
-// Only the header, the background and the letters on it for now. The green is there from the very first frame,
-// in exactly the color the landing's dive ended on, so the switch between
-// pages cannot be seen; the mat's lines then fade in over it.
+// The atelier: the cutting mat, the letters that landed on it, the objects.
+// No header with the logo here (it links to the atelier itself); the other
+// pages after the landing have it.
+// The green page background is there from the very first frame, in exactly
+// the color the landing's dive ended on, so the switch cannot be seen.
 export default function AtelierPage() {
   return (
-    <main className="min-h-dvh" style={{ background: theme.atelier.background }}>
-      <PageBackground color={theme.atelier.background} />
-      <CuttingMat />
-      <AtelierLetters />
-      <SiteHeader />
+    // Exactly one screen, never scrolling: anything reaching past an edge
+    // (the album while it is slammed down, from bigger than its size) is
+    // cut off instead of making the page longer.
+    <main className="relative h-dvh overflow-hidden">
+      <MatBackground />
+      <AtelierStage />
     </main>
   );
 }

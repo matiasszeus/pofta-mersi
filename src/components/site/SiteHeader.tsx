@@ -3,7 +3,7 @@ import Link from "next/link";
 import { crazeRetro } from "@/app/fonts";
 import { theme } from "@/config/theme";
 
-// Header for every page after the landing (atelier, stickere, brățări...):
+// Header for every page after the landing (atelier, album...):
 // for now only the logo, top left, linking to the atelier.
 //
 // env(safe-area-inset-*) = the space the iPhone's notch / status bar takes

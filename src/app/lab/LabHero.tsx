@@ -8,7 +8,6 @@ import { PageBackground } from "@/components/PageBackground";
 import { FlowerBackground } from "@/components/hero/FlowerBackground";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
-import { markDiveArrival } from "@/lib/arrival";
 
 // WebGL only exists in the browser, so the canvas is never rendered on the server.
 // The <main> below already has the background color, which doubles as placeholder.
@@ -42,7 +41,8 @@ export function LabHero() {
   // loading once the atelier opens, and land late).
   useEffect(() => {
     router.prefetch(href);
-    void import("@/components/atelier/MatLettersCanvas");
+    // Only a head start: if it fails, the atelier loads it itself.
+    import("@/components/atelier/MatLettersCanvas").catch(() => {});
   }, [router, href]);
 
   // Safety net: arrive even if some letter never reports that it is gone.
@@ -59,12 +59,9 @@ export function LabHero() {
     return () => clearTimeout(timer);
   }, [phase, arrive, fadeDuration]);
 
-  // The screen already shows the atelier's color: switch pages right away,
-  // telling the atelier to play its landing animation.
+  // The screen already shows the atelier's color: switch pages right away.
   useEffect(() => {
-    if (phase !== "arrived") return;
-    markDiveArrival();
-    router.push(href);
+    if (phase === "arrived") router.push(href);
   }, [phase, router, href]);
 
   // Coming back with the browser's back button normally rebuilds this page from
@@ -100,13 +97,12 @@ export function LabHero() {
         onDiveEnd={arrive}
       />
 
-      {/* Plain link for anyone who does not get the interaction (or uses a keyboard). */}
+      {/* The way on for keyboard and screen reader users (the tap is the
+          only other way): not shown on screen, only when reached with Tab. */}
       <Link
         href={href}
         onClick={(e) => e.stopPropagation()}
-        className={`absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-2 text-sm transition-opacity duration-300 ${
-          phase === "idle" ? "opacity-80 hover:opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-5 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm"
         style={{ color: theme.hint.color }}
       >
         {theme.hint.skip}

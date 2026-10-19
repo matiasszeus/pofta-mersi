@@ -229,26 +229,177 @@ export const theme = {
       fadeIn: 0.45, // seconds
     },
 
-    // A few letters from the landing, lying on the mat. When coming from the
-    // landing's dive they land with a bounce; otherwise they are just there.
+    // The objects lying on the mat (the album): each is a
+    // picture (PNG with a transparent background) linking to its page.
+    //
+    // Place, per screen type (phone / from 768px wide): the point
+    // (anchorX * screen width + x, anchorY * screen height + y), in CSS px,
+    // is where the object's corner (align 0) or middle (align 0.5) goes. An
+    // object anchored to the top (anchorY 0) is kept below the iPhone's
+    // status bar. Width: widthVw % of the screen, never more than maxWidth.
+    objects: [
+      {
+        key: "album",
+        src: "/images/atelier/album.png",
+        width: 774, // the image file's real size, in pixels
+        height: 898,
+        alt: "Albumul cu stickerele Pofta Mersi",
+        href: "/album",
+        ariaLabel: "Album", // what screen readers announce for the link
+        // In the middle, a little above it (balancing the logo at the top).
+        phone: { anchorX: 0.5, anchorY: 0.47, x: 0, y: 0, align: 0.5, widthVw: 55, maxWidth: 380 },
+        large: { anchorX: 0.5, anchorY: 0.48, x: 0, y: 0, align: 0.5, widthVw: 55, maxWidth: 380 },
+        rotation: -4, // degrees
+      },
+    ],
+
+    // The handwritten note next to the album (text: config/content.ts). On
+    // the mat it is small and its text unreadable; tapped, it is lifted off
+    // the mat and shown big in the middle. Sizes in CSS px, angles in degrees.
+    note: {
+      // The note is three layers, always all there (only their opacity
+      // changes), so the paper never changes:
+      //   paper  the blank torn sheet, the same on the mat and opened; its
+      //          size in pixels gives the sheet's proportions
+      //   scribbles  ink scribbles on a transparent background, in the text
+      //              area: what the note seems to say on the mat
+      //   text   the real text from content.ts, in the same area
+      paper: { src: "/images/atelier/notita.png", width: 898, height: 897 },
+      scribbles: { src: "/images/atelier/notita-cerneala.png", width: 698, height: 418 },
+      // Where the text may go, as % of the picture from each side, so it
+      // never reaches the torn edge (left and bottom) or the tape (top).
+      // Measured on notita.png: the paper starts at ~2% from the left at the
+      // top, ~11% halfway down, ~17% at 70% down; at the bottom it ends at
+      // ~62% (left) to ~94% (right). Plus a ~4% margin.
+      textArea: { top: 16, right: 8, bottom: 29, left: 22 },
+      // Text size as % of the sheet's width (so it scales with the sheet:
+      // ~21px opened on a phone). If the text is too long for the area it is
+      // made smaller, down to minSize.
+      text: { size: 6.3, minSize: 3.5, lineHeight: 1.35 },
+      ink: palette.ink,
+      tape: palette.lilac, // the washi tape holding it at the top
+      tapeOpacity: 0.65,
+      // On the mat: its width (phone / screens from 768px) and turn; the
+      // height follows the paper picture.
+      size: { phone: { width: 110 }, large: { width: 140 } },
+      rotation: 7,
+      // It fades in together with the mat's lines (same fade, same moment
+      // they start), this many seconds after them.
+      appearDelay: 0.1,
+      // Where its middle goes, measured from the album's middle: albumX
+      // album widths + x px across, albumY album heights + y px down. Phones:
+      // under the album's right half; wider screens: right of the album.
+      place: {
+        phone: { albumX: 0.5, x: -60, albumY: 0.5, y: 95 },
+        large: { albumX: 0.5, x: 100, albumY: 0.25, y: 0 },
+      },
+      // Soft shadow on the mat, following the torn outline (a blurred dark
+      // copy of the picture, offset like the album's): x, y, blur in px as
+      // seen on the mat.
+      shadow: { x: 4, y: 6, blur: 6, opacity: 0.35 },
+      // When the album hits the mat, the note's loose corner lifts a little
+      // and falls back, as if the air moved the paper.
+      flutter: { duration: 0.4, lift: 18 },
+      // Keyboard focus only (never after a tap or click): a thin outline that
+      // follows the paper's shape.
+      focusRing: { color: palette.lilac, width: 1.5 },
+      // Opened (tapped): big in the middle of the screen.
+      open: {
+        width: 340, // phones; the height keeps the paper's proportions
+        widthLarge: 460,
+        rotation: -2,
+        // Lifting off and putting back, in seconds, slowing down smoothly
+        // at the end.
+        duration: 0.55,
+        closeDuration: 0.45,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        // While it is in the hand, the sheet tilts a little in 3D (degrees,
+        // around its horizontal axis); when put back it settles with a tiny
+        // tilt the other way.
+        tilt: 9,
+        settle: -1.5,
+        // Parts of the opening (0..1) in which the scribbles fade out and the
+        // text fades in; they overlap a little, so one turns into the other.
+        // Closing does the same backwards.
+        inkOut: [0, 0.4],
+        textIn: [0.3, 0.7],
+        // At most this long (seconds) a tap waits for the font and pictures
+        // to be ready before opening anyway (they are loaded in advance, so
+        // normally there is nothing to wait for).
+        readyTimeout: 0.3,
+        // The shadow when opened: bigger and softer (x, y, blur in px).
+        shadow: { x: 10, y: 18, blur: 22, opacity: 0.45 },
+        backdrop: palette.ink, // the layer over the atelier
+        backdropOpacity: 0.55,
+        backdropBlur: 4, // px
+      },
+    },
+
+    // How the objects look and move (shared by all of them).
+    object: {
+      // Soft shadow following the object's outline: a darkened, blurred copy
+      // of the image, offset down-right like the letters' shadows (light
+      // from the upper left). x / y in px; scale > 1 = spread wider.
+      shadow: {
+        blur: 8, // px, fixed (blurred once, never re-computed)
+        rest: { x: 6, y: 8, scale: 1, opacity: 0.4 },
+        hover: { x: 11, y: 15, scale: 1.03, opacity: 0.3 },
+      },
+      hoverScale: 1.03,
+      hoverDuration: 0.18, // seconds
+      // Every time the atelier appears: as soon as the last letter lands, the objects
+      // are slammed down on the mat, one after the other. Each starts in the
+      // air (we look from above: bigger, turned a bit more, with a wide faint
+      // shadow), falls faster and faster, squashes a little on impact while
+      // its shadow snaps tight, then settles.
+      slam: {
+        // When the first object starts falling, in seconds, relative to the
+        // moment the last letter touches the mat: 0 = right then, negative =
+        // already while that letter is still falling (the falls overlap, so
+        // the object lands right after it).
+        delay: -0.3,
+        stagger: 0.3, // seconds between one object and the next
+        fall: 0.4, // seconds from the air to the impact
+        startScale: 1.3,
+        startTurn: -7, // extra degrees of turn in the air
+        squash: 0.97, // scale at the squash after impact
+        squashDuration: 0.14, // seconds from the impact back to rest
+        // The shadow in the air, and right at the impact (tight and dark).
+        shadowStart: { x: 26, y: 36, scale: 1.25, opacity: 0.12 },
+        shadowImpact: { x: 3, y: 4, scale: 0.97, opacity: 0.55 },
+      },
+      // After its slam: the shadow swells once and comes back, a hint that
+      // the object can be pressed (uses the hover pose).
+      pulse: { delay: 0.3, duration: 0.7 },
+      // With reduced motion: no slam, just a short fade in.
+      reducedMotionFade: 0.25, // seconds
+      // If the letters never report that they landed (e.g. no WebGL), show
+      // the objects anyway after this many seconds.
+      fallbackDelay: 3,
+    },
+
+    // A few letters from the landing, lying on the mat. Every time the
+    // atelier appears they land with a bounce (with reduced motion they are
+    // just there).
     // Units: CSS pixels and degrees.
     letters: {
       // Each letter: where its middle lies, measured inwards from a corner of
       // the screen (tl = top-left, tr, bl, br), its font size, and its turn.
-      // Keep the top-left (logo, content) and the middle free; letters near
-      // an edge may be partly cut off by it.
+      // A frame around the album in the middle, one letter per corner, each
+      // partly cut off by the edge; none over the album or the logo.
+      // Checked on 390x844, 375x667, 768x1024, 1280x720 and 1440x900.
       phone: [
-        { char: "P", corner: "tr", x: 50, y: 175, size: 120, rotation: -18 },
-        { char: "O", corner: "tr", x: 18, y: 430, size: 105, rotation: 12 },
-        { char: "M", corner: "bl", x: 70, y: 120, size: 125, rotation: 16 },
-        { char: "I", corner: "br", x: 85, y: 70, size: 115, rotation: -62 },
+        { char: "I", corner: "tl", x: 22, y: 122, size: 86, rotation: -62 },
+        { char: "P", corner: "tr", x: 40, y: 128, size: 90, rotation: -18 },
+        { char: "M", corner: "bl", x: 40, y: 112, size: 94, rotation: 16 },
+        { char: "O", corner: "br", x: 45, y: 118, size: 79, rotation: 12 },
       ],
       // Screens from `wideFrom` px wide: same letters along a wider frame.
       wide: [
-        { char: "P", corner: "tr", x: 150, y: 190, size: 165, rotation: -16 },
-        { char: "O", corner: "br", x: 70, y: 260, size: 150, rotation: 10 },
+        { char: "I", corner: "tl", x: 60, y: 175, size: 160, rotation: -64 },
+        { char: "P", corner: "tr", x: 150, y: 160, size: 165, rotation: -16 },
         { char: "M", corner: "bl", x: 190, y: 120, size: 170, rotation: 14 },
-        { char: "I", corner: "br", x: 430, y: 75, size: 160, rotation: -64 },
+        { char: "O", corner: "br", x: 160, y: 150, size: 150, rotation: 10 },
       ],
       wideFrom: 768,
       // How the camera looks down at the mat (vertical field of view, degrees).
@@ -265,8 +416,10 @@ export const theme = {
         bounceHeight: 0.15, // in letter sizes
         bounceDuration: 0.2, // seconds
       },
-      // Coming from the landing = the dive ended at most this long ago.
-      arrivalWindow: 5, // seconds
+      // When an object slams down, the letters near it jolt: pushed a few
+      // pixels away from it and back, with a little hop. Further than
+      // `reach` px from the object's middle they do not move.
+      jolt: { distance: 6, hop: 4, reach: 600, frequency: 9, decay: 9, duration: 0.45 },
       // Soft shadow on the mat, cast by a light from high up, slightly to
       // the upper left: far from the mat the shadow is offset and blurred,
       // and it gathers under the letter as it lands.
@@ -287,8 +440,16 @@ export const theme = {
     // White: contrast 4.3 on the green, against 2.9 for sage.
     logoColor: palette.white,
     // Logo text size in CSS pixels: phones, and screens from 768px wide.
-    logoSize: 21,
-    logoSizeLarge: 26,
+    logoSize: 28,
+    logoSizeLarge: 36,
+  },
+
+  // Big page titles on the pages after the landing (Craze Retro: A–Z only,
+  // no diacritics). Sizes in CSS px: phones / screens from 768px.
+  pageTitle: {
+    color: palette.white,
+    size: 44,
+    sizeLarge: 72,
   },
 
   // The small texts over the scene.

@@ -22,7 +22,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* All text: Whitenice, with Hanken Grotesk for the characters Whitenice
+     lacks (ă, ș, ț, dashes, arrows). The logo and titles set their own. */
+  font-family: var(--font-whitenice), var(--font-hanken), sans-serif;
 }
 
 @keyframes fade-in {
@@ -32,4 +34,121 @@ body {
   to {
     opacity: 1;
   }
+}
+
+/* Objects on the atelier mat (the album). Sizes and poses come from
+   theme.ts as CSS variables (set on the link, see MatObject.tsx). Only
+   translate / rotate / scale / opacity change, which the browser can animate
+   without redrawing anything. They are separate CSS properties, so changing
+   one does not undo another. */
+.obj-art {
+  rotate: var(--obj-rotation);
+  transition: scale var(--obj-hover-duration) ease-out;
+}
+/* The shadow: the same image, black and blurred once. */
+.obj-shadow {
+  filter: brightness(0) blur(var(--obj-shadow-blur));
+  translate: var(--obj-shadow-rest-x) var(--obj-shadow-rest-y);
+  scale: var(--obj-shadow-rest-scale);
+  opacity: var(--obj-shadow-rest-opacity);
+  transition:
+    translate var(--obj-hover-duration) ease-out,
+    scale var(--obj-hover-duration) ease-out,
+    opacity var(--obj-hover-duration) ease-out;
+}
+
+/* Lifted a little (bigger, its shadow further away and softer): on hover
+   (mouse), while pressed (finger), or when reached with the keyboard. */
+@media (hover: hover) {
+  .mat-object:hover .obj-art {
+    scale: var(--obj-hover-scale);
+  }
+  .mat-object:hover .obj-shadow {
+    translate: var(--obj-shadow-hover-x) var(--obj-shadow-hover-y);
+    scale: var(--obj-shadow-hover-scale);
+    opacity: var(--obj-shadow-hover-opacity);
+  }
+}
+.mat-object:active .obj-art,
+.mat-object:focus-visible .obj-art {
+  scale: var(--obj-hover-scale);
+}
+.mat-object:active .obj-shadow,
+.mat-object:focus-visible .obj-shadow {
+  translate: var(--obj-shadow-hover-x) var(--obj-shadow-hover-y);
+  scale: var(--obj-shadow-hover-scale);
+  opacity: var(--obj-shadow-hover-opacity);
+}
+
+/* Coming from the landing: hidden until the letters have landed... */
+.obj-waiting {
+  opacity: 0;
+}
+/* ...then slammed down on the mat (keyframes in MatObject.tsx, built from
+   theme.ts). "backwards" = the first keyframe holds during the delay; after
+   the animation the normal styles (and hover) apply again. It appears in
+   the air with a very quick fade, so it does not pop in. */
+.obj-slam {
+  animation: fade-in 0.08s linear var(--obj-slam-delay) backwards;
+}
+.obj-slam .obj-art {
+  animation: var(--obj-slam-name) var(--obj-slam-duration) linear var(--obj-slam-delay) backwards;
+}
+/* The shadow: the slam, then (after a pause) one pulse as a hint that the
+   object can be pressed. */
+.obj-slam .obj-shadow {
+  animation:
+    var(--obj-slam-shadow-name) var(--obj-slam-duration) linear var(--obj-slam-delay) backwards,
+    obj-pulse var(--obj-pulse-duration) ease-in-out var(--obj-pulse-delay);
+}
+@keyframes obj-pulse {
+  50% {
+    translate: var(--obj-shadow-hover-x) var(--obj-shadow-hover-y);
+    scale: var(--obj-shadow-hover-scale);
+    opacity: var(--obj-shadow-hover-opacity);
+  }
+}
+
+/* Reduced motion: no slam, just a short fade in. */
+.obj-fade {
+  animation: fade-in var(--obj-fade-duration) ease-out backwards;
+}
+
+/* The handwritten note on the atelier mat (see AtelierNote.tsx; values from
+   theme.ts as CSS variables). Held by the tape near the top, so that is
+   where it turns around and where it pivots when its loose corner lifts
+   (--note-pivot is also used to work out where the opened sheet goes). */
+.note-mat {
+  rotate: var(--note-rotation);
+  transform-origin: var(--note-pivot);
+}
+/* When the album hits the mat: the corner lifts towards us and falls back. */
+.note-flutter {
+  animation: note-flutter var(--note-flutter-duration) ease-in-out var(--note-flutter-delay);
+}
+@keyframes note-flutter {
+  45% {
+    transform: perspective(500px) rotate3d(-1, 1, 0, var(--note-flutter-lift));
+  }
+}
+
+/* No focus outline after a tap or click (nor the phone's tap highlight). */
+.note-button {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* With the keyboard: a thin lilac outline that follows the paper's shape,
+   drawn as four hard-edged drop-shadows of the paper (and its tape), one per
+   side. Divided by --note-k: the paper is drawn scaled down on the mat. */
+.note-button:focus-visible:not([data-pointer-focus]) .note-face {
+  --ring: calc(var(--ring-w) / var(--note-k));
+  filter: drop-shadow(var(--ring) 0 0 var(--ring-c)) drop-shadow(calc(-1 * var(--ring)) 0 0 var(--ring-c))
+    drop-shadow(0 var(--ring) 0 var(--ring-c)) drop-shadow(0 calc(-1 * var(--ring)) 0 var(--ring-c));
+}
+
+/* The note appears with the mat's lines: the same fade, starting at the same
+   moment (when the page's styles apply), a little later. "backwards" keeps
+   it invisible from the very first frame until then. */
+.note-appear {
+  animation: fade-in var(--note-appear-duration) ease-out var(--note-appear-delay) backwards;
 }

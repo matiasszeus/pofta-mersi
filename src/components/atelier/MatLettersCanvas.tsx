@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
+import { objectMiddle } from "./objectLayout";
 
 // The atelier's 3D letters, lying on the mat. The canvas is transparent: the
 // mat behind it is the page's own HTML/SVG background.
@@ -18,6 +19,29 @@ const cfg = theme.atelier.letters;
 const rad = THREE.MathUtils.degToRad;
 
 type LetterSpot = (typeof cfg.phone)[number];
+
+// The current jolt, shared by all letters: when it started (scene clock, in
+// seconds), and from where it pushes (the middle of the object that hit the
+// mat, world x/y).
+type Jolt = { startedAt: number; fromX: number; fromY: number };
+
+// Offset of a letter at (x, y), `t` seconds after an object's impact: pushed
+// away from the object and back, a few times, dying out quickly; plus a
+// small hop. Letters further than `reach` do not move.
+function joltOffset(t: number, x: number, y: number, jolt: Jolt) {
+  const { distance, hop, reach, frequency, decay, duration } = cfg.jolt;
+  if (t < 0 || t > duration) return { x: 0, y: 0, z: 0 };
+  const dx = x - jolt.fromX;
+  const dy = y - jolt.fromY;
+  const d = Math.hypot(dx, dy) || 1;
+  const strength = Math.max(0, 1 - d / reach);
+  const wave = Math.sin(2 * Math.PI * frequency * t) * Math.exp(-decay * t);
+  return {
+    x: (dx / d) * distance * strength * wave,
+    y: (dy / d) * distance * strength * wave,
+    z: hop * strength * Math.max(0, wave),
+  };
+}
 
 // Height above the mat and extra turn of a letter `t` seconds after its own
 // start: a fall that speeds up (like gravity), then one small bounce.
@@ -42,9 +66,10 @@ type MatLetterProps = {
   startHeight: number;
   // Shared clock: seconds since the landing animation started.
   clock: React.RefObject<number>;
+  jolt: React.RefObject<Jolt>;
 };
 
-function MatLetter({ spot, x, y, startAt, startHeight, clock }: MatLetterProps) {
+function MatLetter({ spot, x, y, startAt, startHeight, clock, jolt }: MatLetterProps) {
   // lift moves the letter up/down and turns it; glyph is the 3D letter.
   const lift = useRef<THREE.Group>(null);
   const glyph = useRef<THREE.Mesh>(null);
@@ -60,14 +85,19 @@ function MatLetter({ spot, x, y, startAt, startHeight, clock }: MatLetterProps) 
     mesh.position.set(-middle.x, -middle.y, -box.min.z);
   }, []);
 
-  useFrame(() => {
+  useFrame((state) => {
     const g = lift.current;
-    if (!g || startAt === null) return;
-    const t = clock.current - startAt;
-    // Not its turn yet: hidden, so it does not hang huge over the mat.
-    g.visible = t >= 0;
-    const { z, turn } = landing(Math.max(t, 0), startHeight, spot.size);
-    g.position.z = z;
+    if (!g) return;
+    let z = 0;
+    let turn = 0;
+    if (startAt !== null) {
+      const t = clock.current - startAt;
+      // Not its turn yet: hidden, so it does not hang huge over the mat.
+      g.visible = t >= 0;
+      ({ z, turn } = landing(Math.max(t, 0), startHeight, spot.size));
+    }
+    const j = joltOffset(state.clock.elapsedTime - jolt.current.startedAt, x, y, jolt.current);
+    g.position.set(j.x, j.y, z + j.z);
     g.rotation.z = rad(spot.rotation + turn);
   });
 
@@ -80,7 +110,16 @@ function MatLetter({ spot, x, y, startAt, startHeight, clock }: MatLetterProps) 
   );
 }
 
-function Scene({ animate, onSettled }: { animate: boolean; onSettled: () => void }) {
+type SceneProps = {
+  animate: boolean;
+  // Called once, when the objects should start falling: `slam.delay`
+  // seconds after the last letter touches the mat (negative = before).
+  onObjectsCue: () => void;
+  // Called once, when the letters lie completely still (jolts included).
+  onSettled: () => void;
+};
+
+function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
   const { width, height } = useThree((state) => state.size);
   const spots = width >= cfg.wideFrom ? cfg.wide : cfg.phone;
   // Camera height for which the mat fills the screen at 1 unit = 1 px.
@@ -93,8 +132,26 @@ function Scene({ animate, onSettled }: { animate: boolean; onSettled: () => void
   const clock = useRef(0);
   const startedAt = useRef<number | null>(null);
   const settled = useRef(!animate);
+  const jolt = useRef<Jolt>({ startedAt: -Infinity, fromX: 0, fromY: 0 });
+
   const { stagger, duration, bounceDuration } = cfg.fall;
-  const total = stagger * (spots.length - 1) + duration + bounceDuration;
+  const slam = theme.atelier.object.slam;
+  // The last letter touches the mat, then bounces once and lies still.
+  const lastTouchdown = stagger * (spots.length - 1) + duration;
+  // The objects start falling at the cue (see slam.delay in theme.ts)...
+  const objectsCue = Math.max(0, lastTouchdown + slam.delay);
+  // ...and each hits the mat `fall` seconds after it starts. The jolts are
+  // timed here, on this scene's own clock, so they match the impacts exactly.
+  const impacts = theme.atelier.objects.map((o, i) => ({
+    at: objectsCue + i * slam.stagger + slam.fall,
+    middle: objectMiddle(o, width, height),
+  }));
+  const nextImpact = useRef(0);
+  const cued = useRef(!animate);
+  // Keep drawing until the letters lie still and the last jolt has died out
+  // (one extra frame, so they are drawn back at rest); then the canvas sleeps.
+  const lastJoltEnd = Math.max(...impacts.map((i) => i.at)) + cfg.jolt.duration + 0.05;
+  const total = Math.max(lastTouchdown + bounceDuration, lastJoltEnd);
 
   // From a corner-relative spot to world x/y.
   const place = (spot: LetterSpot) => ({
@@ -118,6 +175,21 @@ function Scene({ animate, onSettled }: { animate: boolean; onSettled: () => void
       light.current.shadow.radius = THREE.MathUtils.lerp(shadow.blurLanded, shadow.blurHigh, avg);
     }
 
+    if (!cued.current && clock.current >= objectsCue) {
+      cued.current = true;
+      onObjectsCue();
+    }
+    // An object hits the mat: the letters jolt, pushed away from its middle
+    // (screen px with a top-left origin, turned into world x/y).
+    const impact = impacts[nextImpact.current];
+    if (impact && clock.current >= impact.at) {
+      nextImpact.current += 1;
+      jolt.current = {
+        startedAt: startedAt.current + impact.at,
+        fromX: impact.middle.x - width / 2,
+        fromY: height / 2 - impact.middle.y,
+      };
+    }
     if (clock.current > total) {
       settled.current = true;
       onSettled();
@@ -187,6 +259,7 @@ function Scene({ animate, onSettled }: { animate: boolean; onSettled: () => void
             startAt={animate ? i * stagger : null}
             startHeight={startHeight}
             clock={clock}
+            jolt={jolt}
           />
         );
       })}
@@ -194,9 +267,16 @@ function Scene({ animate, onSettled }: { animate: boolean; onSettled: () => void
   );
 }
 
-// animate = play the landing (coming from the landing's dive); otherwise the
-// letters are drawn once, already lying on the mat.
-export default function MatLettersCanvas({ animate }: { animate: boolean }) {
+type MatLettersCanvasProps = {
+  // true = play the landing (and the jolts at the objects' impacts); false =
+  // the letters are drawn once, already lying on the mat.
+  animate: boolean;
+  // Called once, when the objects should start falling (see slam.delay in
+  // theme.ts). Not called when not animating.
+  onObjectsCue?: () => void;
+};
+
+export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCanvasProps) {
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
@@ -208,7 +288,11 @@ export default function MatLettersCanvas({ animate }: { animate: boolean }) {
     <Canvas dpr={[1, dprCap]} shadows="variance" frameloop={settled ? "demand" : "always"}>
       {/* Suspense: render nothing until the font has loaded. */}
       <Suspense fallback={null}>
-        <Scene animate={animate} onSettled={() => setSettled(true)} />
+        <Scene
+          animate={animate}
+          onObjectsCue={() => onObjectsCue?.()}
+          onSettled={() => setSettled(true)}
+        />
       </Suspense>
     </Canvas>
   );

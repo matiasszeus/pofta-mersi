@@ -5,24 +5,15 @@ import { theme } from "@/config/theme";
 const round = (n: number) => Math.round(n * 100) / 100;
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
-// The printed lines of the atelier's green cutting mat, seen from above: one
-// static SVG over the green page. Every size is in CSS pixels, so the grid
-// has the same scale on every screen; a bigger screen shows more mat.
-//
-// fixed + 100lvh (like the landing's flowers): it also reaches under Safari's
-// bars on iPhone. It fades in over the green that is already there.
+// The drawings printed on the cutting mat, over its grid (the grid and the
+// rulers are the page background, see MatBackground): big arcs, a diagonal,
+// a protractor and small stencils, anchored to the corners of the screen.
+// One static SVG; every size is in CSS pixels, so on a bigger screen they
+// stay the same size and just sit further apart. It fades in with the grid.
 export function CuttingMat() {
   const { mat } = theme.atelier;
-  const { smallGrid: s, bigGrid: b, ruler } = mat;
   const line = mat.lineColor;
   const accent = mat.accentColor;
-
-  // Ruler ticks across one big-grid step: long at the big-grid line, short at
-  // every small-grid line in between.
-  const ticks = Array.from({ length: Math.round(b / s) }, (_, i) => ({
-    at: i * s,
-    length: i === 0 ? ruler.longTick : ruler.shortTick,
-  }));
 
   // Protractor: a half disc lying on the bottom edge, a tick every 10 degrees
   // (longer every 90).
@@ -48,37 +39,6 @@ export function CuttingMat() {
       style={{ animation: `fade-in ${mat.fadeIn}s ease-out both` }}
       aria-hidden
     >
-      <defs>
-        {/* A "pattern" is a tile that SVG repeats to fill a shape. Each tile
-            draws only its top and left edge; repeated, they form the grid. */}
-        <pattern id="mat-small" width={s} height={s} patternUnits="userSpaceOnUse">
-          <path d={`M ${s} 0.5 H 0.5 V ${s}`} fill="none" stroke={line} strokeOpacity={mat.smallGridOpacity} />
-        </pattern>
-        <pattern id="mat-big" width={b} height={b} patternUnits="userSpaceOnUse">
-          <path d={`M ${b} 0.5 H 0.5 V ${b}`} fill="none" stroke={line} strokeOpacity={mat.bigGridOpacity} />
-        </pattern>
-        <pattern id="mat-ruler-top" width={b} height={ruler.longTick} patternUnits="userSpaceOnUse">
-          {ticks.map((t) => (
-            <line key={t.at} x1={t.at + 0.5} y1={0} x2={t.at + 0.5} y2={t.length} stroke={line} />
-          ))}
-        </pattern>
-        <pattern id="mat-ruler-left" width={ruler.longTick} height={b} patternUnits="userSpaceOnUse">
-          {ticks.map((t) => (
-            <line key={t.at} x1={0} y1={t.at + 0.5} x2={t.length} y2={t.at + 0.5} stroke={line} />
-          ))}
-        </pattern>
-      </defs>
-
-      {/* The grids. The ".5" offsets above put 1px lines exactly on pixels. */}
-      <rect width="100%" height="100%" fill="url(#mat-small)" />
-      <rect width="100%" height="100%" fill="url(#mat-big)" />
-
-      {/* Graduated rulers along the top and left edges. */}
-      <g opacity={ruler.opacity}>
-        <rect width="100%" height={ruler.longTick} fill="url(#mat-ruler-top)" />
-        <rect width={ruler.longTick} height="100%" fill="url(#mat-ruler-left)" />
-      </g>
-
       {/* Top-right corner: a nested <svg> placed at the corner lets us draw
           relative to it, whatever the screen size. One big arc. */}
       <svg x="100%" y="0" overflow="visible">
