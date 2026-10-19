@@ -28,8 +28,6 @@ type LetterProps = {
   falling: boolean;
   // Seconds after the trigger at which this letter lets go.
   dropAt: number;
-  // false = no idle animation (prefers-reduced-motion).
-  animate: boolean;
   seed: number;
   // Bottom edge of the screen at the start; past it the letter is out of view.
   bottom: Wall;
@@ -38,11 +36,11 @@ type LetterProps = {
 };
 
 function Letter(props: LetterProps) {
-  const { char, color, size, position, falling, dropAt, animate, seed, bottom, dive, onGone } = props;
+  const { char, color, size, position, falling, dropAt, seed, bottom, dive, onGone } = props;
   const { rapier } = useRapier();
   const body = useRef<RapierRigidBody>(null);
-  // pivot sits at the middle of the letter and is what the idle animation and
-  // squash & stretch move; mesh is the visible letter inside it.
+  // pivot sits at the middle of the letter and is what squash & stretch
+  // scales; mesh is the visible letter inside it.
   const pivot = useRef<THREE.Group>(null);
   const mesh = useRef<THREE.Mesh>(null);
   const middle = useRef(new THREE.Vector3());
@@ -74,29 +72,15 @@ function Letter(props: LetterProps) {
     if (!rb || !p) return;
     const now = state.clock.elapsedTime;
 
-    // --- Waiting in the outline: idle "breathing", visual only ---
+    // --- Waiting in the outline: perfectly still until its turn to fall ---
     if (!released.current) {
       if (falling) triggeredAt.current ??= now;
       const letGo = triggeredAt.current !== null && now - triggeredAt.current >= dropAt;
+      if (!letGo) return;
 
-      if (!letGo) {
-        if (animate) {
-          const { speed, scale, tilt, bob } = theme.idle;
-          // Own rhythm per letter: a different start point and slightly different pace.
-          const t = now * speed * (1 + noise(seed + 31) * 0.15) + seed * 1.7;
-          p.scale.setScalar(1 + Math.sin(t) * scale);
-          p.rotation.z = Math.sin(t * 0.7 + 1) * tilt;
-          p.position.y = middle.current.y + Math.sin(t * 0.9 + 2) * bob * size;
-        }
-        return;
-      }
-
-      // Let go: back to the neutral pose, then turn the frozen ("fixed") body
-      // into a normal dynamic one with a small sideways push and spin.
+      // Let go: turn the frozen ("fixed") body into a normal dynamic one with
+      // a small sideways push and spin.
       released.current = true;
-      p.scale.setScalar(1);
-      p.rotation.z = 0;
-      p.position.copy(middle.current);
       rb.setBodyType(rapier.RigidBodyType.Dynamic, true);
       rb.setLinvel({ x: noise(seed + 1) * theme.fall.sideSpeed, y: 0, z: 0 }, true);
       rb.setAngvel({ x: 0, y: 0, z: noise(seed + 21) * theme.fall.spin }, true);
@@ -162,6 +146,7 @@ function Letter(props: LetterProps) {
       <group ref={pivot}>
         <Text3D
           ref={mesh}
+          castShadow
           font={theme.fonts[theme.font].typeface}
           size={size}
           height={size * cfg.depth}
@@ -186,14 +171,13 @@ type LettersProps = {
   size: number;
   z: number;
   falling: boolean;
-  animate: boolean;
   bottom: Wall;
   dive: RefObject<DiveState>;
   // Called once, when the last letter has left the screen.
   onAllGone: () => void;
 };
 
-export function Letters({ slots, size, z, falling, animate, bottom, dive, onAllGone }: LettersProps) {
+export function Letters({ slots, size, z, falling, bottom, dive, onAllGone }: LettersProps) {
   const palette = theme.colors.letters;
   const goneCount = useRef(0);
 
@@ -215,7 +199,6 @@ export function Letters({ slots, size, z, falling, animate, bottom, dive, onAllG
           position={[slot.x, slot.y, z]}
           falling={falling}
           dropAt={slot.dropOrder * theme.fall.stagger}
-          animate={animate}
           seed={slot.index}
           bottom={bottom}
           dive={dive}

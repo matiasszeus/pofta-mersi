@@ -11,7 +11,9 @@ export type Wall = { point: THREE.Vector3; normal: THREE.Vector3 };
 // letter size to get world units.
 export type FontMetrics = {
   resolution: number;
-  glyphs: Record<string, { ha: number; o?: string } | undefined>;
+  // ha = advance (distance to the next letter's origin); x_min / x_max = where
+  // the glyph's ink starts and ends, measured from its origin; o = outline.
+  glyphs: Record<string, { ha: number; x_min?: number; x_max?: number; o?: string } | undefined>;
 };
 
 // Where one letter sits: the left end of its baseline (the point both Text3D
@@ -35,8 +37,6 @@ export type SceneLayout = {
   slots: Slot[];
   // Depth (world z) of the outlines and of the letters.
   z: number;
-  // Where the hint text goes: distance from the top of the screen, 0..1.
-  hintTop: number;
   // Height of the screen, in world units, measured on the letters' plane.
   visibleHeight: number;
 };
@@ -62,7 +62,7 @@ function glyphTop(outline = "") {
 // left and right sides of the camera's view volume, so they sit exactly on the
 // screen edges even though the camera is tilted.
 export function computeSceneLayout(aspect: number, font: FontMetrics): SceneLayout {
-  const { camera, bounds, letters, outline, hint } = theme;
+  const { camera, bounds, letters, outline } = theme;
   const fov = aspect >= 1 ? camera.fovLandscape : camera.fovPortrait;
 
   // Camera axes in world space: forward (where it looks), right, up.
@@ -86,29 +86,39 @@ export function computeSceneLayout(aspect: number, font: FontMetrics): SceneLayo
   const bottom: Wall = { point: position, normal: up.clone().addScaledVector(forward, tanV).normalize() };
 
   const z = center.z;
-  // How far in front of the camera a point on the letters' plane is, and where
-  // it lands on the screen (0 = top edge, 1 = bottom edge).
+  // How far in front of the camera a point on the letters' plane is.
   const depthAt = (y: number) => new THREE.Vector3(0, y, z).sub(position).dot(forward);
-  const screenY = (y: number) => {
-    const p = new THREE.Vector3(0, y, z).sub(position);
-    return (1 - p.dot(up) / p.dot(forward) / tanV) / 2;
-  };
 
   // Visible size of the letters' plane around the middle of the screen.
   const visibleHeight = 2 * depthAt(center.y) * tanV;
   const blockCenterY = center.y + visibleHeight * outline.offsetY;
   // The tilted camera sees a little less width higher up, so measure the width
   // at the top of the tallest block allowed.
-  const blockTopMax = blockCenterY + (visibleHeight * outline.maxHeight) / 2;
+  const landscape = aspect >= 1;
+  const maxHeight = landscape ? outline.maxHeightLandscape : outline.maxHeightPortrait;
+  const maxWidth = landscape ? outline.maxWidthLandscape : outline.maxWidthPortrait;
+  const blockTopMax = blockCenterY + (visibleHeight * maxHeight) / 2;
   const visibleWidth = 2 * depthAt(blockTopMax) * tanH;
 
   // Text measurements in "letter sizes" (multiply by the letter size for world units).
-  const advance = (char: string) => (font.glyphs[char]?.ha ?? 0) / font.resolution;
+  const metric = (char: string, key: "ha" | "x_min" | "x_max") =>
+    (font.glyphs[char]?.[key] ?? 0) / font.resolution;
   const rows = letters.rows.map((row) => [...row]);
-  const rowWidths = rows.map(
-    (row) => row.reduce((w, char) => w + advance(char), 0) + outline.letterSpacing * (row.length - 1),
+  // Ink width of a row with no extra spacing: from where the first letter's
+  // ink starts to where the last one's ends.
+  const inkWidth = (row: string[]) =>
+    row.slice(0, -1).reduce((w, char) => w + metric(char, "ha"), 0) +
+    metric(row[row.length - 1], "x_max") -
+    metric(row[0], "x_min");
+  const gaps = (row: string[]) => Math.max(row.length - 1, 1);
+  // All rows get the width of the widest one (with the normal spacing); the
+  // narrower rows spread their letters apart to match, so the block has
+  // straight left and right edges.
+  const widestRow = Math.max(...rows.map((row) => inkWidth(row) + outline.letterSpacing * gaps(row)));
+  const rowSpacing = rows.map((row) =>
+    outline.justify ? (widestRow - inkWidth(row)) / gaps(row) : outline.letterSpacing,
   );
-  const widestRow = Math.max(...rowWidths);
+  const rowWidths = rows.map((row, r) => inkWidth(row) + rowSpacing[r] * gaps(row));
   const capHeight =
     Math.max(...rows.flat().map((char) => glyphTop(font.glyphs[char]?.o))) / font.resolution;
   const blockHeight = rows.length * capHeight + (rows.length - 1) * outline.rowGap;
@@ -116,29 +126,27 @@ export function computeSceneLayout(aspect: number, font: FontMetrics): SceneLayo
   // One size for all rows: the widest row must fit the width, and the whole
   // block must fit the height. Rounded down so a window being resized does not
   // rebuild the letters on every pixel.
-  const byWidth = (visibleWidth * (1 - 2 * outline.paddingX)) / widestRow;
-  const byHeight = (visibleHeight * outline.maxHeight) / blockHeight;
+  const byWidth = (visibleWidth * maxWidth) / widestRow;
+  const byHeight = (visibleHeight * maxHeight) / blockHeight;
   const letterSize = Math.floor(Math.min(letters.maxSize, byWidth, byHeight) * 20) / 20;
 
-  // Lay the rows out like centered lines of text around blockCenterY.
+  // Lay the rows out like centered lines of text around blockCenterY
+  // (centered by their ink, so the edges line up exactly).
   // The bottom row falls first, so falling letters do not land on waiting ones.
   const slots: Slot[] = [];
   const blockTop = blockCenterY + (blockHeight * letterSize) / 2;
-  const blockBottom = blockCenterY - (blockHeight * letterSize) / 2;
   let index = 0;
   rows.forEach((row, r) => {
-    let x = (-rowWidths[r] * letterSize) / 2;
+    let x = (-rowWidths[r] / 2 - metric(row[0], "x_min")) * letterSize;
     const y = blockTop - capHeight * letterSize - r * (capHeight + outline.rowGap) * letterSize;
     const lettersBelow = rows.slice(r + 1).reduce((n, other) => n + other.length, 0);
     row.forEach((char, c) => {
       slots.push({ char, index: index++, dropOrder: lettersBelow + c, x, y });
-      x += (advance(char) + outline.letterSpacing) * letterSize;
+      x += (metric(char, "ha") + rowSpacing[r]) * letterSize;
     });
   });
 
-  const hintTop = screenY(blockBottom) + hint.gap;
-
-  return { fov, walls, bottom, letterSize, slots, z, hintTop, visibleHeight };
+  return { fov, walls, bottom, letterSize, slots, z, visibleHeight };
 }
 
 export function useSceneLayout(font: FontMetrics): SceneLayout {

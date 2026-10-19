@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageBackground } from "@/components/PageBackground";
+import { FlowerBackground } from "@/components/hero/FlowerBackground";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 
@@ -23,8 +24,6 @@ export function LabHero() {
   const reducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("idle");
   const [debug, setDebug] = useState(theme.debug.enabled);
-  // Where the hint text goes; the 3D scene reports it once it has measured itself.
-  const [hintTop, setHintTop] = useState<number | null>(null);
   // Changing this rebuilds the canvas from scratch (letters back in their outlines).
   const [run, setRun] = useState(0);
   const { href, fadeDuration, color } = theme.transition;
@@ -83,36 +82,21 @@ export function LabHero() {
       {/* On arrival the page itself already takes the gallery's color, so
           nothing else can show through while the pages switch. */}
       <PageBackground color={phase === "arrived" ? color : theme.colors.background} />
+      <FlowerBackground />
 
       <HeroCanvas
         key={run}
         falling={phase === "diving" || (phase === "arrived" && !reducedMotion)}
-        animate={!reducedMotion}
         debug={debug}
         onDiveEnd={arrive}
-        onHintTop={setHintTop}
       />
-
-      {/* Hint under the outlines; fades away once the sequence starts. */}
-      {hintTop !== null && (
-        <div
-          className="pointer-events-none absolute inset-x-0 text-center transition-opacity duration-300"
-          style={{ top: `${hintTop * 100}%`, color: theme.hint.color, opacity: phase === "idle" ? 1 : 0 }}
-        >
-          <p className="animate-pulse text-xs uppercase tracking-[0.3em] motion-reduce:animate-none">
-            {/* pointer-coarse = the main input is a finger, not a mouse */}
-            <span className="pointer-coarse:hidden">{theme.hint.mouse}</span>
-            <span className="hidden pointer-coarse:inline">{theme.hint.touch}</span>
-          </p>
-        </div>
-      )}
 
       {/* Plain link for anyone who does not get the interaction (or uses a keyboard). */}
       <Link
         href={href}
         onClick={(e) => e.stopPropagation()}
         className={`absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-2 text-sm transition-opacity duration-300 ${
-          phase === "idle" ? "opacity-60 hover:opacity-100" : "pointer-events-none opacity-0"
+          phase === "idle" ? "opacity-80 hover:opacity-100" : "pointer-events-none opacity-0"
         }`}
         style={{ color: theme.hint.color }}
       >

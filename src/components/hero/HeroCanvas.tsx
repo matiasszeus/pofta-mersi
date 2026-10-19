@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { PerspectiveCamera, useFont } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
@@ -11,29 +11,26 @@ import { diveDrop, type DiveState } from "./dive";
 import { DiveBackground } from "./DiveBackground";
 import { Letters } from "./Letters";
 import { Outlines } from "./Outlines";
+import { ShadowWall } from "./ShadowWall";
 import { useSceneLayout } from "./useSceneLayout";
 
 export type HeroCanvasProps = {
   // false = letters sit in their outlines; true = they let go, fall, and the
   // camera dives after them.
   falling: boolean;
-  // false = no idle animation (prefers-reduced-motion).
-  animate: boolean;
   debug?: boolean;
   // Called once the dive is over: its planned time has passed and the last
   // letter has left the screen. The screen is the gallery's color by then.
   onDiveEnd: () => void;
-  // Reports where the hint text goes (distance from the top, 0..1).
-  onHintTop: (top: number) => void;
 };
 
 // Everything inside <Canvas> is 3D scene content, not HTML. Hooks that read the
 // viewport (useSceneLayout) only work in here, hence the separate component.
-function Scene({ falling, animate, debug = false, onDiveEnd, onHintTop }: HeroCanvasProps) {
+function Scene({ falling, debug = false, onDiveEnd }: HeroCanvasProps) {
   // Loads the font file (pausing this component until it arrives); the layout
   // needs the letter widths from it.
   const font = useFont(theme.fonts[theme.font].typeface);
-  const { fov, walls, bottom, letterSize, slots, z, hintTop, visibleHeight } = useSceneLayout(font.data);
+  const { fov, walls, bottom, letterSize, slots, z, visibleHeight } = useSceneLayout(font.data);
   const { camera, lights, physics } = theme;
 
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
@@ -41,8 +38,6 @@ function Scene({ falling, animate, debug = false, onDiveEnd, onHintTop }: HeroCa
   const startedAt = useRef<number | null>(null);
   const allGone = useRef(false);
   const ended = useRef(false);
-
-  useEffect(() => onHintTop(hintTop), [hintTop, onHintTop]);
 
   // The dive: from the tap on, move the camera straight down (it keeps looking
   // in the same direction) and advance the background color.
@@ -77,8 +72,12 @@ function Scene({ falling, animate, debug = false, onDiveEnd, onHintTop }: HeroCa
       />
 
       <ambientLight intensity={lights.ambientIntensity} />
-      <directionalLight position={lights.keyPosition} intensity={lights.keyIntensity} />
+      <KeyLight />
       <directionalLight position={lights.fillPosition} intensity={lights.fillIntensity} />
+      <directionalLight position={lights.frontPosition} intensity={lights.frontIntensity} />
+      <directionalLight position={lights.rimPosition} intensity={lights.rimIntensity} color={lights.rimColor} />
+
+      <ShadowWall z={z - theme.shadow.distance * letterSize} />
 
       {/* Fixed in the scene: as the camera dives, they leave through the top. */}
       <Outlines slots={slots} size={letterSize} z={z} />
@@ -95,7 +94,6 @@ function Scene({ falling, animate, debug = false, onDiveEnd, onHintTop }: HeroCa
             size={letterSize}
             z={z}
             falling={falling}
-            animate={animate}
             bottom={bottom}
             dive={dive}
             onAllGone={() => (allGone.current = true)}
@@ -106,10 +104,44 @@ function Scene({ falling, animate, debug = false, onDiveEnd, onHintTop }: HeroCa
   );
 }
 
-export default function HeroCanvas(props: HeroCanvasProps) {
+// The main light, which also casts the letters' shadow. A directional light's
+// shadow is computed inside a box (an orthographic "shadow camera") around
+// where the light points; `area` sets that box's sides.
+function KeyLight() {
+  const { keyPosition, keyIntensity } = theme.lights;
+  const { mapSize, blur, area } = theme.shadow;
+
   return (
-    // dpr = device pixel ratio range: sharp on phones, capped at 2 to stay fast.
-    <Canvas dpr={[1, 2]}>
+    <directionalLight
+      position={keyPosition}
+      intensity={keyIntensity}
+      castShadow
+      // R3F shorthand: "shadow-mapSize" sets light.shadow.mapSize, etc.
+      shadow-mapSize={[mapSize, mapSize]}
+      shadow-radius={blur}
+      shadow-blurSamples={16}
+      shadow-camera-left={area.left}
+      shadow-camera-right={area.right}
+      shadow-camera-top={area.top}
+      shadow-camera-bottom={area.bottom}
+      shadow-camera-near={1}
+      shadow-camera-far={60}
+    />
+  );
+}
+
+export default function HeroCanvas(props: HeroCanvasProps) {
+  // Decided once, when the canvas is created (this file only ever runs in the
+  // browser, so `window` exists).
+  const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
+  const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
+
+  return (
+    // dpr = device pixel ratio range: as sharp as the screen allows, up to the
+    // cap (fewer pixels to draw on big screens).
+    // shadows="variance": a shadow technique whose edges can be blurred
+    // cheaply, which gives the soft shadow behind the letters.
+    <Canvas dpr={[1, dprCap]} shadows="variance">
       {/* Suspense: render nothing until the fonts have loaded. */}
       <Suspense fallback={null}>
         <Scene {...props} />

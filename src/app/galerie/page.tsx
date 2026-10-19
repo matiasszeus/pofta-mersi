@@ -11,14 +11,14 @@ export const viewport: Viewport = {
 
 // Placeholder until the real gallery exists.
 export default function GaleriePage() {
-  const { distance, duration, easing } = theme.galleryEnter;
+  const { distance, duration, easing } = theme.gallery.enter;
 
   return (
     // The background is there from the very first frame, in exactly the color
     // the hero's dive ended on, so the switch between pages cannot be seen.
     <main
       className="flex min-h-dvh flex-col items-center justify-center px-6 text-center"
-      style={{ background: theme.transition.color, color: theme.hint.color }}
+      style={{ background: theme.transition.color, color: theme.gallery.text }}
     >
       <PageBackground color={theme.transition.color} />
       {/* Only the content moves: it rises from below, continuing the dive.
