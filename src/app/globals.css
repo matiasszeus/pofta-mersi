@@ -160,7 +160,11 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
-/* /lab/album: the album on the mat, hidden while its copy opens. */
-.hide-album [data-object="album"] {
-  visibility: hidden;
+/* /lab/album: while open, the album is above the layer darkening the mat,
+   and no longer grows on hover / press. */
+.album-open [data-object="album"] {
+  z-index: 20;
+}
+.album-open [data-object="album"] .obj-art {
+  scale: none;
 }

@@ -1,23 +1,51 @@
 import { theme } from "@/config/theme";
 
-const { book, spreadMinWidth, offsetY, rim } = theme.album;
+const { cover, thickness, boardEdge, book, spreadMinWidth, offsetY } = theme.album;
 
-// Where the closed book goes on a screen of this size, in CSS px from the
-// top-left corner: centred, as big as `book` in theme.ts allows. spread =
-// wide screen: two pages side by side once it is open.
-export type AlbumLayout = { spread: boolean; left: number; top: number; width: number; height: number; rim: number };
+// The cover's height / width (from its picture).
+export const coverRatio = cover.height / cover.width;
+
+// The whole closed book (cover, the stack of pages showing right of and
+// below it, the board around that), for a cover this wide.
+export function bookSize(coverWidth: number) {
+  return {
+    width: coverWidth * (1 + thickness + boardEdge),
+    height: coverWidth * (coverRatio + thickness + boardEdge),
+  };
+}
+
+// The open book on a screen of this size, in CSS px from the top-left
+// corner: the closed book's box (left, top, width, height) centred, as big
+// as `book` in theme.ts allows, and the cover's width. spread = wide screen:
+// open, the cover lies left of the pages, and the book slides half a cover
+// to the right so the two are centred.
+export type AlbumLayout = {
+  spread: boolean;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  coverWidth: number;
+};
 
 export function albumLayout(screenWidth: number, screenHeight: number): AlbumLayout {
   const spread = screenWidth >= spreadMinWidth;
-  const room = (screenWidth - 2 * book.sideMargin) / (spread ? 2 : 1);
-  const width = Math.min(room, book.maxWidth, ((book.maxHeightVh / 100) * screenHeight) / book.ratio);
-  const height = width * book.ratio;
+  const one = bookSize(1);
+  // Width taken by a cover 1px wide: the closed book, or (spread) the open
+  // cover plus the closed book.
+  const across = spread ? 1 + one.width : one.width;
+  const coverWidth = Math.min(
+    (screenWidth - 2 * book.sideMargin) / across,
+    book.maxWidth,
+    ((book.maxHeightVh / 100) * screenHeight) / one.height,
+  );
+  const { width, height } = bookSize(coverWidth);
   return {
     spread,
     left: (screenWidth - width) / 2,
     top: (screenHeight - height) / 2 + offsetY * screenHeight,
     width,
     height,
-    rim: Math.round(width * rim),
+    coverWidth,
   };
 }

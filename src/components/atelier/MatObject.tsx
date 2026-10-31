@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { theme } from "@/config/theme";
@@ -64,6 +64,9 @@ type MatObjectProps = {
   // Optional: a tap calls this (with the link element) instead of going to
   // the object's page. Used by /lab/album.
   onActivate?: (link: HTMLAnchorElement) => void;
+  // Optional: drawn instead of the picture and its shadow, filling the
+  // object's box (the album drawn in code on /lab/album).
+  art?: ReactNode;
 };
 
 // One object lying on the atelier mat (the album):
@@ -74,7 +77,7 @@ type MatObjectProps = {
 // turned black and blurred, under it. Moving, scaling and fading that copy is
 // cheap for the browser; animating a CSS drop-shadow would make it re-blur
 // the whole image on every frame.
-export function MatObject({ object, entrance, slamDelay = 0, onActivate }: MatObjectProps) {
+export function MatObject({ object, entrance, slamDelay = 0, onActivate, art }: MatObjectProps) {
   const portrait = placeCss(object, object.portrait);
   const landscape = placeCss(object, object.landscape);
   const animationName = `slam-${object.key}`;
@@ -123,26 +126,30 @@ export function MatObject({ object, entrance, slamDelay = 0, onActivate }: MatOb
     >
       {entrance === "slam" && <style>{slamKeyframes(animationName, object.rotation)}</style>}
       <div className="obj-art relative w-full">
-        <Image
-          src={object.src}
-          width={object.width}
-          height={object.height}
-          alt=""
-          aria-hidden
-          sizes={sizes}
-          priority
-          className="obj-shadow absolute inset-0 h-auto w-full"
-        />
-        <Image
-          src={object.src}
-          width={object.width}
-          height={object.height}
-          alt={object.alt}
-          // Visible right away: load it first, without lazy loading.
-          priority
-          sizes={sizes}
-          className="relative h-auto w-full"
-        />
+        {art ?? (
+          <>
+            <Image
+              src={object.src}
+              width={object.width}
+              height={object.height}
+              alt=""
+              aria-hidden
+              sizes={sizes}
+              priority
+              className="obj-shadow absolute inset-0 h-auto w-full"
+            />
+            <Image
+              src={object.src}
+              width={object.width}
+              height={object.height}
+              alt={object.alt}
+              // Visible right away: load it first, without lazy loading.
+              priority
+              sizes={sizes}
+              className="relative h-auto w-full"
+            />
+          </>
+        )}
       </div>
     </Link>
   );

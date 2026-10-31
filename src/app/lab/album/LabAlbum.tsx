@@ -1,66 +1,61 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { AlbumOpening, type AlbumPhoto } from "@/components/album/AlbumOpening";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { MatAlbum, matAlbumObject } from "@/components/album/MatAlbum";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 
-const album = theme.atelier.objects[0];
+const album = matAlbumObject(theme.atelier.objects[0]);
+const overrides = { [album.key]: album };
 
-// The atelier's stage, with the album opening on tap instead of going to
-// /album; plus lab-only buttons to replay the opening or close it.
+// The atelier's stage with the album drawn in code lying on the mat; a tap
+// opens it instead of going to /album. Plus lab-only buttons to replay the
+// opening or close it.
 export function LabAlbum() {
   const reducedMotion = useReducedMotion();
-  // The album on the mat at the moment of the tap; null = closed.
-  const [photo, setPhoto] = useState<AlbumPhoto | null>(null);
+  const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
-  const [albumHidden, setAlbumHidden] = useState(false);
+  const dim = useRef<HTMLDivElement>(null);
 
-  const onObjectActivate = useCallback((key: string, link: HTMLAnchorElement) => {
-    if (key !== album.key) return;
-    const r = link.getBoundingClientRect(); // the link is not turned: its box
-    const img = link.querySelector<HTMLImageElement>("img:last-of-type");
-    setPhoto({
-      rect: { left: r.left, top: r.top, width: r.width, height: r.height },
-      src: album.src,
-      width: album.width,
-      height: album.height,
-      rotation: album.rotation,
-      sizes: img?.sizes ?? "100vw",
-    });
+  const onObjectActivate = useCallback((key: string) => {
+    if (key === album.key) setOpen(true);
   }, []);
 
-  const close = () => {
-    setPhoto(null);
-    setAlbumHidden(false);
-  };
+  const art = useMemo(
+    () => ({ [album.key]: <MatAlbum object={album} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} /> }),
+    [open, run, reducedMotion],
+  );
 
   return (
     // display: contents = no box of its own, the stage is laid out exactly
-    // as on /atelier. The class hides the album on the mat while its copy
-    // opens.
-    <div className={`contents ${albumHidden ? "hide-album" : ""}`}>
-      <AtelierStage onObjectActivate={onObjectActivate} />
-      {photo && (
-        <>
-          <AlbumOpening key={run} from={photo} reducedMotion={reducedMotion} onCovering={() => setAlbumHidden(true)} />
-          <div className="fixed top-[max(env(safe-area-inset-top),12px)] right-3 z-50 flex gap-2 font-sans text-sm">
-            <button
-              type="button"
-              className="rounded-full bg-white/85 px-3 py-1.5 text-black shadow"
-              onClick={() => {
-                setAlbumHidden(false);
-                setRun((n) => n + 1);
-              }}
-            >
-              reia animația
-            </button>
-            <button type="button" className="rounded-full bg-white/85 px-3 py-1.5 text-black shadow" onClick={close}>
-              închide
-            </button>
-          </div>
-        </>
+    // as on /atelier.
+    <div className={`contents ${open ? "album-open" : ""}`}>
+      <AtelierStage onObjectActivate={onObjectActivate} objectArt={art} objectOverrides={overrides} />
+      {/* Darkens the mat (letters, note) under the open album; while open it
+          also takes the taps meant for them. */}
+      <div
+        ref={dim}
+        className={`fixed inset-0 z-15 h-lvh opacity-0 ${open ? "" : "pointer-events-none"}`}
+        style={{ background: theme.album.opening.dim.color }}
+      />
+      {open && (
+        <div className="fixed top-[max(env(safe-area-inset-top),12px)] right-3 z-50 flex gap-2 font-sans text-sm">
+          <button
+            type="button"
+            className="rounded-full bg-white/85 px-3 py-1.5 text-black shadow"
+            onClick={() => setRun((n) => n + 1)}
+          >
+            reia animația
+          </button>
+          <button
+            type="button"
+            className="rounded-full bg-white/85 px-3 py-1.5 text-black shadow"
+            onClick={() => setOpen(false)}
+          >
+            închide
+          </button>
+        </div>
       )}
     </div>
   );

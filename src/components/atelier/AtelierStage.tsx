@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
@@ -8,6 +8,7 @@ import { preloadLanding, whenIdle } from "@/lib/preload";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
+import type { MatObjectConfig } from "./objectLayout";
 
 const { objects, object } = theme.atelier;
 const { slam } = object;
@@ -29,9 +30,13 @@ type StageProps = {
   // Optional: a tap on an object calls this instead of going to its page
   // (see MatObject). Used by /lab/album.
   onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
+  // Optional, per object key: drawn instead of its picture (see MatObject),
+  // and its own settings instead of the ones in theme.ts.
+  objectArt?: Record<string, ReactNode>;
+  objectOverrides?: Record<string, MatObjectConfig>;
 };
 
-function Stage({ onObjectActivate }: StageProps) {
+function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
   const reducedMotion = useReducedMotion();
   const animate = !reducedMotion;
   const [landed, setLanded] = useState(false);
@@ -75,10 +80,11 @@ function Stage({ onObjectActivate }: StageProps) {
       {objects.map((o, i) => (
         <MatObject
           key={o.key}
-          object={o}
+          object={objectOverrides?.[o.key] ?? o}
           entrance={entrance}
           slamDelay={slamDelay(i)}
           onActivate={onObjectActivate && ((link) => onObjectActivate(o.key, link))}
+          art={objectArt?.[o.key]}
         />
       ))}
     </>
@@ -92,7 +98,7 @@ function Stage({ onObjectActivate }: StageProps) {
 // So: when the page is left (pagehide), the stage is removed right away, so
 // the frozen copy is the empty mat; when such a copy comes back (pageshow
 // with persisted = true), a fresh stage is mounted and the animation runs.
-export function AtelierStage({ onObjectActivate }: StageProps) {
+export function AtelierStage(props: StageProps) {
   const [run, setRun] = useState(0);
   const [hidden, setHidden] = useState(false);
 
@@ -111,5 +117,5 @@ export function AtelierStage({ onObjectActivate }: StageProps) {
     };
   }, []);
 
-  return hidden ? null : <Stage key={run} onObjectActivate={onObjectActivate} />;
+  return hidden ? null : <Stage key={run} {...props} />;
 }
