@@ -590,7 +590,7 @@ export const theme = {
       // `liftAt` of the time: bigger, closer to you, almost straight), ends
       // `settled` in the middle. y in px for a 340px wide page.
       flight: {
-        duration: 1.2,
+        duration: 2,
         easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
         liftAt: 0.45,
         lifted: { y: -34, scale: 1.06, rotation: -1.5 },
