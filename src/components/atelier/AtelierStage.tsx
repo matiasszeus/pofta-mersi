@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
+import { preloadLanding, whenIdle } from "@/lib/preload";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
@@ -29,6 +30,22 @@ function Stage() {
   const animate = !reducedMotion;
   const [landed, setLanded] = useState(false);
   const onLanded = useCallback(() => setLanded(true), []);
+
+  // Once everything lies still (the last object's slam and its shadow's
+  // pulse are over): get the landing ready in the background, for a visitor
+  // who goes there next. Not earlier: parsing its code could make the
+  // animations stutter on a phone.
+  useEffect(() => {
+    if (!landed) return;
+    const lastSlamEnd = slamDelay(objects.length - 1) + slam.fall + slam.squashDuration;
+    const settled = (lastSlamEnd + object.pulse.delay + object.pulse.duration) * 1000;
+    let cancelIdle = () => {};
+    const timer = setTimeout(() => (cancelIdle = whenIdle(preloadLanding, 4000)), settled);
+    return () => {
+      clearTimeout(timer);
+      cancelIdle();
+    };
+  }, [landed]);
 
   // Safety net: show the objects even if the letters never report that
   // they landed (for example when the device has no WebGL).

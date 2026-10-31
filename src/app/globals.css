@@ -152,3 +152,10 @@ body {
 .note-appear {
   animation: fade-in var(--note-appear-duration) ease-out var(--note-appear-delay) backwards;
 }
+
+/* The landing's color change without 3D (see SlideBand). */
+@keyframes slide-band {
+  to {
+    transform: translateY(var(--slide-to));
+  }
+}

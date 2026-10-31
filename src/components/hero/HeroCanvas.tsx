@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
 import { PerspectiveCamera, useFont } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
 import * as THREE from "three";
 import { theme } from "@/config/theme";
+import { markLoad } from "@/lib/loadMarks";
 import { Bounds } from "./Bounds";
 import { diveDrop, type DiveState } from "./dive";
 import { DiveBackground } from "./DiveBackground";
@@ -22,16 +23,38 @@ export type HeroCanvasProps = {
   // Called once the dive is over: its planned time has passed and the last
   // letter has left the screen. The screen is the atelier's color by then.
   onDiveEnd: () => void;
+  // Called once the first frame with the 3D letters is on screen.
+  onReady?: () => void;
 };
+
+// Placed after the letters, inside the physics engine: it only mounts once
+// everything before it has loaded. Its first frame is the first one drawn
+// with the letters; right after it (next animation frame) they are on screen.
+function FirstFrame({ onReady }: { onReady?: () => void }) {
+  const done = useRef(false);
+  useLayoutEffect(() => markLoad("physics"), []);
+  useFrame(() => {
+    if (done.current) return;
+    done.current = true;
+    requestAnimationFrame(() => {
+      markLoad("ready");
+      onReady?.();
+    });
+  });
+  return null;
+}
 
 // Everything inside <Canvas> is 3D scene content, not HTML. Hooks that read the
 // viewport (useSceneLayout) only work in here, hence the separate component.
-function Scene({ falling, debug = false, onDiveEnd }: HeroCanvasProps) {
+function Scene({ falling, debug = false, onDiveEnd, onReady }: HeroCanvasProps) {
   // Loads the font file (pausing this component until it arrives); the layout
   // needs the letter widths from it.
   const font = useFont(theme.fonts[theme.font].typeface);
   const { fov, walls, bottom, letterSize, slots, z, visibleHeight } = useSceneLayout(font.data);
   const { camera, lights, physics } = theme;
+
+  // Only reached once the fonts (3D letters, outlines) have loaded.
+  useLayoutEffect(() => markLoad("fonts"), []);
 
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   const dive = useRef<DiveState>({ drop: 0, progress: 0 });
@@ -98,6 +121,7 @@ function Scene({ falling, debug = false, onDiveEnd }: HeroCanvasProps) {
             dive={dive}
             onAllGone={() => (allGone.current = true)}
           />
+          <FirstFrame onReady={onReady} />
         </Physics>
       </Suspense>
     </>
@@ -141,7 +165,7 @@ export default function HeroCanvas(props: HeroCanvasProps) {
     // cap (fewer pixels to draw on big screens).
     // shadows="variance": a shadow technique whose edges can be blurred
     // cheaply, which gives the soft shadow behind the letters.
-    <Canvas dpr={[1, dprCap]} shadows="variance">
+    <Canvas dpr={[1, dprCap]} shadows="variance" onCreated={() => markLoad("webgl")}>
       {/* Suspense: render nothing until the fonts have loaded. */}
       <Suspense fallback={null}>
         <Scene {...props} />

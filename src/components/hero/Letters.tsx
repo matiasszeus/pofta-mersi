@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
+import { MeshCollider, RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { theme } from "@/config/theme";
 import type { DiveState } from "./dive";
-import { LetterGlyph } from "./LetterGlyph";
+import { LetterGlyph, useHullShape } from "./LetterGlyph";
 import type { Slot, Wall } from "./useSceneLayout";
 
 type Vec3 = [number, number, number];
@@ -126,13 +126,20 @@ function Letter(props: LetterProps) {
     }
   });
 
+  // Collision shape: a convex hull (the letter shrink-wrapped, holes filled
+  // in), wrapped around a coarse, invisible copy of the letter (see
+  // useHullShape).
+  const hull = useHullShape(char, size);
+
   return (
     <RigidBody
       ref={body}
       // "fixed" = frozen in place until the letter lets go (see useFrame).
       type="fixed"
-      // "hull" = convex hull collider: the letter shrink-wrapped, holes filled in.
-      colliders="hull"
+      colliders={false}
+      // The collision shape is made from an invisible copy (below), which
+      // the engine skips unless told otherwise.
+      includeInvisible
       position={position}
       enabledRotations={cfg.rotationAxes}
       enabledTranslations={cfg.moveAxes}
@@ -143,6 +150,9 @@ function Letter(props: LetterProps) {
       // Continuous collision detection: fast letters do not skip through things.
       ccd
     >
+      <MeshCollider type="hull">
+        <mesh geometry={hull.geometry} position={[0, 0, hull.z]} visible={false} dispose={null} />
+      </MeshCollider>
       <group ref={pivot}>
         <LetterGlyph ref={mesh} char={char} size={size} color={color} />
       </group>

@@ -128,7 +128,8 @@ export function computeSceneLayout(aspect: number, font: FontMetrics): SceneLayo
   // rebuild the letters on every pixel.
   const byWidth = (visibleWidth * maxWidth) / widestRow;
   const byHeight = (visibleHeight * maxHeight) / blockHeight;
-  const letterSize = Math.floor(Math.min(letters.maxSize, byWidth, byHeight) * 20) / 20;
+  const step = letters.sizeStep;
+  const letterSize = Math.floor(Math.min(letters.maxSize, byWidth, byHeight) / step) * step;
 
   // Lay the rows out like centered lines of text around blockCenterY
   // (centered by their ink, so the edges line up exactly).

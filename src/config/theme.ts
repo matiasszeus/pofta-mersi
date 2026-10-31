@@ -57,6 +57,9 @@ export const theme = {
   landing: {
     flowersPortrait: "/images/landing/flowers-portrait.webp",
     flowersLandscape: "/images/landing/flowers-landscape.webp",
+    // Seconds the still picture of the title (shown until the 3D scene is
+    // ready) takes to fade out over the identical 3D letters.
+    titleSwap: 0.25,
   },
 
   camera: {
@@ -111,6 +114,10 @@ export const theme = {
     // The size is whatever makes the outlines fit the screen (see `outline`),
     // but never larger than this.
     maxSize: 3.5,
+    // The size is rounded down to steps of this (world units), so resizing a
+    // window does not rebuild the letters on every pixel. Small, so the
+    // static title picture (StaticTitle) matches the 3D letters closely.
+    sizeStep: 0.01,
     // Shape, as fractions of the letter size, so the proportions survive scaling.
     // depth = the flat middle part; the bevel adds a rounded bulge on the front
     // and on the back (bevelThickness each). Sideways the rounding is bevelSize
@@ -203,6 +210,10 @@ export const theme = {
     color: atelierBackground,
     // prefers-reduced-motion only: no dive, just a fade of this many seconds.
     fadeDuration: 0.6,
+    // A tap while the 3D scene is still loading waits up to this many
+    // seconds for it, then dives; if it is still not there, the rising
+    // color plays instead (no letters).
+    sceneWait: 3,
   },
 
   // The page after the landing: a green cutting mat seen from above.
@@ -240,9 +251,9 @@ export const theme = {
     objects: [
       {
         key: "album",
-        src: "/images/atelier/album.png",
+        src: "/images/atelier/album-3.png",
         width: 774, // the image file's real size, in pixels
-        height: 898,
+        height: 989,
         alt: "Albumul cu stickerele Pofta Mersi",
         href: "/album",
         ariaLabel: "Album", // what screen readers announce for the link
