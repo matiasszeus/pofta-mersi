@@ -599,7 +599,7 @@ export const theme = {
       // The cover turns open (rotateY 0 -> -180deg) starting `delay` after
       // the tap. On wide screens the book slides half a page to the right
       // at the same time, so both pages end up centred.
-      cover: { delay: 0.08, duration: 1.2, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
+      cover: { delay: 0.14, duration: 1.2, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
       // The mat darkens.
       dim: { color: palette.forest, opacity: 0.22, duration: 0.7 },
       // prefers-reduced-motion: no movement; the book fades out on the mat
