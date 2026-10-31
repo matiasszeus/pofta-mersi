@@ -22,5 +22,7 @@ export const content = {
       { key: "tricouri", title: "TRICOURI", page: null },
       { key: "tote-bags", title: "TOTE BAGS", page: null },
     ] as { key: string; title: string; page: number | null }[],
+    // The stickers section: its divider page (2) and its first page (3).
+    stickers: { title: "STICKERE", blurb: "[o frază despre stickere]" },
   },
 };

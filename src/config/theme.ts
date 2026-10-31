@@ -38,7 +38,8 @@ export const palette = {
   paper: "#F4EEE0", // cream pages
   coverBlack: "#1B1B1D", // its hard cover (as in the album photo)
   ribbon: "#F2C14E", // the bookmark ribbon
-  forest: "#0E3322", // dark green: the layer that darkens the mat
+  forest: "#081E12", // very dark green: the layer that darkens the mat
+  pageLine: "#C9C2B2", // the lines on the edge of the stack of pages
 };
 
 // Used in more than one place below.
@@ -506,85 +507,101 @@ export const theme = {
     },
   },
 
-  // The album. Its front is one picture (the cover, straight, seen from the
-  // front); the rest is drawn in code: the stack of pages behind it (its
-  // thickness), the black back board, the cover's inside and the pages.
-  // For now only on /lab/album, where it also lies on the mat: tapped, it
-  // lifts, flies to the middle and opens. Sizes in CSS px unless noted.
+  // The album (for now only on /lab/album, where it lies on the mat):
+  // tapped, it rises, settles in the middle of the screen and opens. All
+  // values come from the approved prototype (docs/album-deschidere-
+  // referinta.html).
+  //
+  // Sizes of its parts are in "u": px on a page 318px wide; they scale with
+  // the page (on a 390px phone the page is 340px wide, so 1u = 1.069px).
+  // The front of the cover is one picture; everything else is drawn.
   album: {
     cover: { src: "/images/album/coperta.png", width: 665, height: 862 },
-    // The stack of cream pages showing under the cover's right and bottom
-    // edges, and the back board around it, as fractions of the cover's
-    // width (0.057 = 18px when the cover is 318px wide: open on a phone).
-    thickness: 0.057,
-    boardEdge: 0.014,
-    // The open book's cover width: the whole book (cover + thickness +
-    // board) is the screen width minus sideMargin on each side, never more
-    // than maxWidth px wide (the cover) nor taller than maxHeightVh % of the
-    // screen height. Wide screens show two pages side by side, so there the
-    // open book (cover lying left + pages) has to fit instead.
-    book: { sideMargin: 25, maxWidth: 440, maxHeightVh: 74 },
-    // From this screen width (CSS px) on: two pages side by side.
-    spreadMinWidth: 700,
+    unitWidth: 318, // the page width at which 1u = 1px
+    // The page (the open book's right side): height / width; its width is
+    // the screen width minus sideMargin on each side (phones), never more
+    // than maxWidth px nor taller than maxHeightVh % of the screen height.
+    // Wide screens show both pages: there the open cover, the page, the
+    // board and the tabs together have to fit (spreadWidth = their width
+    // in page widths).
+    page: { ratio: 453 / 340, sideMargin: 25, maxWidth: 400, maxHeightVh: 74 },
+    spreadMinWidth: 700, // from this screen width on: both pages side by side
+    spreadWidth: 2.12,
     // The open book sits this much (fraction of the screen height) above
-    // the middle, so the ribbon hanging under it fits too.
-    offsetY: -0.02,
-    // Distance from the eye to the screen for the 3D (px). Smaller = the
-    // turning cover looks closer and bigger.
-    perspective: 1800,
-    // Shadows on the mat: lying (close and tight), and in the air (wide and
-    // soft; it fades in while the book lifts).
-    shadowRest: "4px 6px 7px rgb(0 0 0 / 0.4)",
-    shadowLifted: "0 26px 50px rgb(0 0 0 / 0.42), 0 6px 14px rgb(0 0 0 / 0.25)",
+    // the middle (the prototype: 27.5px on an 844px screen).
+    offsetY: -0.0326,
+    perspective: 1900, // px: distance from the eye for the 3D
+
+    // The layers, from the back: board, stack of pages (its edges), the
+    // page underneath, the sheet (the contents on its front), the cover.
+    thickness: 18, // u: the stack of pages showing right of and below
+    board: {
+      // u: how far it reaches past the page (top, and right / bottom
+      // past the stack); corner radius on the right.
+      top: 6,
+      beyond: 4,
+      radius: 8,
+      // Its shadow lying on the mat, and in the air (fades in while it
+      // lifts; u for the sizes).
+      shadowRest: "0 6px 10px rgb(8 30 18 / 0.35)",
+      shadowLifted: "0 calc(var(--u) * 24px) calc(var(--u) * 46px) rgb(8 30 18 / 0.45), 0 calc(var(--u) * 4px) calc(var(--u) * 10px) rgb(8 30 18 / 0.35)",
+      shadowDuration: 1.1, // seconds, ease
+    },
+    // The cover reaches past the page by `over` u at the top, bottom and
+    // right; corner radii in u.
+    coverParts: { over: 6, radiusSpine: 3, radiusEdge: 9 },
+    pageRadius: 4, // u, on the outer corners of the pages
+    ribbon: { left: 206, width: 16, height: 46, below: 38 }, // u
+    tabs: { width: 24, height: 74, radius: 7, textSize: 10, tops: [40, 120] }, // u
+    // The contents page (u).
+    contents: {
+      padding: { top: 34, right: 28, bottom: 30, left: 34 },
+      titleSize: 42,
+      titleTurn: -2, // degrees
+      listTop: 34,
+      rowGap: 20,
+      itemSize: 21,
+      numberSize: 15,
+      dot: 10,
+      soonOpacity: 0.45,
+    },
+    pageNumber: { size: 12, bottom: 14, side: 20 }, // u
     colors: {
       board: palette.coverBlack,
-      // The inside of the cover: lilac with sage dots.
-      lining: palette.lilac,
-      liningDots: palette.sage,
       paper: palette.paper,
-      // The fine lines on the edge of the stack of pages.
-      pageEdges: "rgb(29 38 51 / 0.16)",
+      pageLine: palette.pageLine,
       ink: palette.ink,
       ribbon: palette.ribbon,
+      // The cover's inside: lilac with sage dots; the section dividers:
+      // lilac with fine dots.
+      lining: palette.lilac,
+      liningDots: palette.sage,
+      divider: palette.lilac,
     },
     // Each section's color (the dot in the contents, its tab on the edge).
     sectionColors: {
       stickere: palette.lilac,
       bratari: palette.sage,
-      tricouri: palette.lilac,
-      "tote-bags": palette.sage,
     } as Record<string, string>,
-
-    // The contents page. Sizes as fractions of the page's width.
-    contents: {
-      padding: { top: 0.12, x: 0.1 },
-      titleSize: 0.16,
-      listTop: 0.09, // space under the title
-      itemSize: 0.08,
-      itemGap: 0.07,
-      dot: 0.035,
-      numberSize: 0.06,
-      soonOpacity: 0.4,
-    },
-    // The coloured tabs on the pages' right edge, one per section that has
-    // pages: they reach past the stack and the board. Fractions of the
-    // page's width (top: of its height).
-    tabs: { top: 0.1, height: 0.2, gap: 0.015, out: 0.115, textSize: 0.034 },
-    // The ribbon hanging out at the bottom (fractions of the page's width).
-    bookmark: { left: 0.68, width: 0.07, hang: 0.15 },
 
     // The opening: one movement from the tap. Seconds; easings as CSS.
     opening: {
-      // The book leaves its place on the mat, rises towards you (liftScale
-      // times bigger than on the straight way, at liftAt of the time),
-      // straightens and settles in the middle.
-      flight: { duration: 1.2, easing: "cubic-bezier(0.3, 0.7, 0.3, 1)", liftScale: 1.06, liftAt: 0.45 },
-      // Meanwhile the cover turns open around the spine, starting `delay`
-      // after the tap. On wide screens the book slides half a cover to the
-      // right at the same time, so both pages end up centred.
+      // The book leaves its place on the mat and, through `lifted` (at
+      // `liftAt` of the time: bigger, closer to you, almost straight), ends
+      // `settled` in the middle. y in px for a 340px wide page.
+      flight: {
+        duration: 1.2,
+        easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+        liftAt: 0.45,
+        lifted: { y: -34, scale: 1.06, rotation: -1.5 },
+        settled: { y: -10 },
+      },
+      // The cover turns open (rotateY 0 -> -180deg) starting `delay` after
+      // the tap. On wide screens the book slides half a page to the right
+      // at the same time, so both pages end up centred.
       cover: { delay: 0.08, duration: 1.2, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
-      // The mat darkens during the whole flight.
-      dim: { color: palette.forest, opacity: 0.22 },
+      // The mat darkens.
+      dim: { color: palette.forest, opacity: 0.22, duration: 0.7 },
       // prefers-reduced-motion: no movement; the book fades out on the mat
       // and fades in open in the middle.
       reducedMotionFade: 0.4,
