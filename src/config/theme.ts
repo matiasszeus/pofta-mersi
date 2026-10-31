@@ -34,6 +34,11 @@ export const palette = {
   ink: "#1D2633", // near-black: text and letters on light backgrounds
   neon: "#4CF23C", // only small accents on dark backgrounds, never text on light
   white: "#FFFFFF", // text on the green (sage on green is too faint to read)
+  // The album.
+  paper: "#F4EEE0", // cream pages
+  coverBlack: "#1B1B1D", // its hard cover (as in the album photo)
+  ribbon: "#F2C14E", // the bookmark ribbon
+  forest: "#0E3322", // dark green: the layer that darkens the mat
 };
 
 // Used in more than one place below.
@@ -498,6 +503,107 @@ export const theme = {
         blurHigh: 24,
         mapSize: 1024,
       },
+    },
+  },
+
+  // The album, drawn in code (CSS 3D): it opens from the atelier's mat.
+  // For now only on /lab/album. Sizes in CSS px unless noted; the book's
+  // insides scale with it (as fractions of its width).
+  album: {
+    // The closed book (its hard cover): height / width, and its width:
+    // the screen width minus sideMargin on each side, but never more than
+    // maxWidth px nor taller than maxHeightVh % of the screen height.
+    // Wide screens show two pages side by side, so there each page gets
+    // half the width.
+    book: { ratio: 1.33, sideMargin: 25, maxWidth: 440, maxHeightVh: 74 },
+    // From this screen width (CSS px) on: two pages side by side.
+    spreadMinWidth: 700,
+    // The book sits this much (fraction of the screen height) above the
+    // middle, so the ribbon hanging under it fits too.
+    offsetY: -0.02,
+    // The black hard cover shows around the pages, this wide (fraction of
+    // the book's width).
+    rim: 0.018,
+    // Distance from the eye to the screen for the 3D (px). Smaller = the
+    // turning cover looks closer and bigger.
+    perspective: 1800,
+    shadow: "0 18px 40px rgb(0 0 0 / 0.45), 0 4px 10px rgb(0 0 0 / 0.3)",
+    colors: {
+      cover: palette.coverBlack,
+      title: palette.lilac,
+      // The inside of the cover: lilac with sage dots.
+      lining: palette.lilac,
+      liningDots: palette.sage,
+      paper: palette.paper,
+      ink: palette.ink,
+      ribbon: palette.ribbon,
+    },
+    // Each section's color (the dot in the contents, its tab on the edge).
+    sectionColors: {
+      stickere: palette.lilac,
+      bratari: palette.sage,
+      tricouri: palette.lilac,
+      "tote-bags": palette.sage,
+    } as Record<string, string>,
+
+    // Where the cover is in the album photo on the mat (album-3.png), as
+    // fractions of the picture: the drawn book takes over from exactly there.
+    photoCover: { left: 0.0, top: 0.0, width: 0.85, height: 0.88 },
+
+    // The front of the cover: the title, and stickers (cut out of the photo
+    // for now). left / top / width as fractions of the cover's width and
+    // height (width: of its width); rotation in degrees.
+    cover: {
+      titleSize: 0.15, // fraction of the cover's width
+      titleTop: 0.19,
+      stickers: [
+        { src: "/images/album/stickers/label.webp", w: 225, h: 88, left: 0.08, top: 0.03, width: 0.42, rotation: -3 },
+        { src: "/images/album/stickers/flower.webp", w: 131, h: 115, left: 0.66, top: 0.03, width: 0.27, rotation: 6 },
+        { src: "/images/album/stickers/glasses.webp", w: 139, h: 163, left: 0.32, top: 0.33, width: 0.3, rotation: -5 },
+        { src: "/images/album/stickers/sugaci.webp", w: 147, h: 112, left: 0.66, top: 0.36, width: 0.27, rotation: 4 },
+        { src: "/images/album/stickers/bald.webp", w: 159, h: 216, left: 0.64, top: 0.62, width: 0.3, rotation: -2 },
+      ],
+    },
+
+    // The contents page. Sizes as fractions of the page's width.
+    contents: {
+      padding: { top: 0.12, x: 0.1 },
+      titleSize: 0.16,
+      listTop: 0.09, // space under the title
+      itemSize: 0.08,
+      itemGap: 0.07,
+      dot: 0.035,
+      numberSize: 0.06,
+      soonOpacity: 0.4,
+      sticker: { src: "/images/album/stickers/flower.webp", w: 131, h: 115, right: 0.1, bottom: 0.1, width: 0.22, rotation: -8 },
+    },
+    // The coloured tabs on the pages' right edge, one per section that has
+    // pages. Fractions of the page's width (top: of its height).
+    tabs: { top: 0.1, height: 0.2, gap: 0.015, out: 0.07, textSize: 0.034 },
+    // The ribbon hanging out at the bottom (fractions of the page's width).
+    bookmark: { left: 0.68, width: 0.07, hang: 0.12 },
+
+    // The opening, from the album lying on the mat. Seconds; easings as CSS.
+    opening: {
+      // 1. It lifts off the mat: up a little, bigger, turned a bit; its
+      //    shadow grows wide and soft; the mat darkens.
+      lift: {
+        duration: 0.45,
+        easing: "cubic-bezier(0.2, 0.7, 0.3, 1)",
+        y: -18,
+        scale: 1.07,
+        turn: 1, // degrees, towards straight
+        shadow: { x: 24, y: 34, scale: 1.08, opacity: 0.45, blur: 22 },
+        dim: { color: palette.forest, opacity: 0.22 },
+      },
+      // 2. The photo turns into the drawn book: straight, centred, big.
+      straighten: { duration: 0.45, easing: "cubic-bezier(0.45, 0, 0.25, 1)" },
+      // 3. The cover turns open around the spine. On wide screens the book
+      //    slides half its width to the right meanwhile, so both pages end
+      //    up centred.
+      cover: { duration: 1.15, easing: "cubic-bezier(0.55, 0.05, 0.25, 1)" },
+      // prefers-reduced-motion: no turning, the open book just fades in.
+      reducedMotionFade: 0.4,
     },
   },
 

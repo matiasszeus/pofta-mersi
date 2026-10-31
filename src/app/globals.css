@@ -148,3 +148,19 @@ body {
     transform: translateY(var(--slide-to));
   }
 }
+
+/* The album drawn in code (see components/album/AlbumBook.tsx). */
+/* Children keep their own depth in 3D instead of being flattened. */
+.album-3d {
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+}
+/* One side of the cover: invisible while it faces away from us. */
+.album-face {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* /lab/album: the album on the mat, hidden while its copy opens. */
+.hide-album [data-object="album"] {
+  visibility: hidden;
+}

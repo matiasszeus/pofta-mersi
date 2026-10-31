@@ -25,7 +25,13 @@ const slamDelay = (i: number) => i * slam.stagger;
 // Never a flash of the finished scene: from the very first frame (also the
 // HTML from the server) the objects start hidden, waiting for the letters,
 // and the letters only exist in the browser, where they start in the air.
-function Stage() {
+type StageProps = {
+  // Optional: a tap on an object calls this instead of going to its page
+  // (see MatObject). Used by /lab/album.
+  onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
+};
+
+function Stage({ onObjectActivate }: StageProps) {
   const reducedMotion = useReducedMotion();
   const animate = !reducedMotion;
   const [landed, setLanded] = useState(false);
@@ -67,7 +73,13 @@ function Stage() {
       <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} />
       <AtelierLetters animate={animate} onLanded={onLanded} />
       {objects.map((o, i) => (
-        <MatObject key={o.key} object={o} entrance={entrance} slamDelay={slamDelay(i)} />
+        <MatObject
+          key={o.key}
+          object={o}
+          entrance={entrance}
+          slamDelay={slamDelay(i)}
+          onActivate={onObjectActivate && ((link) => onObjectActivate(o.key, link))}
+        />
       ))}
     </>
   );
@@ -80,7 +92,7 @@ function Stage() {
 // So: when the page is left (pagehide), the stage is removed right away, so
 // the frozen copy is the empty mat; when such a copy comes back (pageshow
 // with persisted = true), a fresh stage is mounted and the animation runs.
-export function AtelierStage() {
+export function AtelierStage({ onObjectActivate }: StageProps) {
   const [run, setRun] = useState(0);
   const [hidden, setHidden] = useState(false);
 
@@ -99,5 +111,5 @@ export function AtelierStage() {
     };
   }, []);
 
-  return hidden ? null : <Stage key={run} />;
+  return hidden ? null : <Stage key={run} onObjectActivate={onObjectActivate} />;
 }

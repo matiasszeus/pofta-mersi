@@ -61,6 +61,9 @@ type MatObjectProps = {
   entrance: Entrance;
   // Seconds from the start of the slam phase until this object starts falling.
   slamDelay?: number;
+  // Optional: a tap calls this (with the link element) instead of going to
+  // the object's page. Used by /lab/album.
+  onActivate?: (link: HTMLAnchorElement) => void;
 };
 
 // One object lying on the atelier mat (the album):
@@ -71,7 +74,7 @@ type MatObjectProps = {
 // turned black and blurred, under it. Moving, scaling and fading that copy is
 // cheap for the browser; animating a CSS drop-shadow would make it re-blur
 // the whole image on every frame.
-export function MatObject({ object, entrance, slamDelay = 0 }: MatObjectProps) {
+export function MatObject({ object, entrance, slamDelay = 0, onActivate }: MatObjectProps) {
   const portrait = placeCss(object, object.portrait);
   const landscape = placeCss(object, object.landscape);
   const animationName = `slam-${object.key}`;
@@ -107,6 +110,14 @@ export function MatObject({ object, entrance, slamDelay = 0 }: MatObjectProps) {
     <Link
       href={object.href}
       aria-label={object.ariaLabel}
+      data-object={object.key}
+      onClick={
+        onActivate &&
+        ((e) => {
+          e.preventDefault(); // no navigation
+          onActivate(e.currentTarget);
+        })
+      }
       className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) landscape:w-(--obj-width-landscape) landscape:top-(--obj-top-landscape) landscape:left-(--obj-left-landscape) ${state}`}
       style={vars}
     >
