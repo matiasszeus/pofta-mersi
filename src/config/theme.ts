@@ -590,7 +590,7 @@ export const theme = {
       // `liftAt` of the time: bigger, closer to you, almost straight), ends
       // `settled` in the middle. y in px for a 340px wide page.
       flight: {
-        duration: 2,
+        duration: 1.1,
         easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
         liftAt: 0.45,
         lifted: { y: -34, scale: 1.06, rotation: -1.5 },
@@ -599,7 +599,7 @@ export const theme = {
       // The cover turns open (rotateY 0 -> -180deg) starting `delay` after
       // the tap. On wide screens the book slides half a page to the right
       // at the same time, so both pages end up centred.
-      cover: { delay: 0.14, duration: 1.85, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
+      cover: { delay: 0.15, duration: 1.25, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
       // The mat darkens.
       dim: { color: palette.forest, opacity: 0.22, duration: 0.7 },
       // prefers-reduced-motion: no movement; the book fades out on the mat
