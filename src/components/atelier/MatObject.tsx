@@ -72,8 +72,8 @@ type MatObjectProps = {
 // cheap for the browser; animating a CSS drop-shadow would make it re-blur
 // the whole image on every frame.
 export function MatObject({ object, entrance, slamDelay = 0 }: MatObjectProps) {
-  const phone = placeCss(object, object.phone);
-  const large = placeCss(object, object.large);
+  const portrait = placeCss(object, object.portrait);
+  const landscape = placeCss(object, object.landscape);
   const animationName = `slam-${object.key}`;
 
   const vars = {
@@ -91,23 +91,23 @@ export function MatObject({ object, entrance, slamDelay = 0 }: MatObjectProps) {
     "--obj-pulse-duration": `${pulse.duration}s`,
     "--obj-fade-duration": `${reducedMotionFade}s`,
     // Place and size, read by the classes below.
-    "--obj-width": phone.width,
-    "--obj-left": phone.left,
-    "--obj-top": phone.top,
-    "--obj-width-large": large.width,
-    "--obj-left-large": large.left,
-    "--obj-top-large": large.top,
+    "--obj-width": portrait.width,
+    "--obj-left": portrait.left,
+    "--obj-top": portrait.top,
+    "--obj-width-landscape": landscape.width,
+    "--obj-left-landscape": landscape.left,
+    "--obj-top-landscape": landscape.top,
   } as CSSProperties;
 
   const state = { none: "", waiting: "obj-waiting", slam: "obj-slam", fade: "obj-fade" }[entrance];
   // Shown this wide, so the browser picks a suitably sized file.
-  const sizes = `(min-width: 768px) min(${object.large.widthVw}vw, ${object.large.maxWidth}px), min(${object.phone.widthVw}vw, ${object.phone.maxWidth}px)`;
+  const sizes = `(orientation: landscape) ${landscape.width}, ${portrait.width}`;
 
   return (
     <Link
       href={object.href}
       aria-label={object.ariaLabel}
-      className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) md:w-(--obj-width-large) md:top-(--obj-top-large) md:left-(--obj-left-large) ${state}`}
+      className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) landscape:w-(--obj-width-landscape) landscape:top-(--obj-top-landscape) landscape:left-(--obj-left-landscape) ${state}`}
       style={vars}
     >
       {entrance === "slam" && <style>{slamKeyframes(animationName, object.rotation)}</style>}

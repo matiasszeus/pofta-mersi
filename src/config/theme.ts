@@ -243,11 +243,13 @@ export const theme = {
     // The objects lying on the mat (the album): each is a
     // picture (PNG with a transparent background) linking to its page.
     //
-    // Place, per screen type (phone / from 768px wide): the point
-    // (anchorX * screen width + x, anchorY * screen height + y), in CSS px,
-    // is where the object's corner (align 0) or middle (align 0.5) goes. An
-    // object anchored to the top (anchorY 0) is kept below the iPhone's
-    // status bar. Width: widthVw % of the screen, never more than maxWidth.
+    // Place, per screen orientation (portrait = taller than wide, landscape
+    // = wider than tall): the point (anchorX * screen width + x, anchorY *
+    // screen height + y), in CSS px, is where the object's alignX / alignY
+    // point goes (0 = its left / top edge, 0.5 = its middle). An object
+    // anchored to the top (anchorY 0) is kept below the iPhone's status bar.
+    // Width: widthVw % of the screen width, but never more than maxWidth px
+    // nor taller than maxHeightVh % of the screen height.
     objects: [
       {
         key: "album",
@@ -257,9 +259,20 @@ export const theme = {
         alt: "Albumul cu stickerele Pofta Mersi",
         href: "/album",
         ariaLabel: "Album", // what screen readers announce for the link
-        // In the middle, a little above it (balancing the logo at the top).
-        phone: { anchorX: 0.5, anchorY: 0.47, x: 0, y: 0, align: 0.5, widthVw: 55, maxWidth: 380 },
-        large: { anchorX: 0.5, anchorY: 0.48, x: 0, y: 0, align: 0.5, widthVw: 55, maxWidth: 380 },
+        // Portrait: big, centred, its top edge at 23% of the height; on short
+        // phones (under ~700px) at most 44% of the height, so the note and the
+        // bottom corner letters still fit under it without touching.
+        // Landscape: in the middle of the screen.
+        portrait: {
+          anchorX: 0.5, alignX: 0.5, x: 0,
+          anchorY: 0.23, alignY: 0, y: 0,
+          widthVw: 67, maxWidth: 380, maxHeightVh: 44,
+        },
+        landscape: {
+          anchorX: 0.5, alignX: 0.5, x: 0,
+          anchorY: 0.5, alignY: 0.5, y: 0,
+          widthVw: 26, maxWidth: 380, maxHeightVh: 62,
+        },
         rotation: -4, // degrees
       },
     ],
@@ -290,20 +303,30 @@ export const theme = {
       ink: palette.ink,
       tape: palette.lilac, // the washi tape holding it at the top
       tapeOpacity: 0.65,
-      // On the mat: its width (phone / screens from 768px) and turn; the
-      // height follows the paper picture.
-      size: { phone: { width: 110 }, large: { width: 140 } },
-      rotation: 7,
+      // On the mat, its own place on the screen (it does not follow the
+      // album), per orientation: its top-left corner at (left * screen width,
+      // top * screen height); width like the objects' (widthVw, maxWidth,
+      // maxHeightVh); the height follows the paper picture.
+      // Free mat always shows between it and the album: on screens too short
+      // for the place below, it moves down (clearOf "below") or right
+      // (clearOf "right") until it is `gap` px clear of the album's box.
+      place: {
+        portrait: {
+          left: 0.53, top: 0.71,
+          widthVw: 32, maxWidth: 170, maxHeightVh: 15,
+          clearOf: "below" as "below" | "right", gap: 24,
+        },
+        // Right of the album and lower, well apart from it.
+        landscape: {
+          left: 0.66, top: 0.6,
+          widthVw: 14, maxWidth: 200, maxHeightVh: 28,
+          clearOf: "right" as "below" | "right", gap: 40,
+        },
+      },
+      rotation: 6,
       // It fades in together with the mat's lines (same fade, same moment
       // they start), this many seconds after them.
       appearDelay: 0.1,
-      // Where its middle goes, measured from the album's middle: albumX
-      // album widths + x px across, albumY album heights + y px down. Phones:
-      // under the album's right half; wider screens: right of the album.
-      place: {
-        phone: { albumX: 0.5, x: -60, albumY: 0.5, y: 95 },
-        large: { albumX: 0.5, x: 100, albumY: 0.25, y: 0 },
-      },
       // Soft shadow on the mat, following the torn outline (a blurred dark
       // copy of the picture, offset like the album's): x, y, blur in px as
       // seen on the mat.
@@ -392,31 +415,64 @@ export const theme = {
     // A few letters from the landing, lying on the mat. Every time the
     // atelier appears they land with a bounce (with reduced motion they are
     // just there).
-    // Units: CSS pixels and degrees.
     letters: {
-      // Each letter: where its middle lies, measured inwards from a corner of
-      // the screen (tl = top-left, tr, bl, br), its font size, and its turn.
-      // A frame around the album in the middle, one letter per corner, each
-      // partly cut off by the edge; none over the album or the logo.
-      // Checked on 390x844, 375x667, 768x1024, 1280x720 and 1440x900.
-      phone: [
-        { char: "I", corner: "tl", x: 22, y: 122, size: 86, rotation: -62 },
-        { char: "P", corner: "tr", x: 40, y: 128, size: 90, rotation: -18 },
-        { char: "M", corner: "bl", x: 40, y: 112, size: 94, rotation: 16 },
-        { char: "O", corner: "br", x: 45, y: 118, size: 79, rotation: 12 },
+      // Each letter, per orientation: the top-left corner of its box (a
+      // square, `size` wide) at (x * screen width, y * screen height), the
+      // letter centred in it; negative or near 1 = partly cut off by the
+      // edge. size: how big the letter shows (its height; the same on every
+      // screen, fewer letters on small ones), as a fraction of the screen's
+      // shorter side: 0.17 = ~66px on a 390px wide phone.
+      // rotation: degrees, clockwise (like CSS). They land in this order.
+      // Only around the edges and in the corners, never over the album or
+      // the note.
+      portrait: [
+        { char: "P", x: -0.05, y: 0.09, size: 0.18, rotation: -20 },
+        { char: "F", x: 0.77, y: 0.07, size: 0.17, rotation: 18 },
+        { char: "T", x: 0.83, y: 0.39, size: 0.17, rotation: 80 },
+        { char: "O", x: -0.03, y: 0.5, size: 0.17, rotation: -10 },
+        { char: "A", x: 0.08, y: 0.73, size: 0.17, rotation: 12 },
+        { char: "M", x: -0.08, y: 0.86, size: 0.19, rotation: 70 },
+        { char: "S", x: 0.76, y: 0.88, size: 0.18, rotation: -16 },
+        { char: "I", x: 0.44, y: 0.9, size: 0.16, rotation: 35 },
       ],
-      // Screens from `wideFrom` px wide: same letters along a wider frame.
-      wide: [
-        { char: "I", corner: "tl", x: 60, y: 175, size: 160, rotation: -64 },
-        { char: "P", corner: "tr", x: 150, y: 160, size: 165, rotation: -16 },
-        { char: "M", corner: "bl", x: 190, y: 120, size: 170, rotation: 14 },
-        { char: "O", corner: "br", x: 160, y: 150, size: 150, rotation: 10 },
+      // Wide screens: along the left and right edges, the album in the
+      // middle, the note right of it.
+      landscape: [
+        { char: "P", x: -0.02, y: 0.05, size: 0.13, rotation: -20 },
+        { char: "F", x: 0.84, y: 0.04, size: 0.125, rotation: 18 },
+        { char: "T", x: 0.89, y: 0.38, size: 0.125, rotation: 80 },
+        { char: "O", x: 0.06, y: 0.4, size: 0.12, rotation: -10 },
+        { char: "A", x: 0.19, y: 0.7, size: 0.12, rotation: 12 },
+        { char: "M", x: -0.03, y: 0.78, size: 0.14, rotation: 70 },
+        { char: "S", x: 0.86, y: 0.78, size: 0.125, rotation: -16 },
+        { char: "I", x: 0.22, y: 0.1, size: 0.11, rotation: 35 },
       ],
-      wideFrom: 768,
+      // Smaller screens get fewer letters, never smaller ones. Decided once,
+      // when the page opens (turning the phone neither adds nor removes
+      // any); the others are not even built.
+      //   corners    always there
+      //   dropOrder  the others, removed group by group, first group first
+      //   minHeight  screen height (CSS px) a letter needs to be there
+      // On top of that, a letter that would still touch the album or the
+      // note takes its whole group (and all groups before it) away.
+      keep: {
+        corners: ["P", "F", "M", "S"],
+        dropOrder: [["I"], ["O", "T"], ["A"]],
+        minHeight: { I: 650, O: 700, T: 700, A: 700 } as Record<string, number>,
+      },
+      // For that check a letter counts as the middle part of its box: this
+      // fraction is trimmed from each side (a turned letter's corners do not
+      // reach the box's corners).
+      boxInset: 0.1,
+      // How tall the font's letters are, as a fraction of its font size
+      // (Craze Retro: 0.695, measured in its typeface JSON). Turns `size`
+      // above into a font size; update it if the font changes.
+      glyphHeight: 0.695,
       // How the camera looks down at the mat (vertical field of view, degrees).
       // Narrower = flatter, less "falling towards you".
       fov: 35,
-      // The landing animation. Total: stagger * 3 + fall + bounce (< 1 s).
+      // The landing animation. Total: stagger * (letters - 1) + fall + bounce
+      // (about 1.2 s with 8 letters).
       fall: {
         stagger: 0.07, // seconds between letters
         duration: 0.5, // seconds from the start height down to the mat
@@ -501,7 +557,7 @@ export const theme = {
   },
 
   debug: {
-    // Initial state of the debug toggle in /lab: collider wireframes.
+    // Initial state of the debug toggle (only on /lab): collider wireframes.
     enabled: false,
   },
 

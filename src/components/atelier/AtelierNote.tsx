@@ -15,10 +15,9 @@ import { textFonts } from "@/app/fonts";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { placeCss } from "./objectLayout";
+import { noteCss } from "./objectLayout";
 
 const note = theme.atelier.note;
-const album = theme.atelier.objects[0];
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
 // The point of the note on the mat it turns around (and lifts its corner
@@ -31,31 +30,17 @@ function rgba(hex: string, opacity: number) {
   return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${opacity})`;
 }
 
-// The paper's height for a given width (the pictures' proportions).
-const paperRatio = note.paper.height / note.paper.width;
+// The note on the mat, per orientation (see note.place in theme.ts).
+const portrait = noteCss("portrait");
+const landscape = noteCss("landscape");
 
-// Where the note's top-left corner goes on the mat, as CSS: from the album's
-// middle (see note.place in theme.ts), minus half the note's size.
-function matPlace(screen: "phone" | "large") {
-  const a = placeCss(album, album[screen]);
-  const p = note.place[screen];
-  const width = note.size[screen].width;
-  const height = width * paperRatio;
-  const albumHeight = `${a.width} * ${album.height / album.width}`;
-  return {
-    left: `calc(${a.left} + ${a.width} * ${0.5 + p.albumX} + ${p.x - width / 2}px)`,
-    top: `calc(${a.top} + ${albumHeight} * ${0.5 + p.albumY} + ${p.y - height / 2}px)`,
-  };
-}
-
-// Sizes shared by the note on the mat and the opened one. The sheet is
-// always laid out at its opened size; on the mat it is shown scaled down by
-// --note-k (the mat width / the opened width).
+// Sizes shared by the note on the mat and the opened one. On the mat the
+// sheet is laid out at the note's own width; opened, at its opened width,
+// and while it travels between the two it is scaled by --note-k (the mat
+// width / the opened width, set by matTransform).
 const sheetVars = {
   "--note-open-w": `${note.open.width}px`,
   "--note-open-w-large": `${note.open.widthLarge}px`,
-  "--note-scale": note.size.phone.width / note.open.width,
-  "--note-scale-large": note.size.large.width / note.open.widthLarge,
   "--ring-w": `${note.focusRing.width}px`,
   "--ring-c": note.focusRing.color,
 } as CSSProperties;
@@ -128,7 +113,7 @@ const inkSizes = `(min-width: 768px) ${Math.round(note.open.widthLarge * areaWid
 // edge; their blur is fixed. Lifting the note only changes these layers'
 // opacity while the sheet moves (transform): the scribbles fade out, the
 // text fades in, the shadow grows softer.
-function NoteSheet({ opened, restShadowRef, openShadowRef, inkRef, textRef }: NoteSheetProps) {
+function NoteSheet({ opened = false, restShadowRef, openShadowRef, inkRef, textRef }: NoteSheetProps) {
   const area = useRef<HTMLDivElement>(null);
   const rest = note.shadow;
   const open = note.open.shadow;
@@ -144,12 +129,13 @@ function NoteSheet({ opened, restShadowRef, openShadowRef, inkRef, textRef }: No
   return (
     <div
       // container-type: the text's "cqw" sizes are measured on this sheet.
-      // --note-k: how much the sheet is scaled down on the mat.
-      className="relative w-(--note-open-w) [--note-k:var(--note-scale)] [container-type:inline-size] md:w-(--note-open-w-large) md:[--note-k:var(--note-scale-large)]"
+      // On the mat it fills the note's box; opened, the opened width.
+      className={`relative [container-type:inline-size] ${opened ? "w-(--note-open-w) md:w-(--note-open-w-large)" : "w-full"}`}
       style={{ aspectRatio: `${note.paper.width} / ${note.paper.height}`, color: note.ink }}
     >
-      {/* Shadow on the mat: offset and blur divided by --note-k, so they
-          come out right once the sheet is scaled down. */}
+      {/* Shadow on the mat: offset and blur divided by --note-k (1 on the
+          mat), so they look the same while the opened sheet is scaled down
+          to the mat's size. */}
       <div
         ref={restShadowRef}
         className="absolute inset-0"
@@ -282,6 +268,7 @@ export function AtelierNote({ flutterDelay }: AtelierNoteProps) {
     const box = button.current!.getBoundingClientRect(); // the button itself is not turned
     const area = stage.current!.getBoundingClientRect(); // the opened sheet sits in its middle
     const scale = box.width / mover.current!.offsetWidth;
+    mover.current!.style.setProperty("--note-k", String(scale));
     const px = box.left + PIVOT.x * box.width;
     const py = box.top + PIVOT.y * box.height;
     const cx = box.left + box.width / 2 - px;
@@ -491,18 +478,16 @@ export function AtelierNote({ flutterDelay }: AtelierNoteProps) {
   // Leaving the page with the note open: let the page scroll again.
   useEffect(() => () => void (document.documentElement.style.overflow = ""), []);
 
-  const phone = matPlace("phone");
-  const large = matPlace("large");
   const matVars = {
     ...sheetVars,
-    "--note-left": phone.left,
-    "--note-top": phone.top,
-    "--note-left-large": large.left,
-    "--note-top-large": large.top,
-    "--note-w": `${note.size.phone.width}px`,
-    "--note-h": `${note.size.phone.width * paperRatio}px`,
-    "--note-w-large": `${note.size.large.width}px`,
-    "--note-h-large": `${note.size.large.width * paperRatio}px`,
+    "--note-w-portrait": portrait.width,
+    "--note-w-landscape": landscape.width,
+    "--note-left": portrait.left,
+    "--note-top": portrait.top,
+    "--note-h": portrait.height,
+    "--note-left-landscape": landscape.left,
+    "--note-top-landscape": landscape.top,
+    "--note-h-landscape": landscape.height,
     "--note-rotation": `${note.rotation}deg`,
     "--note-pivot": `${PIVOT.x * 100}% ${PIVOT.y * 100}%`,
     "--note-flutter-lift": `${note.flutter.lift}deg`,
@@ -521,18 +506,15 @@ export function AtelierNote({ flutterDelay }: AtelierNoteProps) {
         aria-label="Citește notița"
         aria-haspopup="dialog"
         onClick={open}
-        className={`note-button note-appear absolute z-10 block top-(--note-top) left-(--note-left) md:top-(--note-top-large) md:left-(--note-left-large) ${lifted ? "invisible" : ""}`}
+        className={`note-vars note-button note-appear absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) landscape:top-(--note-top-landscape) landscape:left-(--note-left-landscape) ${lifted ? "invisible" : ""}`}
         style={matVars}
       >
         <span
-          className={`note-mat block h-(--note-h) w-(--note-w) md:h-(--note-h-large) md:w-(--note-w-large) ${
+          className={`note-mat block h-(--note-h) w-(--note-w) landscape:h-(--note-h-landscape) ${
             flutterDelay !== null ? "note-flutter" : ""
           }`}
         >
-          {/* The opened-size sheet, scaled down to the note's size. */}
-          <span className="block origin-top-left scale-(--note-k) [--note-k:var(--note-scale)] md:[--note-k:var(--note-scale-large)]">
-            <NoteSheet />
-          </span>
+          <NoteSheet />
         </span>
       </button>
 
@@ -545,7 +527,7 @@ export function AtelierNote({ flutterDelay }: AtelierNoteProps) {
             // Closed: in the page but invisible, untouchable, out of reach.
             aria-hidden={!shown}
             inert={!shown}
-            className={`fixed inset-0 z-50 h-lvh overscroll-contain ${shown ? "" : "invisible"}`}
+            className={`fixed inset-0 z-50 h-lvh [--note-k:1] overscroll-contain ${shown ? "" : "invisible"}`}
             style={sheetVars}
             // A tap anywhere outside the paper closes it.
             onClick={(e) => {

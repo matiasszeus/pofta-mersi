@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
-import { objectMiddle } from "./objectLayout";
+import { chooseLetters, letterRect, objectRect, orientationOf, rectMiddle, type LetterSpot } from "./objectLayout";
 
 // The atelier's 3D letters, lying on the mat. The canvas is transparent: the
 // mat behind it is the page's own HTML/SVG background.
@@ -17,8 +17,6 @@ import { objectMiddle } from "./objectLayout";
 
 const cfg = theme.atelier.letters;
 const rad = THREE.MathUtils.degToRad;
-
-type LetterSpot = (typeof cfg.phone)[number];
 
 // The current jolt, shared by all letters: when it started (scene clock, in
 // seconds), and from where it pushes (the middle of the object that hit the
@@ -57,10 +55,27 @@ function landing(t: number, startHeight: number, size: number) {
   return { z: 0, turn: 0 };
 }
 
+// The height of the part of the screen the page shows (window.innerHeight):
+// the album and the note are placed in it. This canvas is taller on phones
+// whose browser bar covers the bottom of the page (iOS Safari): it reaches
+// under the bar, so the letters must be placed by the visible part, not by
+// the canvas.
+function subscribeResize(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+function useVisibleHeight(fallback: number) {
+  return useSyncExternalStore(subscribeResize, () => window.innerHeight, () => fallback);
+}
+
 type MatLetterProps = {
   spot: LetterSpot;
+  // Where its middle lies (world x/y), its font size and turn (world units,
+  // radians counter-clockwise).
   x: number;
   y: number;
+  size: number;
+  rotation: number;
   // null = no animation, the letter simply lies there.
   startAt: number | null;
   startHeight: number;
@@ -69,13 +84,13 @@ type MatLetterProps = {
   jolt: React.RefObject<Jolt>;
 };
 
-function MatLetter({ spot, x, y, startAt, startHeight, clock, jolt }: MatLetterProps) {
+function MatLetter({ spot, x, y, size, rotation, startAt, startHeight, clock, jolt }: MatLetterProps) {
   // lift moves the letter up/down and turns it; glyph is the 3D letter.
   const lift = useRef<THREE.Group>(null);
   const glyph = useRef<THREE.Mesh>(null);
 
-  // Text3D builds the letter from the left end of its baseline. Shift it so
-  // its middle is on (x, y) and its underside rests exactly on the mat.
+  // The letter is built from the left end of its baseline. Shift it so its
+  // middle is on (x, y) and its underside rests exactly on the mat.
   useLayoutEffect(() => {
     const mesh = glyph.current;
     if (!mesh) return;
@@ -83,7 +98,7 @@ function MatLetter({ spot, x, y, startAt, startHeight, clock, jolt }: MatLetterP
     const box = mesh.geometry.boundingBox!;
     const middle = box.getCenter(new THREE.Vector3());
     mesh.position.set(-middle.x, -middle.y, -box.min.z);
-  }, []);
+  }, [size]);
 
   useFrame((state) => {
     const g = lift.current;
@@ -94,17 +109,17 @@ function MatLetter({ spot, x, y, startAt, startHeight, clock, jolt }: MatLetterP
       const t = clock.current - startAt;
       // Not its turn yet: hidden, so it does not hang huge over the mat.
       g.visible = t >= 0;
-      ({ z, turn } = landing(Math.max(t, 0), startHeight, spot.size));
+      ({ z, turn } = landing(Math.max(t, 0), startHeight, size));
     }
     const j = joltOffset(state.clock.elapsedTime - jolt.current.startedAt, x, y, jolt.current);
     g.position.set(j.x, j.y, z + j.z);
-    g.rotation.z = rad(spot.rotation + turn);
+    g.rotation.z = rotation + rad(turn);
   });
 
   return (
     <group position={[x, y, 0]}>
-      <group ref={lift} rotation={[0, 0, rad(spot.rotation)]} visible={startAt === null}>
-        <LetterGlyph ref={glyph} char={spot.char} size={spot.size} />
+      <group ref={lift} rotation={[0, 0, rotation]} visible={startAt === null}>
+        <LetterGlyph ref={glyph} char={spot.char} size={size} />
       </group>
     </group>
   );
@@ -112,6 +127,8 @@ function MatLetter({ spot, x, y, startAt, startHeight, clock, jolt }: MatLetterP
 
 type SceneProps = {
   animate: boolean;
+  // The letters on the mat (chosen once, when the page opens).
+  chars: Set<string>;
   // Called once, when the objects should start falling: `slam.delay`
   // seconds after the last letter touches the mat (negative = before).
   onObjectsCue: () => void;
@@ -119,9 +136,11 @@ type SceneProps = {
   onSettled: () => void;
 };
 
-function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
+function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
   const { width, height } = useThree((state) => state.size);
-  const spots = width >= cfg.wideFrom ? cfg.wide : cfg.phone;
+  // Layout height: the visible part, from the top of the canvas.
+  const visibleHeight = Math.min(useVisibleHeight(height), height);
+  const spots = cfg[orientationOf(width, visibleHeight)].filter((s) => chars.has(s.char));
   // Camera height for which the mat fills the screen at 1 unit = 1 px.
   const distance = height / 2 / Math.tan(rad(cfg.fov / 2));
   const startHeight = distance * cfg.fall.startHeight;
@@ -144,7 +163,7 @@ function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
   // timed here, on this scene's own clock, so they match the impacts exactly.
   const impacts = theme.atelier.objects.map((o, i) => ({
     at: objectsCue + i * slam.stagger + slam.fall,
-    middle: objectMiddle(o, width, height),
+    middle: rectMiddle(objectRect(o, width, visibleHeight)),
   }));
   const nextImpact = useRef(0);
   const cued = useRef(!animate);
@@ -153,11 +172,15 @@ function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
   const lastJoltEnd = Math.max(...impacts.map((i) => i.at)) + cfg.jolt.duration + 0.05;
   const total = Math.max(lastTouchdown + bounceDuration, lastJoltEnd);
 
-  // From a corner-relative spot to world x/y.
-  const place = (spot: LetterSpot) => ({
-    x: spot.corner.endsWith("l") ? -width / 2 + spot.x : width / 2 - spot.x,
-    y: spot.corner.startsWith("t") ? height / 2 - spot.y : -height / 2 + spot.y,
-  });
+  // From a spot in theme.ts to the letter's middle (world x/y), font size,
+  // and turn (theme.ts turns clockwise like CSS; three.js counter-clockwise).
+  const place = (spot: LetterSpot) => {
+    const box = letterRect(spot, width, visibleHeight);
+    const middle = rectMiddle(box);
+    const size = box.width / cfg.glyphHeight; // font size that shows the letter box.width tall
+    return { x: middle.x - width / 2, y: height / 2 - middle.y, size, rotation: -rad(spot.rotation) };
+  };
+  const placed = spots.map(place);
 
   useFrame((state) => {
     if (settled.current) return;
@@ -204,7 +227,7 @@ function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
   const half = Math.max(width, height);
   // Highest point a letter reaches, and how far the screen's corners reach
   // towards / away from the light.
-  const top = startHeight + Math.max(...spots.map((s) => s.size));
+  const top = startHeight + Math.max(...placed.map((p) => p.size));
   const spread = half * Math.hypot(dir.x, dir.y);
   // Just far enough that even the highest letter is in front of the light.
   const lightDistance = top * dir.z + spread + 50;
@@ -249,13 +272,15 @@ function Scene({ animate, onObjectsCue, onSettled }: SceneProps) {
       </mesh>
 
       {spots.map((spot, i) => {
-        const { x, y } = place(spot);
+        const { x, y, size, rotation } = placed[i];
         return (
           <MatLetter
-            key={`${spot.char}-${i}`}
+            key={spot.char}
             spot={spot}
             x={x}
             y={y}
+            size={size}
+            rotation={rotation}
             startAt={animate ? i * stagger : null}
             startHeight={startHeight}
             clock={clock}
@@ -280,6 +305,11 @@ export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCa
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
+  // Which letters lie on the mat: decided once, for the screen the page
+  // opened on, so turning the phone neither adds nor removes any. The
+  // others are never built. (This canvas fills the screen: see
+  // AtelierLetters.)
+  const [chars] = useState(() => chooseLetters(window.innerWidth, window.innerHeight));
 
   return (
     // frameloop "demand" = draw a frame only when something changes (e.g. a
@@ -290,6 +320,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCa
       <Suspense fallback={null}>
         <Scene
           animate={animate}
+          chars={chars}
           onObjectsCue={() => onObjectsCue?.()}
           onSettled={() => setSettled(true)}
         />
