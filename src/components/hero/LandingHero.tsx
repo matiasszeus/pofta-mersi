@@ -68,7 +68,9 @@ function useSnapshotMode() {
   );
 }
 
-export function LabHero() {
+// The landing: the 3D title, and a tap that dives into the atelier. Shown at
+// / and, for experiments, at /lab (`lab`: with the debug switch).
+export function LandingHero({ lab = false }: { lab?: boolean }) {
   const snapshot = useSnapshotMode();
   const router = useRouter();
   const reducedMotion = useReducedMotion();
@@ -81,7 +83,7 @@ export function LabHero() {
   const [mode, setMode] = useState<"dive" | "slide" | "fade">("dive");
   const phaseRef = useRef(phase);
   useEffect(() => void (phaseRef.current = phase), [phase]);
-  const [debug, setDebug] = useState(theme.debug.enabled);
+  const [debug, setDebug] = useState(lab && theme.debug.enabled);
   // Changing this rebuilds the canvas from scratch (letters back in their outlines).
   const [run, setRun] = useState(0);
   const { href, fadeDuration, color } = theme.transition;
@@ -235,7 +237,7 @@ export function LabHero() {
         {theme.hint.skip}
       </Link>
 
-      {!snapshot && (
+      {lab && !snapshot && (
         <button
           type="button"
           onClick={(e) => {

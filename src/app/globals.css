@@ -1,27 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
   /* All text: Whitenice, with Hanken Grotesk for the characters Whitenice
      lacks (ă, ș, ț, dashes, arrows). The logo and titles set their own. */
   font-family: var(--font-whitenice), var(--font-hanken), sans-serif;
@@ -133,13 +112,23 @@ body {
 }
 
 /* No focus outline after a tap or click (nor the phone's tap highlight). */
+/* The note's width on the mat, per orientation. */
+.note-vars {
+  --note-w: var(--note-w-portrait);
+}
+@media (orientation: landscape) {
+  .note-vars {
+    --note-w: var(--note-w-landscape);
+  }
+}
+
 .note-button {
   outline: none;
   -webkit-tap-highlight-color: transparent;
 }
 /* With the keyboard: a thin lilac outline that follows the paper's shape,
    drawn as four hard-edged drop-shadows of the paper (and its tape), one per
-   side. Divided by --note-k: the paper is drawn scaled down on the mat. */
+   side. Divided by --note-k (1 on the mat; see AtelierNote). */
 .note-button:focus-visible:not([data-pointer-focus]) .note-face {
   --ring: calc(var(--ring-w) / var(--note-k));
   filter: drop-shadow(var(--ring) 0 0 var(--ring-c)) drop-shadow(calc(-1 * var(--ring)) 0 0 var(--ring-c))

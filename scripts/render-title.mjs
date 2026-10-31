@@ -20,7 +20,7 @@ import { writeFileSync } from "node:fs";
 import sharp from "sharp";
 
 const CHROME = process.env.CHROME ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const URL = `${process.env.URL ?? "http://localhost:3000"}/lab?snapshot`;
+const URL = `${process.env.URL ?? "http://localhost:3000"}/?snapshot`;
 const PORT = 9399;
 
 // The picture for each orientation, and the screen shapes (width / height)

@@ -2,8 +2,14 @@
 
 ## What this is
 Website for **Pofta Mersi**, an artist's brand (artwork, stickers, apparel, small handmade objects).
-- **Landing page**: the highest-impact page, an interactive 3D hero. Current focus.
-- **Later**: gallery-style pages where the artist shows his work and the items for sale.
+- **Landing page** (`/`): the highest-impact page, an interactive 3D hero. A tap dives
+  into the atelier.
+- **Atelier** (`/atelier`): a cutting mat seen from above, with the 3D letters that landed
+  on it, the album (links to `/album`) and a handwritten note.
+- **Later**: gallery-style pages where the artist shows his work and the items for sale
+  (`/album` is a placeholder for now).
+- **Lab** (`/lab`): sandbox for experiments (the landing + a debug switch). Never linked
+  from the site, `noindex`.
 
 The visual direction is NOT final yet (no fixed palette or fonts). Keep all colors, fonts and
 material settings in one config file so they can be swapped easily.
@@ -66,21 +72,31 @@ Interactive 3D letters spelling **POFTA MERSI** in a full-screen canvas.
 - Respect `prefers-reduced-motion`: show a static arrangement, no physics
 - If WebGL is unavailable, show a static image fallback
 
-## Structure (suggested)
+## Structure
 ```
-app/
-  page.tsx              # landing
-  lab/page.tsx          # sandbox for experiments, not linked in nav
-components/hero/
-  HeroCanvas.tsx        # Canvas, camera, lights, environment
+src/app/
+  page.tsx              # landing (renders LandingHero)
+  lab/page.tsx          # sandbox: LandingHero + debug switch, noindex, never linked
+  atelier/page.tsx      # the atelier
+  album/page.tsx        # placeholder
+src/components/hero/
+  LandingHero.tsx       # the landing: static title, 3D scene, tap -> dive -> /atelier
+  HeroCanvas.tsx        # Canvas, camera, lights
   Letters.tsx           # letter bodies + drag logic
+  LetterGlyph.tsx       # one 3D letter (shared with the atelier)
   Bounds.tsx            # viewport-based walls
-  GlassBackground.tsx   # what the glass refracts
-config/theme.ts         # colors, fonts, material params (single source of truth)
-public/fonts/
+  StaticTitle.tsx       # still picture of the title until the 3D scene is ready
+src/components/atelier/ # mat, letters on the mat, album (MatObject), note
+  objectLayout.ts       # where album, note and letters go (CSS and px)
+src/components/site/    # header with the logo (pages after the atelier)
+src/config/theme.ts     # colors, fonts, sizes, positions (single source of truth)
+src/config/content.ts   # texts
+scripts/render-title.mjs # regenerates the static title pictures (needs the dev server)
+public/fonts/, public/images/
 ```
 
 ## Working rules
-- Build experiments in `/lab` first, move to the landing page only when approved
+- Build experiments in `/lab` first, move them to the landing (`/`) or other pages only
+  when approved
 - After each step: tell me how to test it (incl. on my phone via Vercel preview)
 - Keep components small and readable; comment non-obvious 3D/physics code
