@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="ro"
       // The fonts' CSS variables (--font-whitenice, --font-hanken...), used
       // by globals.css for all text.
       className={`${whitenice.variable} ${hankenGrotesk.variable} h-full antialiased`}
