@@ -17,21 +17,27 @@ type ChapterPageProps = {
 };
 
 // One of a chapter's pages (after its divider): its title and subtitle
-// top left, the photos stuck on it, a handwritten note. Laid out as in
-// docs/album-bratari-referinta.html.
+// top left (or the subtitle alone), the photos stuck on it, a handwritten
+// note. Laid out as in docs/album-bratari-referinta.html.
 export function ChapterPage({ title, content, live }: ChapterPageProps) {
+  const withTitle = content.title !== false;
+  const subtitle = withTitle
+    ? { top: cp.subtitleTop, size: cp.subtitleSize }
+    : { top: cp.subtitleAlone.top, size: cp.subtitleAlone.size };
   return (
     <>
-      <div
-        className={`absolute leading-none ${crazeRetro.className}`}
-        style={{ left: u(cp.left), top: u(cp.top), fontSize: u(cp.titleSize) }}
-      >
-        {drawnTitle(title)}
-      </div>
+      {withTitle && (
+        <div
+          className={`absolute leading-none ${crazeRetro.className}`}
+          style={{ left: u(cp.left), top: u(cp.top), fontSize: u(cp.titleSize) }}
+        >
+          {drawnTitle(title)}
+        </div>
+      )}
       {content.subtitle && (
         <div
           className="absolute"
-          style={{ left: u(cp.left), top: u(cp.subtitleTop), fontSize: u(cp.subtitleSize), opacity: cp.subtitleOpacity }}
+          style={{ left: u(cp.left), top: u(subtitle.top), fontSize: u(subtitle.size), opacity: cp.subtitleOpacity }}
         >
           {content.subtitle}
         </div>
@@ -111,7 +117,7 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
         className="absolute inset-x-0 text-center"
         style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize) }}
       >
-        {model.name} · {model.price}
+        {model.price ? `${model.name} · ${model.price}` : model.name}
       </div>
       <div
         className="absolute"

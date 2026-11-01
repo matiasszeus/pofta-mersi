@@ -628,8 +628,18 @@ export const theme = {
       soonOpacity: 0.45,
     },
     pageNumber: { size: 12, bottom: 14, side: 20 }, // u
-    // A chapter's page (u): its title top left, the subtitle under it.
-    chapterPage: { left: 26, top: 24, titleSize: 28, subtitleTop: 58, subtitleSize: 15, subtitleOpacity: 0.75 },
+    // A chapter's page (u): its title top left, the subtitle under it. A
+    // page without the title: the subtitle alone, a little bigger (16u =
+    // ~17px on a phone), about halfway down where the title was.
+    chapterPage: {
+      left: 26,
+      top: 24,
+      titleSize: 28,
+      subtitleTop: 58,
+      subtitleSize: 15,
+      subtitleOpacity: 0.75,
+      subtitleAlone: { top: 30, size: 16 },
+    },
     // Photos stuck on a page (docs/album-bratari-referinta.html), u. A white
     // frame (wider at the bottom, where the caption goes) with a soft
     // shadow; a strip of washi tape on its top edge. places: one per photo,

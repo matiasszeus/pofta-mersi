@@ -3,13 +3,22 @@
 import { palette } from "./theme";
 
 // One page of a chapter (after its divider). Besides its id, all optional:
-//   subtitle  under the chapter's title, top left
+//   title     false = without the chapter's title top left (when the
+//             divider facing it already shows it)
+//   subtitle  under the chapter's title, top left (without the title: a
+//             little bigger, in its place)
 //   models    photos stuck on the page, each a looping video (made by
 //             scripts/prepare-videos.mjs; poster: its first frame) with
-//             its name and price under it, in the white frame
+//             its name (and price, if given) under it, in the white frame
 //   note      a handwritten note under the photos, with a small arrow
-export type AlbumModel = { name: string; price: string; video: string; poster: string; alt: string };
-export type AlbumPageContent = { id: string; subtitle?: string; models?: AlbumModel[]; note?: string };
+export type AlbumModel = { name: string; price?: string; video: string; poster: string; alt: string };
+export type AlbumPageContent = {
+  id: string;
+  title?: boolean;
+  subtitle?: string;
+  models?: AlbumModel[];
+  note?: string;
+};
 
 // One chapter of the album (see album.chapters below).
 export type AlbumChapter =
@@ -77,24 +86,23 @@ export const content = {
         pages: [
           {
             id: "bratari-1",
-            subtitle: "personalizate de mână · 2 modele",
+            title: false,
+            subtitle: "textile, 3 foi",
             models: [
               {
-                name: "Model 1",
-                price: "[preț]",
+                name: "Basalt",
                 video: "/videos/bratari/model-1.mp4",
                 poster: "/videos/bratari/model-1.webp",
-                alt: "Brățara model 1, rotindu-se",
+                alt: "Brățara Basalt, rotindu-se",
               },
               {
-                name: "Model 2",
-                price: "[preț]",
+                name: "Synthesis",
                 video: "/videos/bratari/model-2.mp4",
                 poster: "/videos/bratari/model-2.webp",
-                alt: "Brățara model 2, rotindu-se",
+                alt: "Brățara Synthesis, rotindu-se",
               },
             ],
-            note: "[ce se poate personaliza: nume, culori…]",
+            note: "mai ieftin decât un pachet de țigări",
           },
         ],
       },
