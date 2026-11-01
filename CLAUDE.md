@@ -98,6 +98,7 @@ src/lib/cart.ts         # the cart's data (localStorage), useCos()
 src/components/site/    # header with the logo (pages after the atelier)
 src/config/theme.ts     # colors, fonts, sizes, positions (single source of truth)
 src/config/content.ts   # texts
+src/config/products.ts  # products and their prices (the cart and the pages take them from here)
 scripts/render-title.mjs # regenerates the static title pictures (needs the dev server)
 public/fonts/, public/images/
 ```

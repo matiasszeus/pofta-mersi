@@ -9,14 +9,19 @@ import { palette } from "./theme";
 //             little bigger, in its place)
 //   models    photos stuck on the page, each a looping video (made by
 //             scripts/prepare-videos.mjs; poster: its first frame) with
-//             its name (and price, if given) under it, in the white frame
+//             the product's name under it, in the white frame. product:
+//             its id in src/config/products.ts (name and price come from
+//             there)
+//   priceTag  a price tag: `title` big, under it the price of `product`
+//             (from products.ts) written by `price`
 //   note      a handwritten note under the photos, with a small arrow
-export type AlbumModel = { name: string; price?: string; video: string; poster: string; alt: string };
+export type AlbumModel = { product: string; video: string; poster: string; alt: string };
 export type AlbumPageContent = {
   id: string;
   title?: boolean;
   subtitle?: string;
   models?: AlbumModel[];
+  priceTag?: { title: string; product: string; price: (lei: number) => string };
   note?: string;
 };
 
@@ -87,21 +92,21 @@ export const content = {
           {
             id: "bratari-1",
             title: false,
-            subtitle: "textile, 3 foi",
             models: [
               {
-                name: "Basalt",
+                product: "bratara-basalt",
                 video: "/videos/bratari/model-1.mp4",
                 poster: "/videos/bratari/model-1.webp",
                 alt: "Brățara Basalt, rotindu-se",
               },
               {
-                name: "Synthesis",
+                product: "bratara-synthesis",
                 video: "/videos/bratari/model-2.mp4",
                 poster: "/videos/bratari/model-2.webp",
                 alt: "Brățara Synthesis, rotindu-se",
               },
             ],
+            priceTag: { title: "3 foi", product: "bratara-basalt", price: (lei) => `${lei} lei / buc` },
             note: "mai ieftin decât un pachet de țigări",
           },
         ],

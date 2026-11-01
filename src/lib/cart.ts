@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { produse, type Produs } from "@/config/products";
 
 // The cart: kept in the browser (localStorage, under KEY), so it survives a
 // refresh and is shared by all the site's tabs. Nothing is sent anywhere.
@@ -48,14 +49,19 @@ function scrie(items: CartItem[]) {
   listeners.forEach((l) => l());
 }
 
-// Puts `cantitate` (default 1) of a product in the cart; one already there
-// (same id) gets more of it instead.
-export function adauga(item: Omit<CartItem, "cantitate"> & { cantitate?: number }) {
-  const cantitate = item.cantitate ?? 1;
+// Puts `cantitate` (default 1) of a product (from src/config/products.ts)
+// in the cart; one already there (same id) gets more of it instead. Its
+// name and price are always the product's.
+export function adauga(p: Produs, cantitate = 1) {
   const items = citeste();
-  const there = items.find((i) => i.id === item.id);
-  if (there) there.cantitate += cantitate;
-  else items.push({ ...item, cantitate });
+  const there = items.find((i) => i.id === p.id);
+  if (there) {
+    there.cantitate += cantitate;
+    there.nume = p.nume;
+    there.pret = p.pret;
+  } else {
+    items.push({ id: p.id, nume: p.nume, pret: p.pret, cantitate });
+  }
   scrie(items);
 }
 
@@ -104,13 +110,13 @@ export function useCos(): CartSummary {
 }
 
 // Development only: try it from the browser's console, e.g.
-//   __cosTest.adauga({ id: "x", nume: "Sticker", pret: 12.5, cantitate: 3 })
+//   __cosTest.adauga(__cosTest.produse[0], 3)
 //   __cosTest.goleste()
 declare global {
   interface Window {
-    __cosTest?: { adauga: typeof adauga; goleste: typeof goleste };
+    __cosTest?: { adauga: typeof adauga; goleste: typeof goleste; produse: Produs[] };
   }
 }
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
-  window.__cosTest = { adauga, goleste };
+  window.__cosTest = { adauga, goleste, produse };
 }

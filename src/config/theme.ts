@@ -37,7 +37,9 @@ export const palette = {
   // The album.
   paper: "#F4EEE0", // cream pages
   coverBlack: "#1B1B1D", // its hard cover (as in the album photo)
-  ribbon: "#F2C14E", // the bookmark ribbon
+  // Warm accent, only for small objects: the album's bookmark ribbon and
+  // the price tags.
+  mustar: "#F2C14E",
   forest: "#081E12", // very dark green: the layer that darkens the mat
   pageLine: "#C9C2B2", // the lines on the edge of the stack of pages
 };
@@ -53,6 +55,7 @@ export const theme = {
 
   colors: {
     background: landingBackground,
+    mustar: palette.mustar,
     // One color per letter, reused in a loop if there are more letters than colors.
     letters: [palette.ink],
   },
@@ -656,16 +659,36 @@ export const theme = {
         { left: 22, top: 96, rotation: -4, tape: { color: palette.lilac, rotation: -6 } },
         { left: 168, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 } },
       ],
-      // The handwritten note under them, and its arrow.
-      note: { left: 30, top: 300, width: 130, size: 15, rotation: -3 },
-      arrow: { left: 120, top: 350, width: 56 },
+      // The handwritten note under them (18u = ~19px on a phone), and its
+      // arrow right under it (left: from the page's edge; gap: under the
+      // note's last line).
+      note: { left: 30, top: 300, width: 140, size: 18, lineHeight: 1.2, rotation: -3 },
+      arrow: { left: 120, gap: 4, width: 56 },
+    },
+    // A price tag (u), in the free space above the second photo: a mustard
+    // label pointed on the left (its tip `tip` of its width), turned, with
+    // a small hole in the tip and a thin thread from it curving up-left.
+    priceTag: {
+      left: 196,
+      top: 64,
+      width: 90,
+      height: 47,
+      tip: 0.18,
+      rotation: 9,
+      color: palette.mustar,
+      shadow: "0 2u 3u rgb(29 38 51 / 0.3)",
+      hole: { size: 5.6, color: palette.paper },
+      thread: { color: palette.ink, opacity: 0.55, width: 1 },
+      titleSize: 20.6, // ~22px on a phone
+      priceSize: 9.4, // ~10px
+      priceOpacity: 0.75,
     },
     colors: {
       board: palette.coverBlack,
       paper: palette.paper,
       pageLine: palette.pageLine,
       ink: palette.ink,
-      ribbon: palette.ribbon,
+      ribbon: palette.mustar,
       // The cover's inside: lilac with sage dots. The chapters' dividers
       // have fine dots, on the chapter's color (content.album.chapters);
       // `divider` for a chapter that has none.
