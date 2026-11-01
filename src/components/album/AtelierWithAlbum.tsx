@@ -6,7 +6,8 @@ import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { useStableViewport } from "@/lib/stableViewport";
+import { resetZoom, useStableViewport } from "@/lib/stableViewport";
+import { useNoPinchOnMat } from "@/components/atelier/useNoPinchOnMat";
 import { MatAlbum, matAlbumObject } from "./MatAlbum";
 
 const album = matAlbumObject(theme.atelier.objects[0]);
@@ -33,6 +34,9 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   const zoomed = useStableViewport()?.zoomed ?? false;
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
+  // No pinch-zoom on the mat, except while the album is open (or the page
+  // is still zoomed in, to zoom back out).
+  useNoPinchOnMat(!open && !zoomed);
   // The vignette is in the page from the tap until it has faded out after
   // closing (then taken away, not left at opacity 0).
   const [vignette, setVignette] = useState(false);
@@ -88,6 +92,8 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
             type="button"
             className={pill}
             onClick={() => {
+              // Zoomed into the album: the mat comes back at zoom 1.
+              resetZoom();
               // A new run: reopened, it starts again from the contents.
               setOpen(false);
               setRun((n) => n + 1);

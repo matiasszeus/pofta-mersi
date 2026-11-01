@@ -96,6 +96,20 @@ export function stableViewport(): StableViewport {
   return current;
 }
 
+// Back to zoom 1 (e.g. closing the album while pinch-zoomed into it). A
+// page cannot set the browser's zoom directly; briefly adding
+// maximum-scale=1 to the viewport meta makes the browser zoom back out,
+// and the original is put back right after, so zooming stays allowed.
+export function resetZoom() {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (!meta || !isZoomed()) return;
+  const original = meta.content;
+  meta.content = `${original}, maximum-scale=1`;
+  window.setTimeout(() => {
+    meta.content = original;
+  }, 300);
+}
+
 // The same, kept up to date in a component (null on the server).
 export function useStableViewport(): StableViewport | null {
   return useSyncExternalStore(subscribe, stableViewport, () => null);
