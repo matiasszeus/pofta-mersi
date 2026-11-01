@@ -116,10 +116,11 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
         )}
       </div>
       <div
-        className="absolute inset-x-0 text-center"
-        style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize), textTransform: "uppercase" }}
+        className={`absolute inset-x-0 text-center ${crazeRetro.className}`}
+        style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize) }}
       >
-        {produs(model.product).nume}
+        {/* Craze Retro: capitals, no diacritics (see drawnTitle). */}
+        {drawnTitle(produs(model.product).nume)}
       </div>
       <div
         className="absolute"

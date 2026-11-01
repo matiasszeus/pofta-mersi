@@ -652,7 +652,7 @@ export const theme = {
       height: 170,
       padding: { side: 7, bottom: 30 },
       shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
-      captionSize: 13, // the products' names, in capitals
+      captionSize: 13, // the products' names (Craze Retro, capitals)
       captionBottom: 6,
       tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
       places: [
