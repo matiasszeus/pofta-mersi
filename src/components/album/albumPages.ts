@@ -172,3 +172,26 @@ export function chapterOfSlug(slug: string): string | null {
   if (!c) return null;
   return c.contents || c.pages.length > 0 ? c.id : null;
 }
+
+// A chapter's address: /album for the contents, /album/<slug> for the
+// others (see AlbumChapter.slug).
+export function albumPathOf(chapterId: string) {
+  const c = content.album.chapters.find((x) => x.id === chapterId);
+  return !c || c.contents ? "/album" : `/album/${c.slug}`;
+}
+// The chapter an address opens at: "/album" the contents, "/album/<slug>"
+// that chapter (the contents if it is not in the book); null: not an
+// address of the album.
+export function chapterOfPath(path: string): string | null {
+  if (path === "/album" || path === "/album/") return "inventar";
+  const m = /^\/album\/([^/]+)\/?$/.exec(path);
+  return m ? (chapterOfSlug(decodeURIComponent(m[1])) ?? "inventar") : null;
+}
+// The chapter a view of the book belongs to (its last page that has one).
+export function chapterOfView(view: AlbumView): string {
+  for (let i = view.pages.length - 1; i >= 0; i--) {
+    const id = bookPages[view.pages[i] - 1]?.chapterId;
+    if (id) return id;
+  }
+  return "inventar";
+}

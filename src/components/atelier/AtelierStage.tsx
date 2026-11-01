@@ -43,11 +43,15 @@ type StageProps = {
   // reduced motion: as soon as it is placed). For links that open it
   // (/album, see AtelierWithAlbum).
   onAlbumDown?: () => void;
+  // Optional: no arrival animation (the letters lie still from the start,
+  // the objects fade in), as with reduced motion. For links that open the
+  // album at once (see AtelierWithAlbum).
+  calm?: boolean;
 };
 
-function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown }: StageProps) {
+function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown, calm = false }: StageProps) {
   const reducedMotion = useReducedMotion();
-  const animate = !reducedMotion;
+  const animate = !reducedMotion && !calm;
   const [landed, setLanded] = useState(false);
   const onLanded = useCallback(() => setLanded(true), []);
 

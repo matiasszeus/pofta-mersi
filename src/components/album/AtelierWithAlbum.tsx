@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { chapterOfSlug } from "./albumPages";
+import { albumPathOf, chapterOfPath, chapterOfSlug } from "./albumPages";
 import { MatAlbum, matAlbumObject } from "./MatAlbum";
 
 const album = matAlbumObject(theme.atelier.objects[0]);
@@ -29,42 +28,139 @@ const dimVars = {
 // /atelier, /album, /album/<chapter> and /lab/album (see AtelierScreen);
 // `lab` adds a button to replay the opening.
 //
-// initialChapter (/album: "inventar"; /album/<slug>: that slug): the album
-// opens by itself once it lies on the mat, at that chapter's first page. A
-// chapter that does not exist or is not in the book yet: the contents, and
-// the address becomes /album. Closed and opened again: the contents.
+// initialChapter (/album: "inventar"; /album/<slug>: that slug): arriving
+// from a link. The mat appears with the letters already lying still (no
+// falling: it would be too much together with the album's opening); once
+// the album's cover and the fonts have loaded, after linkOpenDelay, the
+// album opens as after a tap, straight at that chapter (the contents if it
+// does not exist or is not in the book yet). prefers-reduced-motion: it is
+// simply there, open.
+//
+// The address follows the album (not on /lab/album), so the browser's back
+// button closes it:
+//   opened with a tap        a new history entry, /album
+//   arriving from a link     the entry becomes /atelier, and a new one is
+//                            added for the album: back = the atelier
+//   leafing                  the entry's address follows the chapter
+//                            (replaced, never added: back still closes)
+//   X / Escape               back to our entry before (or, if there is
+//                            none, the address simply becomes /atelier)
+//   back / forward           to /atelier: it closes; to /album...: it
+//                            opens there (as from a link)
+// Pages the browser keeps and restores (back/forward cache) are left as
+// they were.
+const linkOpenDelay = 500; // ms
+// Our history entries carry this, so X knows it can go back.
+const OURS = "pmAlbum";
+// A history entry's data: Next.js's own (it keeps the page in it: without
+// it, back / forward would load the page again), with our mark or without.
+function entry(ours: boolean) {
+  const next = { ...((window.history.state ?? {}) as Record<string, unknown>) };
+  delete next[OURS];
+  return ours ? { ...next, [OURS]: true } : next;
+}
+
 export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolean; initialChapter?: string }) {
   const reducedMotion = useReducedMotion();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
-  // Where the first opening starts (the contents if the link's chapter is
-  // not in the book).
-  const linkChapter = initialChapter === undefined ? null : (chapterOfSlug(initialChapter) ?? "inventar");
-  const openAt = run === 0 && linkChapter ? linkChapter : "inventar";
-
-  // A link to a chapter that is not there: the address becomes /album.
+  // Where the next opening starts (a chapter id), and whether it is simply
+  // there without moving (link + prefers-reduced-motion).
+  const [openAt, setOpenAt] = useState(() =>
+    initialChapter === undefined ? "inventar" : (chapterOfSlug(initialChapter) ?? "inventar"),
+  );
+  const [instant, setInstant] = useState(false);
+  const history = !lab;
+  // The latest `open`, for the history listener.
+  const openRef = useRef(open);
   useEffect(() => {
-    if (initialChapter !== undefined && initialChapter !== "inventar" && chapterOfSlug(initialChapter) === null) {
-      router.replace("/album");
-    }
-  }, [initialChapter, router]);
+    openRef.current = open;
+  }, [open]);
+
+  // Arriving from a link: the entry becomes /atelier, a new one for the
+  // album on top (the chapter's address as it really is: /album for a
+  // chapter that is not there). Once, on arrival.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (!history || initialChapter === undefined || arrived.current) return;
+    arrived.current = true;
+    window.history.replaceState(entry(false), "", "/atelier");
+    window.history.pushState(entry(true), "", albumPathOf(openAt));
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Opens it as from a link: once the cover's picture and the fonts are
+  // there, after linkOpenDelay (prefers-reduced-motion: open at once).
+  const openFromLink = useCallback((chapter: string) => {
+    let cancelled = false;
+    const cover = document.querySelector<HTMLImageElement>("[data-object] .ab-cover-front img");
+    const ready = Promise.all([document.fonts.ready, cover?.decode().catch(() => {})]);
+    ready.then(() => {
+      window.setTimeout(() => {
+        if (cancelled) return;
+        setOpenAt(chapter);
+        setInstant(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        setOpen(true);
+      }, linkOpenDelay);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // A link (/album...): open it once it lies on the mat.
   const onAlbumDown = useCallback(() => {
-    if (linkChapter) setOpen(true);
-  }, [linkChapter]);
+    if (initialChapter !== undefined) openFromLink(openAt);
+    // Only for the arrival's chapter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialChapter, openFromLink]);
+
   // The vignette is in the page from the tap until it has faded out after
   // closing (then taken away, not left at opacity 0).
   const [vignette, setVignette] = useState(false);
   if (open && !vignette) setVignette(true);
 
-  // Back on the mat (the same closing animation). A new run: reopened, it
-  // starts again from the contents.
-  const close = useCallback(() => {
+  // Back on the mat (the same closing animation). A new run: opened again,
+  // it starts from the contents.
+  const shut = useCallback(() => {
     setOpen(false);
     setRun((n) => n + 1);
+    setOpenAt("inventar");
+    setInstant(false);
   }, []);
+  // X / Escape: back to the entry before ours (its popstate shuts it),
+  // or, without one, the address simply becomes /atelier.
+  const close = useCallback(() => {
+    if (history && window.history.state?.[OURS]) {
+      window.history.back();
+      return;
+    }
+    if (history) window.history.replaceState(entry(false), "", "/atelier");
+    shut();
+  }, [history, shut]);
+
+  // The browser's back / forward buttons.
+  useEffect(() => {
+    if (!history) return;
+    const onPop = () => {
+      const chapter = chapterOfPath(window.location.pathname);
+      if (chapter === null && openRef.current) shut();
+      else if (chapter !== null && !openRef.current) openFromLink(chapter);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [history, shut, openFromLink]);
+
+  // Leafing: the address follows the chapter on the screen (replaced).
+  const onChapterChange = useCallback(
+    (chapter: string) => {
+      if (!history || !openRef.current) return;
+      const path = albumPathOf(chapter);
+      if (window.location.pathname !== path) window.history.replaceState(window.history.state, "", path);
+    },
+    [history],
+  );
 
   // Escape closes it too (keyboard), unless a photo is open big over it:
   // Escape closes that first (the closed note's dialog stays in the page,
@@ -80,18 +176,34 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  const onObjectActivate = useCallback((key: string) => {
-    if (key === album.key) setOpen(true);
-  }, []);
+  // A tap on the album: it opens at the contents, with a history entry.
+  const onObjectActivate = useCallback(
+    (key: string) => {
+      if (key !== album.key || openRef.current) return;
+      setOpenAt("inventar");
+      setInstant(false);
+      setOpen(true);
+      if (history) window.history.pushState(entry(true), "", "/album");
+    },
+    [history],
+  );
 
   const art = useMemo(
     () => ({
       // Given where the album lies on the mat (see matLayout).
       [album.key]: (_: typeof album, place: Placed) => (
-        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} initialPage={openAt} />
+        <MatAlbum
+          place={place}
+          open={open}
+          run={run}
+          reducedMotion={reducedMotion}
+          initialPage={openAt}
+          instant={instant}
+          onChapterChange={onChapterChange}
+        />
       ),
     }),
-    [open, run, reducedMotion, openAt],
+    [open, run, reducedMotion, openAt, instant, onChapterChange],
   );
 
   return (
@@ -104,6 +216,8 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
         objectOverrides={overrides}
         albumOpen={open}
         onAlbumDown={onAlbumDown}
+        // From a link: the letters lie still from the start (see above).
+        calm={initialChapter !== undefined}
       />
       {/* The vignette, between the mat (and what lies on it) and the album;
           while open it also takes the taps meant for the things on the mat. */}

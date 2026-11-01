@@ -8,7 +8,7 @@ import { useStableViewport } from "@/lib/stableViewport";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
 import { albumLayout, visibleBox, type AlbumLayout, type ViewBox } from "./albumLayout";
-import { albumViews, firstPageOf, sheets, stackLeft, stackRight, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
+import { albumViews, chapterOfView, firstPageOf, sheets, stackLeft, stackRight, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
 const { opening, page, board, pages, stack, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
@@ -52,9 +52,13 @@ type MatAlbumProps = {
   run: number;
   reducedMotion: boolean;
   // Where it opens: "inventar" (the contents) or a chapter's id
-  // ("stickere"), see content.album.chapters. Later /album/stickere
-  // passes it.
+  // ("stickere"), see content.album.chapters (/album/stickere passes it).
   initialPage?: string;
+  // true = no opening movement: simply there, open (see AtelierWithAlbum).
+  instant?: boolean;
+  // Called with the chapter on the screen (a chapter id) once open and
+  // whenever it changes (see AtelierWithAlbum: the address follows it).
+  onChapterChange?: (chapter: string) => void;
 };
 
 type Named = "book" | "slide" | "board";
@@ -74,7 +78,7 @@ type Named = "book" | "slide" | "board";
 // holding the last frame ("fill"), for as long as the album is open:
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
-export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inventar" }: MatAlbumProps) {
+export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inventar", instant = false, onChapterChange }: MatAlbumProps) {
   // The visible part of the screen, known only in the browser: again on
   // every resize, and when an in-app browser's bars change it; as it was
   // at zoom 1 while pinch-zoomed in (the book stays put). See
@@ -148,12 +152,31 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const spread = p.spread;
     const start = albumViews(spread)[viewWithPage(firstPageOf(initialPage), spread)];
     const now = { duration: 0 };
-    // The page it opens on: the sheets before it already turned.
-    for (let s = 0; s < start.turned; s++) animate(leaves.current[s], [{ transform: leafTransform(s, true) }], now);
-    setStacks(start.turned);
+    // Opening at a chapter: the sheets before it are turned together with
+    // the cover, lying under it (never seen leafing; turned at once they
+    // would stick out left of the closed book). The stacks are the closed
+    // book's until the cover is past the middle.
+    const before = sheets.map((_, s) => s).filter((s) => s < start.turned);
+    const turnedPose = (s: number) => ({ transform: leafTransform(s, true) });
+    const flatPose = (s: number) => ({ transform: leafTransform(s, false) });
+    setStacks(0);
 
     async function play(p: Poses) {
+      if (instant) {
+        // Simply there, open (a link with prefers-reduced-motion).
+        animate(book.current, [{ transform: p.settled }, { transform: p.settled }], now, "book");
+        animate(boardRef.current, [{ boxShadow: p.shadowLifted }, { boxShadow: p.shadowLifted }], now, "board");
+        animate(cover.current, [{ transform: coverTransform(-180) }, { transform: coverTransform(-180) }], now);
+        for (const s of before) animate(leaves.current[s], [turnedPose(s), turnedPose(s)], now);
+        const sl = slideFor(start, p.layout);
+        animate(slide.current, [{ transform: sl }, { transform: sl }], now, "slide");
+        setStacks(start.turned);
+        setOpenedRun(run);
+        return;
+      }
       if (reducedMotion) {
+        for (const s of before) animate(leaves.current[s], [turnedPose(s), turnedPose(s)], now);
+        setStacks(start.turned);
         // Fade out on the mat, then fade in open in the middle.
         const half = { duration: ms(opening.reducedMotionFade) / 2 };
         await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
@@ -167,7 +190,10 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       }
 
       const turn = { duration: ms(coverTurn.duration), delay: ms(coverTurn.delay), easing: coverTurn.easing };
+      if (start.turned > 0) setStacks(start.turned, turn.delay + turn.duration / 2);
       await done(
+        // The sheets before the chapter, under the cover, with it.
+        ...before.map((s) => animate(leaves.current[s], [flatPose(s), turnedPose(s)], turn)),
         // Off the mat, up towards you, down into the middle.
         animate(book.current, bookKeyframes(p), { duration: ms(flight.duration), easing: flight.easing }, "book"),
         // The board's shadow grows wide and soft (the shadow is drawn by
@@ -537,6 +563,13 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // The pages lying still on the screen: open, not turning. Their videos
   // play; prefers-reduced-motion (when honoured): only posters.
   const livePages = opened && turningRun !== run && !reducedMotion ? views[index].pages : [];
+
+  // The chapter on the screen, for the address (see onChapterChange): once
+  // open, and when leafing changes it.
+  const chapterNow = opened ? chapterOfView(views[index]) : null;
+  useEffect(() => {
+    if (chapterNow) onChapterChange?.(chapterNow);
+  }, [chapterNow, onChapterChange]);
 
   return (
     // Fills the mat object's box (same proportions as the page).
