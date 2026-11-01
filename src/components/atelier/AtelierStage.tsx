@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
@@ -8,7 +8,7 @@ import { preloadLanding, whenIdle } from "@/lib/preload";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
-import type { MatObjectConfig } from "./objectLayout";
+import { fitMat, type Mat, type MatObjectConfig } from "./objectLayout";
 
 const { objects, object } = theme.atelier;
 const { slam } = object;
@@ -30,9 +30,10 @@ type StageProps = {
   // Optional: a tap on an object calls this instead of going to its page
   // (see MatObject). Used by /lab/album.
   onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
-  // Optional, per object key: drawn instead of its picture (see MatObject),
-  // and its own settings instead of the ones in theme.ts.
-  objectArt?: Record<string, ReactNode>;
+  // Optional, per object key: drawn instead of its picture (see MatObject;
+  // given the object's settings as it lies on this mat), and its own
+  // settings instead of the ones in theme.ts.
+  objectArt?: Record<string, (object: MatObjectConfig) => ReactNode>;
   objectOverrides?: Record<string, MatObjectConfig>;
 };
 
@@ -70,27 +71,58 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
   // times it on its own clock, from the same cue that starts the objects.)
 
   const entrance: Entrance = !animate ? "fade" : landed ? "slam" : "waiting";
-  // The objects as they lie on this mat (theirs, or the overrides).
-  const onMat = objects.map((o) => objectOverrides?.[o.key] ?? o);
+  // What lies on this mat (the objects, or their overrides), fitted to the
+  // screen: on short phones the album and the note get smaller (fitMat).
+  // Again on every resize (Instagram's browser changes its height after
+  // loading).
+  const screen = useScreenSize();
+  const mat: Mat = useMemo(() => {
+    const base = { objects: objects.map((o) => objectOverrides?.[o.key] ?? o), notePlace: theme.atelier.note.place };
+    return screen ? fitMat(base, screen.w, screen.h) : base;
+  }, [screen, objectOverrides]);
 
   return (
     <>
       {/* The note is there from the start; its corner lifts when the first
           object (the album) hits the mat. */}
-      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} />
-      <AtelierLetters animate={animate} onLanded={onLanded} objects={onMat} />
-      {onMat.map((o, i) => (
+      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} mat={mat} />
+      <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} />
+      {mat.objects.map((o, i) => (
         <MatObject
           key={o.key}
           object={o}
           entrance={entrance}
           slamDelay={slamDelay(i)}
           onActivate={onObjectActivate && ((link) => onObjectActivate(o.key, link))}
-          art={objectArt?.[o.key]}
+          art={objectArt?.[o.key]?.(o)}
         />
       ))}
     </>
   );
+}
+
+// The visible part of the screen (window.innerWidth / innerHeight), as
+// "393x740"; also when only the visual viewport reports a change (in-app
+// browsers). null on the server.
+function subscribeScreen(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  window.visualViewport?.addEventListener("resize", onChange);
+  return () => {
+    window.removeEventListener("resize", onChange);
+    window.visualViewport?.removeEventListener("resize", onChange);
+  };
+}
+function useScreenSize() {
+  const size = useSyncExternalStore(
+    subscribeScreen,
+    () => `${window.innerWidth}x${window.innerHeight}`,
+    () => "",
+  );
+  return useMemo(() => {
+    if (!size) return null;
+    const [w, h] = size.split("x").map(Number);
+    return { w, h };
+  }, [size]);
 }
 
 // Going back to the atelier with the browser's back button normally rebuilds

@@ -23,7 +23,12 @@ export function LabAlbum() {
   }, []);
 
   const art = useMemo(
-    () => ({ [album.key]: <MatAlbum object={album} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} /> }),
+    () => ({
+      // Given the album as it lies on the mat (smaller on short phones).
+      [album.key]: (object: typeof album) => (
+        <MatAlbum object={object} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} />
+      ),
+    }),
     [open, run, reducedMotion],
   );
 

@@ -484,6 +484,14 @@ export const theme = {
       // between, in proportion. Each letter keeps its place (the middle of
       // its box); the album and the note do not change.
       phoneScale: { few: 4, many: 7, factor: 0.85 },
+      // Phones, when the screen is short: the album gets smaller (never
+      // below minAlbumWidthVw % of the screen width) until P, F, M, S keep
+      // `clearance` px from it and the note still fits under it, at the
+      // same distance; the note shrinks with it. Where everything fits
+      // already the album keeps its size. And on screens less than
+      // shortHeight CSS px tall the letters are drawn `shortScale` times
+      // smaller (0.94 = 6%), for a little more air.
+      fit: { minAlbumWidthVw: 55, shortHeight: 760, shortScale: 0.94 },
       // Free mat kept between a letter and the album's / the note's real
       // outline (turned, with all that sticks out), in CSS px.
       clearance: 12,

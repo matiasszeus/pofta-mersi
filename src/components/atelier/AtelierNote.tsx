@@ -15,7 +15,7 @@ import { textFonts } from "@/app/fonts";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { NOTE_PIVOT, noteCss } from "./objectLayout";
+import { NOTE_PIVOT, baseMat, noteCss, type Mat } from "./objectLayout";
 
 const note = theme.atelier.note;
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -31,9 +31,6 @@ function rgba(hex: string, opacity: number) {
   return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${opacity})`;
 }
 
-// The note on the mat, per orientation (see note.place in theme.ts).
-const portrait = noteCss("portrait");
-const landscape = noteCss("landscape");
 
 // Sizes shared by the note on the mat and the opened one. On the mat the
 // sheet is laid out at the note's own width; opened, at its opened width,
@@ -195,6 +192,9 @@ type AtelierNoteProps = {
   // Seconds from now until the album hits the mat, when the note's corner
   // lifts; null = no flutter (no slam, or reduced motion).
   flutterDelay: number | null;
+  // What lies on the mat (the note keeps clear of the album; on short
+  // phones both are smaller: see fitMat).
+  mat?: Mat;
 };
 
 type Input = "keyboard" | "pointer";
@@ -207,8 +207,11 @@ type Input = "keyboard" | "pointer";
 // The dialog is our own (role="dialog"), not the browser's <dialog>: browsers
 // may close a native modal dialog on Esc or on Android's back button at once,
 // without letting the page animate it back.
-export function AtelierNote({ flutterDelay }: AtelierNoteProps) {
+export function AtelierNote({ flutterDelay, mat = baseMat }: AtelierNoteProps) {
   const reducedMotion = useReducedMotion();
+  // The note on the mat, per orientation (see note.place in theme.ts).
+  const portrait = noteCss("portrait", mat);
+  const landscape = noteCss("landscape", mat);
   const button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
