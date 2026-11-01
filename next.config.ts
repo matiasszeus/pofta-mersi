@@ -44,9 +44,10 @@ const csp = [
   "base-uri 'self'",
   // Forms may only send to this site (the cart will have forms later).
   "form-action 'self'",
-  // When the policy is enforced (no longer Report-Only), add
-  // "upgrade-insecure-requests" (http requests upgraded to https). In a
-  // Report-Only policy browsers ignore it and log an error.
+  // Anything the page asks for over http is fetched over https instead.
+  // Only on Vercel (always https): a local build on http://localhost would
+  // otherwise ask itself for https and find nothing.
+  ...(process.env.VERCEL ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 // Sent with every page and file of the site.
@@ -66,10 +67,12 @@ const securityHeaders = [
   // (a separate sign-up at hstspreload.org; hard to undo). Ignored on
   // http://localhost.
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-  // Report-Only: nothing is blocked yet, the browser only writes in the
-  // console what the policy would have blocked. Once the console is clean,
-  // rename the key to "Content-Security-Policy".
-  { key: "Content-Security-Policy-Report-Only", value: csp },
+  // Enforced: anything not allowed above is blocked (with an error in the
+  // console naming the directive). Something new from another site (an
+  // embed, analytics, a payment form...) must be added above first. To try a
+  // change without risk, send it as "Content-Security-Policy-Report-Only":
+  // then the browser only reports.
+  { key: "Content-Security-Policy", value: csp },
 ];
 
 const nextConfig: NextConfig = {
