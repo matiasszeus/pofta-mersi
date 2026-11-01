@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MatObjectConfig, Placed } from "@/components/atelier/objectLayout";
 import { theme } from "@/config/theme";
+import { useStableViewport } from "@/lib/stableViewport";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
 import { albumLayout, visibleBox, type ViewBox } from "./albumLayout";
@@ -71,10 +72,19 @@ type Named = "book" | "slide" | "board";
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
 export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inventar" }: MatAlbumProps) {
-  // The visible part of the screen (see visibleBox); kept as it was while
-  // pinch-zoomed in.
-  const [screen, setScreen] = useState<ViewBox | null>(null);
-  const [zoomed, setZoomed] = useState(false);
+  // The visible part of the screen, known only in the browser: again on
+  // every resize, and when an in-app browser's bars change it; as it was
+  // at zoom 1 while pinch-zoomed in (the book stays put). See
+  // stableViewport.
+  const vp = useStableViewport();
+  const zoomed = vp?.zoomed ?? false;
+  const b = vp?.box;
+  const screen = useMemo<ViewBox | null>(
+    () => (b ? { left: b.left, top: b.top, width: b.width, height: b.height } : null),
+    // Only when a number changes (not when only `zoomed` does).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [b?.left, b?.top, b?.width, b?.height],
+  );
   // The page whose corner lifts as a hint (see "The hint"), while it does.
   const [hintPage, setHintPage] = useState<number | null>(null);
   // The mouse is over a page's edge that turns it: a hand cursor there.
@@ -101,30 +111,6 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // The sheets, front to back (see sheets).
   const leaves = useRef<(HTMLDivElement | null)[]>([]);
   const boardRef = useRef<HTMLDivElement>(null);
-
-  // The visible part of the screen, known only in the browser; again on
-  // every resize, and when an in-app browser's bars change it. Pinch-zoom
-  // (the browser's own, never blocked) changes visualViewport too: then
-  // the book stays put.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const measure = () => {
-      const isZoomed = !!vv && vv.scale > 1.01;
-      setZoomed(isZoomed);
-      if (isZoomed) return;
-      const b = visibleBox();
-      setScreen((old) =>
-        old && old.left === b.left && old.top === b.top && old.width === b.width && old.height === b.height ? old : b,
-      );
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    vv?.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("resize", measure);
-      vv?.removeEventListener("resize", measure);
-    };
-  }, []);
 
   const layout = screen && albumLayout(screen);
   const views = albumViews(layout?.spread ?? false);

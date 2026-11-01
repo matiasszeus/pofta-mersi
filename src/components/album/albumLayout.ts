@@ -1,4 +1,5 @@
 import { theme } from "@/config/theme";
+import { stableViewport } from "@/lib/stableViewport";
 
 const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening } = theme.album;
 
@@ -7,13 +8,10 @@ const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening } =
 // what shows between their bars: visualViewport tells the visible part.
 export type ViewBox = { left: number; top: number; width: number; height: number };
 
-export function visibleBox(): ViewBox {
-  const vv = window.visualViewport;
-  // Pinch-zoomed in (scale > 1): visualViewport is then the zoomed-in
-  // piece, not the screen; the book keeps its size and place.
-  if (!vv || vv.scale > 1.01) return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-  return { left: vv.offsetLeft, top: vv.offsetTop, width: vv.width, height: vv.height };
-}
+// As measured at zoom 1 (see stableViewport): pinch-zoomed in,
+// visualViewport is only the zoomed-in piece; the book keeps its size and
+// place.
+export const visibleBox = (): ViewBox => stableViewport().box;
 
 // Where the open book's page goes in that visible part, in CSS px from the
 // window's top-left corner: as big as `page` in theme.ts allows, centred

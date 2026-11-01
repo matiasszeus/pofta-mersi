@@ -208,6 +208,24 @@ body {
   overflow: clip;
 }
 
+/* touch-action: what a finger may do on an element by the browser's own
+   rules (scroll, pinch-zoom); the rest is left to the page. It applies to
+   the element and everything inside it, so the open album (inside this
+   box) can only get pinch-zoom back if this box allows it.
+   The mat (letters, calculator, note, the album lying on it): moves, no
+   pinch-zoom (nothing to zoom into; it used to move the layout around).
+   While the album is open: allowed (the album and the vignette say what
+   they allow, see MatAlbum and AtelierWithAlbum). Still zoomed in
+   (.mat-zoomed, e.g. the album was closed while zoomed): allowed too, or
+   there would be no way to zoom back out. */
+.atelier-main {
+  touch-action: pan-x pan-y;
+}
+.atelier-main:has(.album-open),
+.atelier-main:has(.mat-zoomed) {
+  touch-action: auto;
+}
+
 /* Pictures of the artwork (cover, stickers, bracelets, note, backgrounds):
    no "Save image" menu on a long press (iPhone), not selected like text.
    Together with draggable={false} (no dragging the picture off to the

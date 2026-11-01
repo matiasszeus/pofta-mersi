@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 import { preloadLanding, whenIdle } from "@/lib/preload";
+import { useStableViewport } from "@/lib/stableViewport";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
-import { matLayout, visibleSize, type MatObjectConfig, type Placed } from "./objectLayout";
+import { matLayout, type MatObjectConfig, type Placed } from "./objectLayout";
 import { PocketCalculator } from "./PocketCalculator";
 
 const { objects, object } = theme.atelier;
@@ -102,31 +103,15 @@ function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false
   );
 }
 
-// The visible part of the screen (see visibleSize), as "393x740"; also
-// when only the visual viewport reports a change (in-app browsers, Safari's
-// bars). null on the server.
-function subscribeScreen(onChange: () => void) {
-  window.addEventListener("resize", onChange);
-  window.visualViewport?.addEventListener("resize", onChange);
-  return () => {
-    window.removeEventListener("resize", onChange);
-    window.visualViewport?.removeEventListener("resize", onChange);
-  };
-}
+// The visible part of the screen (see stableViewport): measured at zoom 1,
+// so a pinch-zoom never lays the mat out again; turning the phone or the
+// browser's bars showing / hiding do (~100 ms after the last change).
+// null on the server.
 function useScreenSize() {
-  const size = useSyncExternalStore(
-    subscribeScreen,
-    () => {
-      const { width, height } = visibleSize();
-      return `${width}x${height}`;
-    },
-    () => "",
-  );
-  return useMemo(() => {
-    if (!size) return null;
-    const [w, h] = size.split("x").map(Number);
-    return { w, h };
-  }, [size]);
+  const vp = useStableViewport();
+  const w = vp?.width;
+  const h = vp?.height;
+  return useMemo(() => (w === undefined || h === undefined ? null : { w, h }), [w, h]);
 }
 
 // Going back to the atelier with the browser's back button normally rebuilds

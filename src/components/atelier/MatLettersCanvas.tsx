@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
 import { PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
+import { useStableViewport } from "@/lib/stableViewport";
 import {
   blockerOutlines,
   chooseLetters,
@@ -72,17 +73,10 @@ function landing(t: number, startHeight: number, size: number) {
 // under the bar, so the letters must be placed by the visible part, not by
 // the canvas.
 // In-app browsers (Instagram) change it after the page has loaded, and
-// sometimes only the visual viewport reports that.
-function subscribeResize(onChange: () => void) {
-  window.addEventListener("resize", onChange);
-  window.visualViewport?.addEventListener("resize", onChange);
-  return () => {
-    window.removeEventListener("resize", onChange);
-    window.visualViewport?.removeEventListener("resize", onChange);
-  };
-}
+// sometimes only the visual viewport reports that. As measured at zoom 1
+// (see stableViewport): a pinch-zoom never moves the camera.
 function useVisibleHeight(fallback: number) {
-  return useSyncExternalStore(subscribeResize, () => visibleSize().height, () => fallback);
+  return useStableViewport()?.height ?? fallback;
 }
 
 type MatLetterProps = {
@@ -354,7 +348,14 @@ export default function MatLettersCanvas({ animate, onObjectsCue, mat, paused = 
     // frameloop "demand" = draw a frame only when something changes (e.g. a
     // resize). While the letters land it runs every frame ("always"); once
     // they lie still, the page stops drawing altogether.
-    <Canvas dpr={[1, dprCap]} shadows="variance" frameloop={settled || paused ? "demand" : "always"}>
+    <Canvas
+      dpr={[1, dprCap]}
+      shadows="variance"
+      frameloop={settled || paused ? "demand" : "always"}
+      // Its own size: measured again ~100 ms after a resize, never on a
+      // scroll (moving around a pinch-zoomed page scrolls it).
+      resize={{ debounce: 100, scroll: false }}
+    >
       {/* Suspense: render nothing until the font has loaded. */}
       <Suspense fallback={null}>
         <Scene

@@ -1,4 +1,5 @@
 import { theme } from "@/config/theme";
+import { stableViewport } from "@/lib/stableViewport";
 
 // Where the things on the atelier's mat go (the album, the note, the
 // calculator, and the letters around them), in CSS px from the top-left
@@ -34,12 +35,12 @@ export function orientationOf(width: number, height: number): Orientation {
 }
 
 // The visible part of the screen, in CSS px: its width, and the height of
-// the visual viewport (between Safari's or Instagram's bars). Times its
-// zoom, so pinching the page does not move things around.
+// the visual viewport (between Safari's or Instagram's bars). As measured
+// at zoom 1: pinching the page does not move things around (see
+// stableViewport).
 export function visibleSize() {
-  const vv = window.visualViewport;
-  const height = vv ? Math.min(window.innerHeight, vv.height * vv.scale) : window.innerHeight;
-  return { width: window.innerWidth, height };
+  const { width, height } = stableViewport();
+  return { width, height };
 }
 
 // Screens held upright (phones, tablets) get the phone layout
