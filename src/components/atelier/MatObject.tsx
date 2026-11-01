@@ -124,7 +124,8 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
               aria-hidden
               sizes={sizes}
               priority
-              className="obj-shadow absolute inset-0 h-auto w-full"
+              draggable={false}
+              className="art obj-shadow absolute inset-0 h-auto w-full"
             />
             <Image
               src={object.src}
@@ -134,7 +135,8 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
               // Visible right away: load it first, without lazy loading.
               priority
               sizes={sizes}
-              className="relative h-auto w-full"
+              draggable={false}
+              className="art relative h-auto w-full"
             />
           </>
         )}

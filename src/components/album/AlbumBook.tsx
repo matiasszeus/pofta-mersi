@@ -243,7 +243,7 @@ export function AlbumBook({
                 sizes="420px"
                 priority
                 draggable={false}
-                className="absolute inset-0 block h-full w-full object-cover select-none"
+                className="art absolute inset-0 block h-full w-full object-cover"
               />
             </div>
             <div className="ab-face ab-back ab-cover-back">
@@ -408,7 +408,7 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
           // leafing may show them any moment.
           loading="eager"
           draggable={false}
-          className="pointer-events-none absolute select-none"
+          className="art pointer-events-none absolute"
           style={{
             left: u(p.left),
             top: u(p.top),

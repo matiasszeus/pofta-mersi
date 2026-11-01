@@ -207,3 +207,13 @@ body {
 .atelier-main:has(.album-open) {
   overflow: clip;
 }
+
+/* Pictures of the artwork (cover, stickers, bracelets, note, backgrounds):
+   no "Save image" menu on a long press (iPhone), not selected like text.
+   Together with draggable={false} (no dragging the picture off to the
+   desktop). Right-click stays as it is everywhere. */
+.art {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

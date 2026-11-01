@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import { AtelierWithAlbum } from "@/components/album/AtelierWithAlbum";
 import { MatBackground } from "@/components/atelier/MatBackground";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { theme } from "@/config/theme";
 
 // Tints the mobile browser's own bars (Safari, Chrome) to match the page.
@@ -23,6 +24,7 @@ export default function AtelierPage() {
     // globals.css.
     <main className="atelier-main relative h-dvh overflow-hidden">
       <MatBackground />
+      <SiteFooter />
       <AtelierWithAlbum />
     </main>
   );

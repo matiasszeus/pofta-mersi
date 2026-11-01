@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import Link from "next/link";
 import { MatBackground } from "@/components/atelier/MatBackground";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
@@ -29,6 +30,7 @@ export default function CartPage() {
           {content.cart.back}
         </Link>
       </div>
+      <SiteFooter />
     </main>
   );
 }

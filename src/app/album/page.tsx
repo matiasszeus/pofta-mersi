@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import { MatBackground } from "@/components/atelier/MatBackground";
 import { PageTitle } from "@/components/site/PageTitle";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { theme } from "@/config/theme";
 
@@ -16,6 +17,7 @@ export default function AlbumPage() {
       <MatBackground />
       <SiteHeader />
       <PageTitle>ALBUM</PageTitle>
+      <SiteFooter />
     </main>
   );
 }

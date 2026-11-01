@@ -137,7 +137,7 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
             unoptimized
             loading="eager"
             draggable={false}
-            className="object-cover select-none"
+            className="art object-cover"
           />
         )}
         {p.videoMare && (

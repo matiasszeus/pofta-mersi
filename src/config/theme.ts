@@ -891,6 +891,14 @@ export const theme = {
   },
 
   // The header of every page after the landing: only the logo, top left.
+  // The small © line at the bottom of the pages after the landing.
+  siteFooter: {
+    color: palette.white,
+    opacity: 0.7,
+    // Text size in CSS px.
+    size: 11,
+  },
+
   siteHeader: {
     href: "/atelier",
     // White: contrast 4.3 on the green, against 2.9 for sage.

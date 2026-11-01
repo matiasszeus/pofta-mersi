@@ -42,3 +42,6 @@ next-env.d.ts
 
 # temporary files (frames to choose from, see scripts/prepare-videos.mjs)
 /tmp/
+
+# original artwork files (full size, before export for the site)
+assets-src/

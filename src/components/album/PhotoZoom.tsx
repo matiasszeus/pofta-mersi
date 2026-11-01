@@ -139,7 +139,8 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
                 el.muted = true;
                 el.play().catch(() => {}); // AbortError: closed before it started
               }}
-              className="zoom-video absolute inset-0 h-full w-full object-cover"
+              draggable={false}
+              className="art zoom-video absolute inset-0 h-full w-full object-cover"
               src={product.videoMare}
               poster={product.pozaBlur}
               autoPlay

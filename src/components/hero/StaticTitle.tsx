@@ -79,7 +79,8 @@ export function StaticTitle({ hidden }: { hidden: boolean }) {
           width={portrait.pixelWidth}
           height={portrait.pixelHeight}
           fetchPriority="high"
-          className="static-title pointer-events-none absolute h-auto max-w-none select-none"
+          draggable={false}
+          className="art static-title pointer-events-none absolute h-auto max-w-none"
           style={{
             opacity: hidden ? 0 : 1,
             transition: `opacity ${theme.landing.titleSwap}s linear`,

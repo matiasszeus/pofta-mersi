@@ -14,7 +14,7 @@ export function FlowerBackground() {
       <source media="(orientation: portrait)" srcSet={flowersPortrait} />
       {/* A plain <img>: next/image cannot switch files by orientation.
           alt="" marks it as decoration for screen readers. */}
-      <img src={flowersLandscape} alt="" className="h-full w-full object-cover" />
+      <img src={flowersLandscape} alt="" draggable={false} className="art h-full w-full object-cover" />
     </picture>
   );
 }

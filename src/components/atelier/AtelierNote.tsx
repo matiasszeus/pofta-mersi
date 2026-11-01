@@ -67,7 +67,8 @@ function Paper({ src, className, style }: { src: string; className?: string; sty
       fill
       priority
       sizes={paperSizes}
-      className={`pointer-events-none select-none ${className ?? ""}`}
+      draggable={false}
+      className={`art pointer-events-none ${className ?? ""}`}
       style={style}
     />
   );
@@ -164,7 +165,8 @@ function NoteSheet({ opened = false, restShadowRef, openShadowRef, inkRef, textR
             fill
             priority
             sizes={inkSizes}
-            className="pointer-events-none select-none object-contain object-left-top"
+            draggable={false}
+            className="art pointer-events-none object-contain object-left-top"
           />
         </div>
       </div>
