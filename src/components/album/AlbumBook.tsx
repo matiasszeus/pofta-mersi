@@ -159,11 +159,13 @@ export function AlbumBook({
   return (
     <div className="absolute inset-0" style={vars}>
       <style>{css}</style>
-      <div ref={bookRef} className="album-3d absolute inset-0" style={{ transform: bookTransform }}>
+      {/* will-change: each moving part keeps its own graphics layer the
+          whole time (Safari would otherwise rebuild it when a move ends). */}
+      <div ref={bookRef} className="album-3d absolute inset-0 will-change-transform" style={{ transform: bookTransform }}>
         <div
           ref={slideRef}
-          className="album-3d absolute inset-0"
-          style={{ transform: `translateX(${open && spread ? 50 : 0}%)` }}
+          className="album-3d absolute inset-0 will-change-transform"
+          style={{ transform: `translate3d(${open && spread ? 50 : 0}%, 0px, 0px)` }}
         >
           <div ref={boardRef} className="ab-board" />
           <div className="ab-edge-r" />
@@ -189,7 +191,7 @@ export function AlbumBook({
           </div>
           <div
             ref={coverRef}
-            className="ab-cover album-3d"
+            className="ab-cover album-3d will-change-transform"
             style={{ transform: coverTransform(open ? -180 : 0) }}
           >
             <div className="ab-face ab-cover-front">
