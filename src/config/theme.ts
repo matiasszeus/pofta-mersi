@@ -941,6 +941,9 @@ export const theme = {
     // shorter flick at least `speed` px per ms; a finger moving at most
     // `tapSlop` px is still a tap.
     swipeThreshold: { distance: 40, speed: 0.5, tapSlop: 10 },
+    // Swipes that start this close (px) to the screen's left or right edge
+    // are the system's (back / forward: iPhone, Android), never a page turn.
+    systemEdge: 20,
     // The first time the album opens (remembered in localStorage under
     // storageKey): the page's bottom-right corner lifts a little, twice,
     // then lies down.

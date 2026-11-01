@@ -12,7 +12,7 @@ import { albumViews, chapterOfView, firstPageOf, sheets, stackLeft, stackRight, 
 
 const { opening, page, board, pages, stack, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
-const { edgeTapZone, swipeThreshold, hintCurl: hint } = theme.album;
+const { edgeTapZone, swipeThreshold, systemEdge, hintCurl: hint } = theme.album;
 const ms = (seconds: number) => seconds * 1000;
 
 // What a tap or a press on these does is theirs (a photo, a link, the
@@ -457,7 +457,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // theirs (OWN_TAP; most of them also stop it from getting here).
   useEffect(() => {
     if (!opened) return;
-    let start: { id: number; x: number; y: number; t: number; target: Element } | null = null;
+    let start: { id: number; x: number; y: number; t: number; target: Element; atEdge: boolean } | null = null;
     const down = new Set<number>();
     const onBook = (e: Event) => e.target instanceof Element && !!flyer.current?.contains(e.target);
 
@@ -470,7 +470,10 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       if (!e.isPrimary || e.button !== 0 || !onBook(e)) return;
       const target = e.target as Element;
       if (target.closest(OWN_TAP)) return;
-      start = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, target };
+      // Started at the screen's edge: a swipe from there is the system's
+      // back / forward gesture (a tap there still counts).
+      const atEdge = e.clientX < systemEdge || e.clientX > window.innerWidth - systemEdge;
+      start = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, target, atEdge };
     };
     const onUp = (e: PointerEvent) => {
       down.delete(e.pointerId);
@@ -484,6 +487,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       const { distance, speed: fast, tapSlop } = swipeThreshold;
       const swiped = far > Math.abs(dy) && (far >= distance || (far > tapSlop && speed >= fast));
       if (swiped) {
+        if (s.atEdge) return; // the system's gesture, not ours
         // Swiped to the left: the next page (it comes from the right).
         latest.current.go(dx < 0 ? 1 : -1);
       } else if (Math.hypot(dx, dy) <= tapSlop && e.timeStamp - s.t <= TAP_MAX_MS) {
@@ -590,8 +594,13 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             // around it shows one everywhere, for the tap that opens it).
             cursor: opened ? (overEdge ? "pointer" : "default") : undefined,
             // Open: a finger's sideways moves are ours (swipes); the
-            // browser keeps only up-down (no zoom anywhere, see NoZoom).
-            touchAction: opened ? "pan-y" : undefined,
+            // browser keeps up-down (and pinch-zoom here, though NoZoom
+            // stops it on the whole site).
+            touchAction: opened ? "pan-y pinch-zoom" : undefined,
+            // A sideways two-finger swipe on a laptop's touchpad over the
+            // album never goes back / forward in the browser (the
+            // atelier's html has overscroll-behavior: none as well).
+            overscrollBehaviorX: "none",
           }}
         >
           <AlbumBook
