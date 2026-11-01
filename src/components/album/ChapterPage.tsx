@@ -137,10 +137,10 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
   );
 }
 
-// A price tag hanging on the page: big `title`, the product's price under
-// it (from products.ts). The label's shape is a clip-path (which would cut
-// a box-shadow off), so its shadow is a drop-shadow on the box around it.
-function PriceTag({ title, product, price }: NonNullable<AlbumPageContent["priceTag"]>) {
+// A tag hanging on the page: big `title` at the top, `unit` small in the
+// bottom-right corner. The label's shape is a clip-path (which would cut a
+// box-shadow off), so its shadow is a drop-shadow on the box around it.
+function PriceTag({ title, unit }: NonNullable<AlbumPageContent["priceTag"]>) {
   const tipX = tag.tip * tag.width;
   const hole = { x: tipX * 0.62, y: tag.height / 2 };
   // The thread: from the hole, curving up and to the left (in the tag's
@@ -159,16 +159,24 @@ function PriceTag({ title, product, price }: NonNullable<AlbumPageContent["price
       }}
     >
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center leading-none"
+        className="absolute inset-0 leading-none"
         style={{
           background: tag.color,
           clipPath: `polygon(${tag.tip * 100}% 0, 100% 0, 100% 100%, ${tag.tip * 100}% 100%, 0 50%)`,
-          paddingLeft: u(tipX),
-          gap: u(4),
         }}
       >
-        <span style={{ fontSize: u(tag.titleSize) }}>{title}</span>
-        <span style={{ fontSize: u(tag.priceSize), opacity: tag.priceOpacity }}>{price(produs(product).pret)}</span>
+        <span
+          className="absolute text-center"
+          style={{ left: u(tipX), right: 0, top: u(tag.titleTop), fontSize: u(tag.titleSize) }}
+        >
+          {title}
+        </span>
+        <span
+          className="absolute"
+          style={{ right: u(tag.unitRight), bottom: u(tag.unitBottom), fontSize: u(tag.unitSize), opacity: tag.unitOpacity }}
+        >
+          {unit}
+        </span>
       </div>
       <div
         className="absolute rounded-full"

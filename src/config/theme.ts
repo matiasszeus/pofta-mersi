@@ -665,12 +665,14 @@ export const theme = {
       note: { left: 30, top: 300, width: 140, size: 18, lineHeight: 1.2, rotation: -3 },
       arrow: { left: 120, gap: 4, width: 56 },
     },
-    // A price tag (u), in the free space above the second photo: a mustard
-    // label pointed on the left (its tip `tip` of its width), turned, with
-    // a small hole in the tip and a thin thread from it curving up-left.
+    // A price tag (u), high in the free space above the second photo: a
+    // mustard label pointed on the left (its tip `tip` of its width),
+    // turned, with a small hole in the tip and a thin thread from it
+    // curving up-left. Its title big, centred, at the top; its unit small
+    // in the bottom-right corner.
     priceTag: {
-      left: 196,
-      top: 64,
+      left: 200,
+      top: 28,
       width: 90,
       height: 47,
       tip: 0.18,
@@ -679,9 +681,12 @@ export const theme = {
       shadow: "0 2u 3u rgb(29 38 51 / 0.3)",
       hole: { size: 5.6, color: palette.paper },
       thread: { color: palette.ink, opacity: 0.55, width: 1 },
-      titleSize: 20.6, // ~22px on a phone
-      priceSize: 9.4, // ~10px
-      priceOpacity: 0.75,
+      titleSize: 26, // ~28px on a phone
+      titleTop: 4,
+      unitSize: 10.3, // ~11px
+      unitOpacity: 0.75,
+      unitRight: 7,
+      unitBottom: 6,
     },
     colors: {
       board: palette.coverBlack,

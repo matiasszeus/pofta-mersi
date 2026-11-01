@@ -12,8 +12,7 @@ import { palette } from "./theme";
 //             the product's name under it, in the white frame. product:
 //             its id in src/config/products.ts (name and price come from
 //             there)
-//   priceTag  a price tag: `title` big, under it the price of `product`
-//             (from products.ts) written by `price`
+//   priceTag  a tag: `title` big, `unit` small in its bottom-right corner
 //   note      a handwritten note under the photos, with a small arrow
 export type AlbumModel = { product: string; video: string; poster: string; alt: string };
 export type AlbumPageContent = {
@@ -21,7 +20,7 @@ export type AlbumPageContent = {
   title?: boolean;
   subtitle?: string;
   models?: AlbumModel[];
-  priceTag?: { title: string; product: string; price: (lei: number) => string };
+  priceTag?: { title: string; unit: string };
   note?: string;
 };
 
@@ -106,7 +105,7 @@ export const content = {
                 alt: "Brățara Synthesis, rotindu-se",
               },
             ],
-            priceTag: { title: "3 foi", product: "bratara-basalt", price: (lei) => `${lei} lei / buc` },
+            priceTag: { title: "3 foi", unit: "/ buc" },
             note: "mai ieftin decât un pachet de țigări",
           },
         ],
