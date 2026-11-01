@@ -10,7 +10,13 @@ import { PartnerCredit } from "./PartnerCredit";
 import { PriceTag } from "./PriceTag";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
+const { hint } = theme.album.pages;
 const text = content.album;
+
+// The hint's two lifts of the corner (see PageCurl): when each one is up
+// and down again, as a fraction of the whole animation.
+const curlTotal = 2 * hint.lift + hint.pause;
+const curlAt = (seconds: number) => `${((seconds / curlTotal) * 100).toFixed(2)}%`;
 
 // The parts' looks, from the prototype (docs/album-deschidere-referinta.html).
 // Written as CSS once, for the pseudo-elements (::after) and the many
@@ -85,6 +91,41 @@ const css = `
 .ab-dot { width: ${u(contents.dot)}; height: ${u(contents.dot)}; border-radius: 50%; flex: none; align-self: center; box-sizing: border-box; }
 .ab-lead { flex: 1; border-bottom: ${u(2)} dotted rgb(29 38 51 / 0.35); transform: translateY(${u(-4)}); }
 .ab-pnum { position: absolute; bottom: ${u(pageNumber.bottom)}; font-size: ${u(pageNumber.size)}; color: rgb(29 38 51 / 0.55); }
+/* The hint (PageCurl): the page's bottom-right corner lifted, as a square
+   of hint.size of the page's width in that corner. Grows from the corner
+   (scale), twice, then lies flat (scale 0 = not there). Three triangles,
+   cut with clip-path (a face's child: allowed in the 3D, see AlbumBook):
+     under   where the corner was: the page beneath, darker near the fold
+     shadow  the lifted flap's soft shadow on the page
+     flap    the corner folded back over the page, its back showing, a
+             little lighter towards its tip */
+.ab-curl {
+  position: absolute; right: 0; bottom: 0; width: ${hint.size * 100}%; aspect-ratio: 1;
+  pointer-events: none; transform-origin: 100% 100%; transform: scale(0);
+  animation: ab-curl ${curlTotal}s ease-in-out both;
+}
+.ab-curl > * { position: absolute; inset: 0; }
+.ab-curl-under {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom right, rgb(29 38 51 / 0.2) 50%, rgb(29 38 51 / 0.03) 85%), ${colors.paper};
+}
+/* Flap and shadow: rounded at the tip (a curl, not a sharp fold). */
+.ab-curl-shadow {
+  clip-path: polygon(104% -2%, -2% 104%, -6% 34%, 4% 4%, 34% -6%);
+  background: radial-gradient(circle at 100% 100%, rgb(29 38 51 / 0.22) 62%, rgb(29 38 51 / 0) 100%);
+}
+.ab-curl-flap {
+  clip-path: polygon(100% 0, 0 100%, 2% 36%, 9% 9%, 36% 2%);
+  background: linear-gradient(to top left, ${colors.pageLine} 50%, #ebe5d8 60%, #fffdf8 82%, #f2ede2 100%);
+}
+@keyframes ab-curl {
+  0% { transform: scale(0); }
+  ${curlAt(hint.lift / 2)} { transform: scale(1); }
+  ${curlAt(hint.lift)} { transform: scale(0); }
+  ${curlAt(hint.lift + hint.pause)} { transform: scale(0); }
+  ${curlAt(hint.lift * 1.5 + hint.pause)} { transform: scale(1); }
+  100% { transform: scale(0); }
+}
 /* A sheet: turns around the spine when leafing (see leafTransform). */
 .ab-leaf { position: absolute; inset: 0; transform-origin: left center; }
 .ab-cover {
@@ -134,6 +175,10 @@ type AlbumBookProps = {
   // A chapter tapped on the contents page: leaf there (see MatAlbum).
   onGoToChapter?: (chapterId: string) => void;
   boardRef?: Ref<HTMLDivElement>;
+  // The page whose corner lifts once, as a hint that it can be turned
+  // (see MatAlbum); onHintEnd: when it has lain down again.
+  hintPage?: number | null;
+  onHintEnd?: () => void;
 };
 
 // The album. It fills its parent, which has the size of the open book's
@@ -167,11 +212,15 @@ export function AlbumBook({
   boardRef,
   livePages = [],
   onGoToChapter,
+  hintPage = null,
+  onHintEnd,
 }: AlbumBookProps) {
   const pageProps = (page: BookPage) => ({
     page,
     live: livePages.includes(page.number),
     onGoToChapter,
+    hint: hintPage === page.number,
+    onHintEnd,
   });
   const open = skipOpening;
   const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
@@ -266,8 +315,10 @@ type PageProps = {
   side: "front" | "back" | "under";
   live: boolean;
   onGoToChapter?: (chapterId: string) => void;
+  hint?: boolean;
+  onHintEnd?: () => void;
 };
-function Page({ page, side, live, onGoToChapter }: PageProps) {
+function Page({ page, side, live, onGoToChapter, hint = false, onHintEnd }: PageProps) {
   const left = side === "back";
   const place = side === "under" ? "ab-right" : left ? "ab-face ab-back ab-left" : "ab-face ab-right";
   const look = page.kind === "divider" ? "ab-divider" : "ab-paper";
@@ -281,12 +332,25 @@ function Page({ page, side, live, onGoToChapter }: PageProps) {
           {page.number}
         </div>
       )}
+      {hint && <PageCurl onEnd={onHintEnd} />}
+    </div>
+  );
+}
+
+// The hint that a page can be turned: its bottom-right corner lifts a
+// little, twice (see .ab-curl). Only drawn while it plays.
+function PageCurl({ onEnd }: { onEnd?: () => void }) {
+  return (
+    <div className="ab-curl" aria-hidden onAnimationEnd={onEnd}>
+      <div className="ab-curl-under" />
+      <div className="ab-curl-shadow" />
+      <div className="ab-curl-flap" />
     </div>
   );
 }
 
 // What lies on a page, by its kind.
-function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side">) {
+function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side" | "hint" | "onHintEnd">) {
   return (
     <>
       {page.kind === "contents" && <ContentsList onGoToChapter={onGoToChapter} />}

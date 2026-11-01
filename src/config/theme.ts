@@ -587,12 +587,12 @@ export const theme = {
     // Wide screens show both pages: there the open cover, the page, the
     // board and the tabs together have to fit (spreadWidth = their width
     // in page widths).
-    page: { ratio: 453 / 340, sideMargin: 25, maxWidth: 400, maxHeightVh: 74 },
+    // Open, the book is centred in the visible part of the screen
+    // (visualViewport), with the same free space above and below: at least
+    // marginY px (room for "închide" in the top-right corner).
+    page: { ratio: 453 / 340, sideMargin: 25, maxWidth: 400, maxHeightVh: 74, marginY: 56 },
     spreadMinWidth: 700, // from this screen width on: both pages side by side
     spreadWidth: 2.12,
-    // The open book sits this much (fraction of the screen height) above
-    // the middle (the prototype: 27.5px on an 844px screen).
-    offsetY: -0.0326,
     perspective: 1900, // px: distance from the eye for the 3D
 
     // The layers, from the back: board, stack of pages (its edges), the
@@ -850,7 +850,7 @@ export const theme = {
       reducedMotionFade: 0.4,
     },
 
-    // Leafing through, once open (buttons under the book).
+    // Leafing through, once open (swipes, taps on the edges, arrow keys).
     pages: {
       // A sheet turns around the spine (rotateY 0 -> -180deg). On phones
       // the book slides one page width at the same time, so the page you
@@ -877,20 +877,24 @@ export const theme = {
         maxTotal: 2.2,
         easing: "cubic-bezier(0.45, 0.05, 0.25, 1)",
       },
-      // The buttons and the page's name between them, under the book. px.
-      controls: {
-        gap: 30, // from the bottom of the ribbon
-        button: 48,
-        spacing: 18, // between buttons and name
-        labelWidth: 120,
-        labelSize: 17,
-        margin: 12, // kept free under them, to the screen's edge
-        fadeIn: 0.4, // seconds, once the cover is open
-      },
+      // Leafing by hand (MatAlbum):
+      //   swipe       px sideways (one finger) that turn the page...
+      //   swipeSpeed  ...or a shorter flick at least this fast (px per ms)
+      //   tapSlop     px a finger may move and still be a tap
+      //   edge        the outer part of a page (of its width) where a tap
+      //               turns: right page's right edge = next, left page's
+      //               left edge = back (phones: the one page's two edges)
+      gestures: { swipe: 40, swipeSpeed: 0.5, tapSlop: 10, edge: 0.25 },
+      // The first time the album opens (remembered in localStorage): the
+      // page's bottom-right corner lifts a little, twice, then lies down.
+      //   delay   seconds after the album is open
+      //   size    the lifted corner, of the page's width
+      //   lift    seconds for one lift (up and down)
+      //   pause   seconds between the two
+      hint: { delay: 0.8, size: 0.13, lift: 0.7, pause: 0.25, storageKey: "pm-album-hint" },
     },
   },
 
-  // The header of every page after the landing: only the logo, top left.
   // The small © line at the bottom of the pages after the landing.
   siteFooter: {
     color: palette.white,
@@ -899,6 +903,7 @@ export const theme = {
     size: 11,
   },
 
+  // The header of every page after the landing: only the logo, top left.
   siteHeader: {
     href: "/atelier",
     // White: contrast 4.3 on the green, against 2.9 for sage.

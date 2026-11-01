@@ -6,12 +6,17 @@ import type { MatObjectConfig, Placed } from "@/components/atelier/objectLayout"
 import { theme } from "@/config/theme";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
-import { albumLayout } from "./albumLayout";
+import { albumLayout, visibleBox, type ViewBox } from "./albumLayout";
 import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
 const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
+const { gestures, hint } = pages;
 const ms = (seconds: number) => seconds * 1000;
+
+// What a tap or a press on these does is theirs (a photo, a link, the
+// coupon, the contents' rows, the tabs): it never turns the page.
+const OWN_TAP = "button, a, input, select, textarea, label, [role='button'], [role='dialog']";
 
 // The album's settings for the mat: those of theme.ts, but with the
 // proportions of the drawn book's page, and its real outline (the letters
@@ -52,8 +57,10 @@ type Named = "book" | "slide" | "board";
 
 // The album as it lies on the atelier's mat, and the same element opening:
 // tapped, it rises off the mat towards you, straightens and settles in the
-// middle of the screen while its cover turns open. One movement. Then the
-// buttons under it leaf through it (see albumViews).
+// middle of the screen while its cover turns open. One movement. Then it
+// is leafed through (see albumViews) with a swipe, a tap on a page's outer
+// edge or the arrow keys (see "Leafing by hand"); the first time, a page's
+// corner lifts as a hint (see "The hint").
 //
 // It sits inside the mat object's box (MatObject), which is turned by the
 // object's rotation. The book is laid out at its open size and shrunk to
@@ -64,7 +71,14 @@ type Named = "book" | "slide" | "board";
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
 export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inventar" }: MatAlbumProps) {
-  const [screen, setScreen] = useState<{ w: number; h: number } | null>(null);
+  // The visible part of the screen (see visibleBox); kept as it was while
+  // pinch-zoomed in.
+  const [screen, setScreen] = useState<ViewBox | null>(null);
+  const [zoomed, setZoomed] = useState(false);
+  // The page whose corner lifts as a hint (see "The hint"), while it does.
+  const [hintPage, setHintPage] = useState<number | null>(null);
+  // The mouse is over a page's edge that turns it: a hand cursor there.
+  const [overEdge, setOverEdge] = useState(false);
   // The opening (run) that has ended: the buttons show from then on.
   const [openedRun, setOpenedRun] = useState<number | null>(null);
   const opened = open && openedRun === run;
@@ -88,15 +102,31 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   const leaves = useRef<(HTMLDivElement | null)[]>([]);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // The screen's size, known only in the browser; again on every resize.
+  // The visible part of the screen, known only in the browser; again on
+  // every resize, and when an in-app browser's bars change it. Pinch-zoom
+  // (the browser's own, never blocked) changes visualViewport too: then
+  // the book stays put.
   useEffect(() => {
-    const measure = () => setScreen({ w: window.innerWidth, h: window.innerHeight });
+    const vv = window.visualViewport;
+    const measure = () => {
+      const isZoomed = !!vv && vv.scale > 1.01;
+      setZoomed(isZoomed);
+      if (isZoomed) return;
+      const b = visibleBox();
+      setScreen((old) =>
+        old && old.left === b.left && old.top === b.top && old.width === b.width && old.height === b.height ? old : b,
+      );
+    };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    vv?.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      vv?.removeEventListener("resize", measure);
+    };
   }, []);
 
-  const layout = screen && albumLayout(screen.w, screen.h);
+  const layout = screen && albumLayout(screen);
   const views = albumViews(layout?.spread ?? false);
   const index = viewWithPage(nav.run === run ? nav.page : firstPageOf(initialPage), layout?.spread ?? false);
 
@@ -115,7 +145,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // The opening (or, when `open` turns false, back on the mat). Runs on a
   // tap and on every replay; not when the screen is resized.
   useEffect(() => {
-    const p = open ? flightPoses(place, window.innerWidth, window.innerHeight) : null;
+    const p = open ? flightPoses(place, visibleBox()) : null;
     if (!p) return;
     const spread = p.spread;
     const start = albumViews(spread)[viewWithPage(firstPageOf(initialPage), spread)];
@@ -174,7 +204,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // the new places (only their keyframes change, no element is swapped).
   useEffect(() => {
     if (!screen || !open) return;
-    const p = flightPoses(place, screen.w, screen.h);
+    const p = flightPoses(place, screen);
     const set = (a: Animation | undefined, keyframes: Keyframe[]) => {
       if (a?.effect instanceof KeyframeEffect) a.effect.setKeyframes(keyframes);
     };
@@ -205,6 +235,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const spread = layout.spread;
     turning.current = true;
     setTurningRun(run);
+    setHintPage(null);
     setNav({ run, page: target.pages[0] });
 
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
@@ -295,6 +326,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     };
     turning.current = true;
     setTurningRun(run);
+    setHintPage(null);
 
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
     const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
@@ -338,7 +370,137 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // buttons, later the tabs on the edge.
   const goToChapter = (chapterId: string) => goToPage(firstPageOf(chapterId), chapterId);
 
-  const poses = screen && flightPoses(place, screen.w, screen.h);
+  // --- Leafing by hand ---------------------------------------------------
+  // A tap on a page's outer edge (gestures.edge of its width): on a wide
+  // screen the right page's right edge = next, the left page's left edge =
+  // back; on a phone (one page) its right edge = next, its left edge =
+  // back. The middle of a page does nothing (no turning by mistake).
+  // Returns 1 = next, -1 = back, 0 = nothing (also: nowhere to go).
+  const edgeStep = (target: Element, x: number): number => {
+    const pageEl = target.closest(".ab-page");
+    if (!layout || !pageEl || target.closest(OWN_TAP)) return 0;
+    const r = pageEl.getBoundingClientRect();
+    const f = (x - r.left) / r.width;
+    const leftPage = pageEl.classList.contains("ab-left");
+    const forward = f >= 1 - gestures.edge && (!layout.spread || !leftPage);
+    const back = f <= gestures.edge && (!layout.spread || leftPage);
+    const step = forward ? 1 : back ? -1 : 0;
+    return index + step >= 0 && index + step < views.length ? step : 0;
+  };
+
+  // The latest of these, for the listeners below (added once per opening).
+  const latest = useRef({ go, edgeStep });
+  useEffect(() => {
+    latest.current = { go, edgeStep };
+  });
+
+  // Swipes, taps and the arrow keys, on the whole window while the album is
+  // open (a swipe may end off the book). Only presses that start on the
+  // book count, with one finger: a second finger (pinch-zoom) cancels the
+  // gesture and nothing turns. A press on a photo, link or button is
+  // theirs (OWN_TAP; most of them also stop it from getting here).
+  useEffect(() => {
+    if (!opened) return;
+    let start: { id: number; x: number; y: number; t: number; target: Element } | null = null;
+    const down = new Set<number>();
+    const onBook = (e: Event) => e.target instanceof Element && !!flyer.current?.contains(e.target);
+
+    const onDown = (e: PointerEvent) => {
+      down.add(e.pointerId);
+      if (down.size > 1) {
+        start = null; // two fingers: a pinch, not a swipe
+        return;
+      }
+      if (!e.isPrimary || e.button !== 0 || !onBook(e)) return;
+      const target = e.target as Element;
+      if (target.closest(OWN_TAP)) return;
+      start = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, target };
+    };
+    const onUp = (e: PointerEvent) => {
+      down.delete(e.pointerId);
+      const s = start;
+      if (!s || s.id !== e.pointerId) return;
+      start = null;
+      const dx = e.clientX - s.x;
+      const dy = e.clientY - s.y;
+      const far = Math.abs(dx);
+      const speed = far / Math.max(1, e.timeStamp - s.t); // px per ms
+      const swiped = far > Math.abs(dy) && (far >= gestures.swipe || (far > gestures.tapSlop && speed >= gestures.swipeSpeed));
+      if (swiped) {
+        // Swiped to the left: the next page (it comes from the right).
+        latest.current.go(dx < 0 ? 1 : -1);
+      } else if (Math.hypot(dx, dy) <= gestures.tapSlop) {
+        const step = latest.current.edgeStep(s.target, s.x);
+        if (step) latest.current.go(step);
+      }
+    };
+    // The browser took the touch over (scrolling, zooming): no gesture.
+    const onCancel = (e: PointerEvent) => {
+      down.delete(e.pointerId);
+      if (start?.id === e.pointerId) start = null;
+    };
+    // Mouse: a hand cursor over the edges that turn.
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      setOverEdge(onBook(e) && latest.current.edgeStep(e.target as Element, e.clientX) !== 0);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
+      // A photo open big (or the note: its closed dialog stays in the page,
+      // aria-hidden), or typing somewhere: not for the album.
+      if (document.querySelector("[role='dialog']:not([aria-hidden='true'])")) return;
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+      latest.current.go(e.key === "ArrowRight" ? 1 : -1);
+    };
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("keydown", onKey);
+      setOverEdge(false);
+    };
+  }, [opened]);
+
+  // --- The hint ------------------------------------------------------------
+  // The first time the album is open on this phone / computer (remembered
+  // in localStorage), hint.delay after it has opened, the corner of the
+  // page on the right lifts twice (PageCurl in AlbumBook). Not with
+  // prefers-reduced-motion (whatever theme.motion says), nor if a page is
+  // turned first.
+  useEffect(() => {
+    if (!opened) return;
+    let seen = true; // storage blocked: better never than every time
+    try {
+      seen = localStorage.getItem(hint.storageKey) !== null;
+    } catch {}
+    if (seen || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setTimeout(() => {
+      if (turning.current) return;
+      // The page on the right (phones: the one on the screen).
+      const shown = views[index].pages;
+      setHintPage(shown.find((n) => n % 2 === 1) ?? shown[0]);
+      try {
+        localStorage.setItem(hint.storageKey, "1");
+      } catch {
+        // storage blocked (private browsing): it may show again next time
+      }
+    }, ms(hint.delay));
+    return () => window.clearTimeout(timer);
+    // Once per opening (index: the page it opened on).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened]);
+  // Closed: no hint left over for the next opening.
+  if (!open && hintPage !== null) setHintPage(null);
+
+  const poses = screen && flightPoses(place, screen);
   // The pages lying still on the screen: open, not turning. Their videos
   // play; prefers-reduced-motion (when honoured): only posters.
   const livePages = opened && turningRun !== run && !reducedMotion ? views[index].pages : [];
@@ -355,6 +517,13 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             height: layout.height,
             marginLeft: -layout.width / 2,
             marginTop: -layout.height / 2,
+            // Open: a hand only over the edges that turn (the mat object
+            // around it shows one everywhere, for the tap that opens it).
+            cursor: opened ? (overEdge ? "pointer" : "default") : undefined,
+            // Open: a finger's sideways moves are ours (swipes); the
+            // browser keeps up-down and pinch-zoom. Zoomed in: all of it
+            // is the browser's (moving around the zoomed-in page).
+            touchAction: opened && !zoomed ? "pan-y pinch-zoom" : undefined,
           }}
         >
           <AlbumBook
@@ -368,15 +537,17 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             livePages={livePages}
             onGoToChapter={opened ? goToChapter : undefined}
             boardRef={boardRef}
+            hintPage={hintPage}
+            onHintEnd={() => setHintPage(null)}
           />
         </div>
       )}
-      {/* The buttons live on the page itself, not in the turned box. */}
+      {/* The buttons for screen readers live on the page itself, not in
+          the turned box. */}
       {opened &&
         layout &&
         createPortal(
           <AlbumControls
-            top={layout.controlsTop}
             label={views[index].label}
             onBack={index > 0 ? () => go(-1) : undefined}
             onForward={index < views.length - 1 ? () => go(1) : undefined}
@@ -414,8 +585,8 @@ const bookKeyframes = (p: Poses): Keyframe[] => [
 // Each is first worked out on the screen (move from the box on the mat,
 // turn, scale); the box is turned by the object's rotation (on its parent),
 // so the move and the turn are then turned back by as much.
-function flightPoses(mat: Placed, screenWidth: number, screenHeight: number): Poses {
-  const layout = albumLayout(screenWidth, screenHeight);
+function flightPoses(mat: Placed, view: ViewBox): Poses {
+  const layout = albumLayout(view);
   // The flight's y values are for a page 340px wide.
   const scaleY = layout.width / 340;
   const toMiddle = {

@@ -85,6 +85,9 @@ export const content = {
     coverTitle: "ALBUM",
     // A chapter on the contents page (a button: the album leafs there).
     goToChapter: (name: string) => `Mergi la capitolul ${name}`,
+    // The open album's buttons for screen readers (see AlbumControls).
+    previousPage: "Pagina anterioară",
+    nextPage: "Pagina următoare",
     // A photo with a video in the album: what screen readers say for it
     // (it opens the big view), and for the big view itself.
     video: {
