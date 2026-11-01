@@ -20,14 +20,14 @@ const uMinusT = (n: number) => `calc(var(--u) * (${n}px - var(--t) * 1px))`;
 // u-sized lengths.
 const css = `
 .ab-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
-.ab-back { transform: rotateY(180deg); }
-.ab-board, .ab-board-lifted {
+/* translateZ(1px): never exactly in the same plane as the front (Safari). */
+.ab-back { transform: rotateY(180deg) translateZ(1px); }
+.ab-board {
   position: absolute; top: ${u(-board.top)}; left: 0;
   right: calc(var(--u) * (-${board.beyond}px - var(--t) * 1px)); bottom: calc(var(--u) * (-${board.beyond}px - var(--t) * 1px));
   border-radius: 0 ${u(board.radius)} ${u(board.radius)} 0;
 }
 .ab-board { background: ${colors.board}; box-shadow: ${board.shadowRest}; transform: translateZ(-1px); }
-.ab-board-lifted { box-shadow: ${board.shadowLifted}; opacity: 0; transform: translateZ(-1.5px); }
 /* The two edges meet on the diagonal in the bottom-right corner (clip-path). */
 .ab-edge-r, .ab-edge-b { position: absolute; transform: translateZ(-0.5px); }
 .ab-edge-r {
@@ -119,7 +119,7 @@ type AlbumBookProps = {
   bookRef?: Ref<HTMLDivElement>;
   slideRef?: Ref<HTMLDivElement>;
   coverRef?: Ref<HTMLDivElement>;
-  liftShadowRef?: Ref<HTMLDivElement>;
+  boardRef?: Ref<HTMLDivElement>;
 };
 
 // The album. It fills its parent, which has the size of the open book's
@@ -137,8 +137,9 @@ type AlbumBookProps = {
 //   cover  preserve-3d, turns around its left edge (the spine) with rotateY
 //          front / back: its two sides, back to back; backface hidden =
 //          each one is invisible while it faces away from us
-// Safari draws all of this flat if anything along that chain has overflow
-// hidden, opacity below 1, or a filter: those go on other elements.
+// Safari draws all of this flat (and the cover's back never shows) if
+// anything along that chain has overflow hidden, opacity below 1, a filter,
+// a clip-path or a mask: none of them does. The faces themselves may.
 export function AlbumBook({
   u: unit,
   initialPage = "cuprins",
@@ -148,7 +149,7 @@ export function AlbumBook({
   bookRef,
   slideRef,
   coverRef,
-  liftShadowRef,
+  boardRef,
 }: AlbumBookProps) {
   const open = skipOpening;
   // Only the contents page exists so far (initialPage is for later).
@@ -164,8 +165,7 @@ export function AlbumBook({
           className="album-3d absolute inset-0"
           style={{ transform: `translateX(${open && spread ? 50 : 0}%)` }}
         >
-          <div ref={liftShadowRef} className="ab-board-lifted" />
-          <div className="ab-board" />
+          <div ref={boardRef} className="ab-board" />
           <div className="ab-edge-r" />
           <div className="ab-edge-b" />
           <div className="ab-ribbon" />

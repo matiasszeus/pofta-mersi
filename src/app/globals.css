@@ -168,3 +168,6 @@ body {
 .album-open [data-object="album"] .obj-art {
   scale: none;
 }
+.lab-album-main:has(.album-open) {
+  overflow: visible;
+}

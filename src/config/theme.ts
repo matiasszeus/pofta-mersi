@@ -541,10 +541,10 @@ export const theme = {
       top: 6,
       beyond: 4,
       radius: 8,
-      // Its shadow lying on the mat, and in the air (fades in while it
-      // lifts; u for the sizes).
+      // Its shadow lying on the mat, and in the air (it grows into that
+      // while the book lifts; sizes ending in "u" are in u).
       shadowRest: "0 6px 10px rgb(8 30 18 / 0.35)",
-      shadowLifted: "0 calc(var(--u) * 24px) calc(var(--u) * 46px) rgb(8 30 18 / 0.45), 0 calc(var(--u) * 4px) calc(var(--u) * 10px) rgb(8 30 18 / 0.35)",
+      shadowLifted: "0 24u 46u rgb(8 30 18 / 0.45), 0 4u 10u rgb(8 30 18 / 0.35)",
       shadowDuration: 1.1, // seconds, ease
     },
     // The cover reaches past the page by `over` u at the top, bottom and

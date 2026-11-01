@@ -46,7 +46,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef }: MatAlbumP
   const book = useRef<HTMLDivElement>(null);
   const slide = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLDivElement>(null);
-  const liftShadow = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   // The screen's size, known only in the browser; again on every resize.
   useEffect(() => {
@@ -103,7 +103,13 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef }: MatAlbumP
           [{ transform: p.rest }, { transform: p.lifted, offset: flight.liftAt }, { transform: p.settled }],
           { duration: ms(flight.duration), easing: flight.easing },
         ),
-        animate(liftShadow.current, [{ opacity: 0 }, { opacity: 1 }], { duration: ms(board.shadowDuration), easing: "ease" }),
+        // The board's shadow grows wide and soft (the shadow is drawn by
+        // the board itself: no extra layer with an opacity in the 3D).
+        animate(
+          boardRef.current,
+          [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }],
+          { duration: ms(board.shadowDuration), easing: "ease" },
+        ),
         dimIn(ms(dimming.duration)),
         // Meanwhile the cover turns open around the spine (from flat to
         // lying on the left, face down).
@@ -147,7 +153,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef }: MatAlbumP
             bookRef={book}
             slideRef={slide}
             coverRef={cover}
-            liftShadowRef={liftShadow}
+            boardRef={boardRef}
           />
         </div>
       )}
@@ -155,7 +161,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef }: MatAlbumP
   );
 }
 
-type Poses = { rest: string; lifted: string; settled: string; spread: boolean };
+type Poses = { rest: string; lifted: string; settled: string; spread: boolean; shadowLifted: string };
 
 // The book's transforms, relative to the middle of its box on the mat.
 //   rest     shrunk to its size on the mat
@@ -187,5 +193,7 @@ function flightPoses(object: MatObjectConfig, screenWidth: number, screenHeight:
     lifted: pose(toMiddle.x, toMiddle.y + lifted.y * scaleY, lifted.rotation, lifted.scale),
     settled: pose(toMiddle.x, toMiddle.y + settled.y * scaleY, 0, 1),
     spread: layout.spread,
+    // "24u" -> px at this size.
+    shadowLifted: board.shadowLifted.replace(/([\d.]+)u/g, (_, n) => `${Number(n) * layout.u}px`),
   };
 }

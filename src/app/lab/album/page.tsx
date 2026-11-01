@@ -18,7 +18,9 @@ export const viewport: Viewport = {
 // drawn in code, and a tap opens it right here (see LabAlbum).
 export default function LabAlbumPage() {
   return (
-    <main className="relative h-dvh overflow-hidden">
+    // While the album is open nothing clips it (its open cover reaches past
+    // the left edge): see .lab-album-main in globals.css.
+    <main className="lab-album-main relative h-dvh overflow-hidden">
       <MatBackground />
       <LabAlbum />
     </main>
