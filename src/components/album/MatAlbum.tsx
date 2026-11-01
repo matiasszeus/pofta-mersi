@@ -80,8 +80,6 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // the videos (they show their posters meanwhile).
   const turning = useRef(false);
   const [turningRun, setTurningRun] = useState<number | null>(null);
-  // Pages a fast leafing goes past (see goToPage): drawn bare meanwhile.
-  const [bare, setBare] = useState<number[]>([]);
   const flyer = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
   const slide = useRef<HTMLDivElement>(null);
@@ -244,9 +242,10 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // screen and that one turns, one after the other, overlapping, gathering
   // speed then slowing down, the last one as a normal turn (see flipFast in
   // theme.ts), forwards or backwards; on phones the book slides as in
-  // go(). Meanwhile nothing else can be pressed (turning), the pages in
-  // between show only their paper (bare), and the name under the book
-  // changes at the end. Then focusChapter's title takes the focus.
+  // go(). The pages in between show what is on them (all of it is in the
+  // book already; videos only ever load in the big view). Meanwhile nothing
+  // else can be pressed (turning), and the name under the book changes at
+  // the end. Then focusChapter's title takes the focus.
   const goToPage = (pageNumber: number, focusChapter?: string) => {
     if (!layout || !opened || turning.current) return;
     const spread = layout.spread;
@@ -294,10 +293,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       const next = moving.slice(moving.indexOf(s)).find((x) => seen.includes(x))!;
       return starts[seen.indexOf(next)];
     };
-    const onScreen = new Set([...from.pages, ...target.pages]);
     turning.current = true;
     setTurningRun(run);
-    setBare(moving.flatMap((s) => [sheets[s].front.number, sheets[s].back.number]).filter((n) => !onScreen.has(n)));
 
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
     const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
@@ -332,7 +329,6 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       .catch(() => {})
       .finally(() => {
         setNav({ run, page: target.pages.includes(pageNumber) ? pageNumber : target.pages[0] });
-        setBare([]);
         turning.current = false;
         setTurningRun(null);
         focus();
@@ -370,7 +366,6 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             coverRef={cover}
             leavesRef={leaves}
             livePages={livePages}
-            barePages={bare}
             onGoToChapter={goToChapter}
             boardRef={boardRef}
           />

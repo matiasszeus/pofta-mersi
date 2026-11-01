@@ -60,6 +60,8 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
           height={logo.height}
           alt=""
           unoptimized
+          // Loaded with the album: a fast leafing may show it any moment.
+          loading="eager"
           draggable={false}
           className="absolute select-none"
           style={{ left: u(logo.left), top: u(logo.top), width: u(logo.size), maxWidth: "none", height: "auto", rotate: `${logo.rotation}deg` }}

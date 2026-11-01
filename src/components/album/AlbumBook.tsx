@@ -129,8 +129,6 @@ type AlbumBookProps = {
   leavesRef?: MutableRefObject<(HTMLDivElement | null)[]>;
   // The page numbers lying still on the screen: their videos play.
   livePages?: number[];
-  // Pages a fast leafing goes past: only their paper is drawn meanwhile.
-  barePages?: number[];
   // A chapter tapped on the contents page: leaf there (see MatAlbum).
   onGoToChapter?: (chapterId: string) => void;
   boardRef?: Ref<HTMLDivElement>;
@@ -166,13 +164,11 @@ export function AlbumBook({
   leavesRef,
   boardRef,
   livePages = [],
-  barePages = [],
   onGoToChapter,
 }: AlbumBookProps) {
   const pageProps = (page: BookPage) => ({
     page,
     live: livePages.includes(page.number),
-    bare: barePages.includes(page.number),
     onGoToChapter,
   });
   const open = skipOpening;
@@ -247,15 +243,13 @@ export function AlbumBook({
 //   back   a sheet's back, a left-hand page (seen once the sheet is turned)
 //   under  the last page, lying under the sheets (right-hand)
 //   live   it lies still on the screen (its photos can be tapped)
-//   bare   a fast leafing goes past it: its paper only, nothing on it
 type PageProps = {
   page: BookPage;
   side: "front" | "back" | "under";
   live: boolean;
-  bare: boolean;
   onGoToChapter?: (chapterId: string) => void;
 };
-function Page({ page, side, live, bare, onGoToChapter }: PageProps) {
+function Page({ page, side, live, onGoToChapter }: PageProps) {
   const left = side === "back";
   const place = side === "under" ? "ab-right" : left ? "ab-face ab-back ab-left" : "ab-face ab-right";
   const look = page.kind === "divider" ? "ab-divider" : "ab-paper";
@@ -263,9 +257,7 @@ function Page({ page, side, live, bare, onGoToChapter }: PageProps) {
   if (page.kind === "divider") style.backgroundColor = page.color;
   return (
     <div className={`ab-page ${place} ${look}`} style={style}>
-      {bare ? null : (
-        <PageContent page={page} live={live} onGoToChapter={onGoToChapter} />
-      )}
+      <PageContent page={page} live={live} onGoToChapter={onGoToChapter} />
       {page.kind !== "blank" && (
         <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
           {page.number}
@@ -276,7 +268,7 @@ function Page({ page, side, live, bare, onGoToChapter }: PageProps) {
 }
 
 // What lies on a page, by its kind.
-function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side" | "bare">) {
+function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side">) {
   return (
     <>
       {page.kind === "contents" && <ContentsList onGoToChapter={onGoToChapter} />}
@@ -392,6 +384,9 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
           alt=""
           aria-hidden
           unoptimized
+          // Loaded with the album (not when first near the screen): a fast
+          // leafing may show them any moment.
+          loading="eager"
           draggable={false}
           className="pointer-events-none absolute select-none"
           style={{
