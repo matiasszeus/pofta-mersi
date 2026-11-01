@@ -822,6 +822,8 @@ export const theme = {
       lining: palette.lilac,
       liningDots: palette.sage,
       divider: palette.lilac,
+      // The contents' tab on the edge (the chapters' tabs have their colors).
+      contentsTab: palette.mustar,
       // A word in color on a divider (see accent in content.ts): the
       // atelier's green, readable on the light dividers.
       accent: palette.green,

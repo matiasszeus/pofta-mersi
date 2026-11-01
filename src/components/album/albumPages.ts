@@ -75,7 +75,9 @@ export const lastPage = bookPages[bookPages.length - 1];
 
 // The contents: every chapter but the contents itself, with the page it
 // starts on (null = not in the book yet: "în curând").
-export const contentsTitle = drawnTitle(content.album.chapters.find((c) => c.contents)?.title ?? "");
+const contentsChapter = content.album.chapters.find((c) => c.contents);
+export const contentsTitle = drawnTitle(contentsChapter?.title ?? "");
+export const contentsId = contentsChapter?.id ?? "";
 export const contentsRows = content.album.chapters.filter(isChapter).map((c) => ({
   id: c.id,
   name: c.title,
@@ -84,12 +86,19 @@ export const contentsRows = content.album.chapters.filter(isChapter).map((c) => 
   page: bookPages.find((p) => p.kind === "divider" && p.chapterId === c.id)?.number ?? null,
 }));
 
-// The tabs on the edge: the chapters in the book, top to bottom in their
-// order. top: in u (see theme.album.tabs).
+// The tabs on the edge: the contents and the chapters in the book, top to
+// bottom in their order; a tap leafs there (MatAlbum's goToChapter). top: in u (see theme.album.tabs).
 const { tabs } = theme.album;
-export const bookTabs = contentsRows
-  .filter((r) => r.page !== null)
-  .map((r, i) => ({ ...r, top: tabs.top + i * tabs.step }));
+// The contents first (its own color), then the chapters in the book.
+export const bookTabs = content.album.chapters
+  .filter((c) => c.contents || c.pages.length > 0)
+  .map((c, i) => ({
+    id: c.id,
+    name: c.title,
+    title: drawnTitle(c.title),
+    color: c.contents ? theme.album.colors.contentsTab : colorOf(c),
+    top: tabs.top + i * tabs.step,
+  }));
 // u from the page's top to the last tab's bottom (0: no tabs).
 export const tabsBottom = bookTabs.length ? bookTabs[bookTabs.length - 1].top + tabs.height : 0;
 

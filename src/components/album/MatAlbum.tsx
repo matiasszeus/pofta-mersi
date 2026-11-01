@@ -366,7 +366,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             coverRef={cover}
             leavesRef={leaves}
             livePages={livePages}
-            onGoToChapter={goToChapter}
+            onGoToChapter={opened ? goToChapter : undefined}
             boardRef={boardRef}
           />
         </div>

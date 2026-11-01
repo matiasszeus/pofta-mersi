@@ -3,7 +3,7 @@ import Image from "next/image";
 import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { bookTabs, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
+import { bookTabs, contentsId, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
 import { u, uMinusT } from "./albumUnits";
 import { ChapterPage } from "./ChapterPage";
 import { PartnerCredit } from "./PartnerCredit";
@@ -72,6 +72,8 @@ const css = `
 .ab-right::after { left: 0; background: linear-gradient(to right, rgb(29 38 51 / 0.2), rgb(29 38 51 / 0)); }
 .ab-left::after { right: 0; background: linear-gradient(to left, rgb(29 38 51 / 0.22), rgb(29 38 51 / 0)); }
 .ab-tabs { position: absolute; inset: 0; transform: translateZ(0.5px); pointer-events: none; }
+/* The tabs themselves can be tapped (they stick out past the pages). */
+.ab-tab { pointer-events: auto; border: 0; padding: 0; cursor: pointer; }
 .ab-tab {
   position: absolute; right: ${u(-tabs.width)}; width: ${u(tabs.width)}; height: ${u(tabs.height)};
   border-radius: 0 ${u(tabs.radius)} ${u(tabs.radius)} 0;
@@ -192,9 +194,25 @@ export function AlbumBook({
           <Page {...pageProps(lastPage)} side="under" />
           <div className="ab-tabs">
             {bookTabs.map((t) => (
-              <div key={t.id} className={`ab-tab ${crazeRetro.className}`} style={{ top: u(t.top), background: t.color }}>
+              <button
+                key={t.id}
+                type="button"
+                // Only while open (else a tap opens the album, like anywhere
+                // on it): leafs to the chapter.
+                tabIndex={onGoToChapter ? 0 : -1}
+                aria-label={content.album.goToChapter(t.name)}
+                className={`ab-tab ${crazeRetro.className}`}
+                style={{ top: u(t.top), background: t.color }}
+                onPointerDown={(e) => onGoToChapter && e.stopPropagation()}
+                onClick={(e) => {
+                  if (!onGoToChapter) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onGoToChapter(t.id);
+                }}
+              >
                 <span>{t.title}</span>
-              </div>
+              </button>
             ))}
           </div>
           {sheets.map((sheet, s) => (
@@ -298,7 +316,9 @@ function ContentsList({ onGoToChapter }: { onGoToChapter?: (chapterId: string) =
       style={{ padding: `${u(p.top)} ${u(p.right)} ${u(p.bottom)} ${u(p.left)}` }}
     >
       <h2
-        className={`${crazeRetro.className} origin-left leading-none`}
+        tabIndex={-1}
+        data-chapter-title={contentsId}
+        className={`${crazeRetro.className} origin-left leading-none outline-none`}
         style={{ fontSize: u(c.titleSize), rotate: `${c.titleTurn}deg` }}
       >
         {contentsTitle}
