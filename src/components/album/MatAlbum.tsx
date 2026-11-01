@@ -42,7 +42,7 @@ type MatAlbumProps = {
   // Changes to play the opening again.
   run: number;
   reducedMotion: boolean;
-  // Where it opens: "cuprins" (the contents) or a chapter's id
+  // Where it opens: "inventar" (the contents) or a chapter's id
   // ("stickere"), see content.album.chapters. Later /album/stickere
   // passes it.
   initialPage?: string;
@@ -63,7 +63,7 @@ type Named = "book" | "slide" | "board";
 // holding the last frame ("fill"), for as long as the album is open:
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
-export function MatAlbum({ place, open, run, reducedMotion, initialPage = "cuprins" }: MatAlbumProps) {
+export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inventar" }: MatAlbumProps) {
   const [screen, setScreen] = useState<{ w: number; h: number } | null>(null);
   // The opening (run) that has ended: the buttons show from then on.
   const [openedRun, setOpenedRun] = useState<number | null>(null);
@@ -80,6 +80,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "cupri
   // the videos (they show their posters meanwhile).
   const turning = useRef(false);
   const [turningRun, setTurningRun] = useState<number | null>(null);
+  // Pages a fast leafing goes past (see goToPage): drawn bare meanwhile.
+  const [bare, setBare] = useState<number[]>([]);
   const flyer = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
   const slide = useRef<HTMLDivElement>(null);
@@ -234,6 +236,85 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "cupri
       });
   };
 
+  // Leafing fast to a page (from the contents; later the tabs): every
+  // sheet between the page on the screen and that one turns, one after the
+  // other, quicker and overlapping (see flipFast in theme.ts), forwards or
+  // backwards; on phones the book slides as in go(). Meanwhile nothing else
+  // can be pressed (turning), the pages in between show only their paper
+  // (bare), and the name under the book changes at the end.
+  const goToPage = (pageNumber: number, focusChapter?: string) => {
+    if (!layout || !opened || turning.current) return;
+    const spread = layout.spread;
+    const to = viewWithPage(pageNumber, spread);
+    if (to === index) return;
+    const from = views[index];
+    const target = views[to];
+    const ff = pages.flipFast;
+    // The sheets that turn, in the order they turn: forwards from the top
+    // one; backwards from the one turned last.
+    const lo = Math.min(from.turned, target.turned);
+    const hi = Math.max(from.turned, target.turned);
+    const moving = Array.from({ length: hi - lo }, (_, i) => lo + i);
+    if (target.turned < from.turned) moving.reverse();
+    // Seen turning: all of them, or the first ones and the last.
+    const seen = moving.length > ff.maxLeaves ? [...moving.slice(0, ff.maxLeaves - 1), moving[moving.length - 1]] : moving;
+    const jumping = moving.filter((s) => !seen.includes(s));
+    const onScreen = new Set([...from.pages, ...target.pages]);
+    turning.current = true;
+    setTurningRun(run);
+    setBare(moving.flatMap((s) => [sheets[s].front.number, sheets[s].back.number]).filter((n) => !onScreen.has(n)));
+
+    const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
+    const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
+    async function leaf() {
+      if (reducedMotion) {
+        // No leafing: a short crossfade straight to the page.
+        const half = { duration: ms(pages.reducedMotionFade) / 2 };
+        await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
+        for (const s of moving) animate(leaves.current[s], [sheet(s, target), sheet(s, target)], { duration: 0 });
+        animate(slide.current, [pane(target), pane(target)], { duration: 0 }, "slide");
+        await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
+        return;
+      }
+      const at = (i: number) => ms(ff.stagger * i);
+      const total = at(seen.length - 1) + ms(ff.duration);
+      await done(
+        // Each one waits for its turn showing where it was ("fill both").
+        ...seen.map((s, i) =>
+          animate(leaves.current[s], [sheet(s, from), sheet(s, target)], {
+            duration: ms(ff.duration),
+            delay: at(i),
+            easing: ff.easing,
+          }),
+        ),
+        // The ones in between jump as the last one starts turning.
+        ...jumping.map((s) =>
+          animate(leaves.current[s], [sheet(s, from), sheet(s, target)], { duration: 1, delay: at(seen.length - 1) }),
+        ),
+        animate(slide.current, [pane(from), pane(target)], { duration: total, easing: ff.easing }, "slide"),
+      );
+    }
+    leaf()
+      .catch(() => {})
+      .finally(() => {
+        setNav({ run, page: target.pages.includes(pageNumber) ? pageNumber : target.pages[0] });
+        setBare([]);
+        turning.current = false;
+        setTurningRun(null);
+        // The chapter's title takes the focus (screen readers, keyboard).
+        if (focusChapter) {
+          requestAnimationFrame(() =>
+            book.current
+              ?.querySelector<HTMLElement>(`[data-chapter-title="${focusChapter}"]`)
+              ?.focus({ preventScroll: true }),
+          );
+        }
+      });
+  };
+  // Leafing fast to a chapter's first page (its divider): for the
+  // contents' buttons, later the tabs on the edge.
+  const goToChapter = (chapterId: string) => goToPage(firstPageOf(chapterId), chapterId);
+
   const poses = screen && flightPoses(place, screen.w, screen.h);
   // The pages lying still on the screen: open, not turning. Their videos
   // play; prefers-reduced-motion (when honoured): only posters.
@@ -262,6 +343,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "cupri
             coverRef={cover}
             leavesRef={leaves}
             livePages={livePages}
+            barePages={bare}
+            onGoToChapter={goToChapter}
             boardRef={boardRef}
           />
         </div>

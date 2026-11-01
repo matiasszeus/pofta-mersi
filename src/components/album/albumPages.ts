@@ -78,6 +78,7 @@ export const lastPage = bookPages[bookPages.length - 1];
 export const contentsTitle = drawnTitle(content.album.chapters.find((c) => c.contents)?.title ?? "");
 export const contentsRows = content.album.chapters.filter(isChapter).map((c) => ({
   id: c.id,
+  name: c.title,
   title: drawnTitle(c.title),
   color: colorOf(c),
   page: bookPages.find((p) => p.kind === "divider" && p.chapterId === c.id)?.number ?? null,

@@ -129,6 +129,10 @@ type AlbumBookProps = {
   leavesRef?: MutableRefObject<(HTMLDivElement | null)[]>;
   // The page numbers lying still on the screen: their videos play.
   livePages?: number[];
+  // Pages a fast leafing goes past: only their paper is drawn meanwhile.
+  barePages?: number[];
+  // A chapter tapped on the contents page: leaf there (see MatAlbum).
+  onGoToChapter?: (chapterId: string) => void;
   boardRef?: Ref<HTMLDivElement>;
 };
 
@@ -162,8 +166,15 @@ export function AlbumBook({
   leavesRef,
   boardRef,
   livePages = [],
+  barePages = [],
+  onGoToChapter,
 }: AlbumBookProps) {
-  const live = (page: BookPage) => livePages.includes(page.number);
+  const pageProps = (page: BookPage) => ({
+    page,
+    live: livePages.includes(page.number),
+    bare: barePages.includes(page.number),
+    onGoToChapter,
+  });
   const open = skipOpening;
   const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
 
@@ -182,7 +193,7 @@ export function AlbumBook({
           <div className="ab-edge-r" />
           <div className="ab-edge-b" />
           <div className="ab-ribbon" />
-          <Page page={lastPage} side="under" live={live(lastPage)} />
+          <Page {...pageProps(lastPage)} side="under" />
           <div className="ab-tabs">
             {bookTabs.map((t) => (
               <div key={t.id} className={`ab-tab ${crazeRetro.className}`} style={{ top: u(t.top), background: t.color }}>
@@ -199,8 +210,8 @@ export function AlbumBook({
               className="ab-leaf album-3d will-change-transform"
               style={{ transform: leafTransform(s, false) }}
             >
-              <Page page={sheet.front} side="front" live={live(sheet.front)} />
-              <Page page={sheet.back} side="back" live={live(sheet.back)} />
+              <Page {...pageProps(sheet.front)} side="front" />
+              <Page {...pageProps(sheet.back)} side="back" />
             </div>
           ))}
           <div
@@ -235,8 +246,16 @@ export function AlbumBook({
 //   front  a sheet's front, a right-hand page
 //   back   a sheet's back, a left-hand page (seen once the sheet is turned)
 //   under  the last page, lying under the sheets (right-hand)
-//   live   it lies still on the screen (its videos play)
-function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "under"; live: boolean }) {
+//   live   it lies still on the screen (its photos can be tapped)
+//   bare   a fast leafing goes past it: its paper only, nothing on it
+type PageProps = {
+  page: BookPage;
+  side: "front" | "back" | "under";
+  live: boolean;
+  bare: boolean;
+  onGoToChapter?: (chapterId: string) => void;
+};
+function Page({ page, side, live, bare, onGoToChapter }: PageProps) {
   const left = side === "back";
   const place = side === "under" ? "ab-right" : left ? "ab-face ab-back ab-left" : "ab-face ab-right";
   const look = page.kind === "divider" ? "ab-divider" : "ab-paper";
@@ -244,7 +263,23 @@ function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "
   if (page.kind === "divider") style.backgroundColor = page.color;
   return (
     <div className={`ab-page ${place} ${look}`} style={style}>
-      {page.kind === "contents" && <ContentsList />}
+      {bare ? null : (
+        <PageContent page={page} live={live} onGoToChapter={onGoToChapter} />
+      )}
+      {page.kind !== "blank" && (
+        <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
+          {page.number}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// What lies on a page, by its kind.
+function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side" | "bare">) {
+  return (
+    <>
+      {page.kind === "contents" && <ContentsList onGoToChapter={onGoToChapter} />}
       {page.kind === "divider" && (
         <DividerText
           chapterId={page.chapterId}
@@ -256,17 +291,13 @@ function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "
         />
       )}
       {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
-      {page.kind !== "blank" && (
-        <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
-          {page.number}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
-// The contents: every chapter with the page it starts on.
-function ContentsList() {
+// The contents: every chapter with the page it starts on. A chapter in the
+// book is a button: the album leafs there (onGoToChapter).
+function ContentsList({ onGoToChapter }: { onGoToChapter?: (chapterId: string) => void }) {
   const c = contents;
   const p = c.padding;
   return (
@@ -283,17 +314,37 @@ function ContentsList() {
       <ul className="flex flex-col" style={{ marginTop: u(c.listTop), gap: u(c.rowGap) }}>
         {contentsRows.map((r) => {
           const soon = r.page === null;
+          const RowTag = soon ? "div" : "button";
           return (
-            <li key={r.id} className="ab-row" style={soon ? { opacity: c.soonOpacity } : undefined}>
-              <span
-                className="ab-dot"
-                style={soon ? { border: `${u(1.5)} solid rgb(29 38 51 / 0.6)` } : { background: r.color }}
-              />
-              <span className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(c.itemSize) }}>
-                {r.title}
-              </span>
-              <span className="ab-lead" />
-              <span style={{ fontSize: u(c.numberSize) }}>{soon ? text.soon : r.page}</span>
+            <li key={r.id} style={soon ? { opacity: c.soonOpacity } : undefined}>
+              <RowTag
+                className={`ab-row ${soon ? "" : "cursor-pointer"}`}
+                // A plain row, also as a button.
+                style={{ width: "100%", padding: 0, border: 0, background: "none", font: "inherit", color: "inherit", textAlign: "left" }}
+                {...(soon
+                  ? {}
+                  : {
+                      type: "button" as const,
+                      "aria-label": text.goToChapter(r.name),
+                      // Only this: never the page or the album around it.
+                      onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+                      onClick: (e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onGoToChapter?.(r.id);
+                      },
+                    })}
+              >
+                <span
+                  className="ab-dot"
+                  style={soon ? { border: `${u(1.5)} solid rgb(29 38 51 / 0.6)` } : { background: r.color }}
+                />
+                <span className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(c.itemSize) }}>
+                  {r.title}
+                </span>
+                <span className="ab-lead" />
+                <span style={{ fontSize: u(c.numberSize) }}>{soon ? text.soon : r.page}</span>
+              </RowTag>
             </li>
           );
         })}
@@ -316,12 +367,14 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
     const d = theme.album.stickereDivider;
     return (
       <>
-        <div
-          className={`${crazeRetro.className} absolute origin-left leading-none`}
+        <h2
+          tabIndex={-1}
+          data-chapter-title={chapterId}
+          className={`${crazeRetro.className} absolute origin-left leading-none outline-none`}
           style={{ left: u(d.title.left), top: u(d.title.top), fontSize: u(d.title.size), rotate: `${d.title.rotation}deg` }}
         >
           {drawnTitle(title)}
-        </div>
+        </h2>
         {oferta && <PriceTag big={oferta.mare} small={oferta.mic} look={d.offerTag} />}
         {credit && <PartnerCredit credit={credit} />}
       </>
@@ -352,9 +405,14 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
         />
       ))}
       <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
-        <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
+        <h2
+          tabIndex={-1}
+          data-chapter-title={chapterId}
+          className={`${crazeRetro.className} leading-none outline-none`}
+          style={{ fontSize: u(50), rotate: "-4deg" }}
+        >
           {drawnTitle(title)}
-        </div>
+        </h2>
         {blurb && (
           <div className="opacity-75" style={{ fontSize: u(theme.album.dividerBlurbSize) }}>
             {at < 0 ? (

@@ -80,6 +80,8 @@ export const content = {
   // The album.
   album: {
     coverTitle: "ALBUM",
+    // A chapter on the contents page (a button: the album leafs there).
+    goToChapter: (name: string) => `Mergi la capitolul ${name}`,
     // A photo with a video in the album: what screen readers say for it
     // (it opens the big view), and for the big view itself.
     video: {
@@ -111,7 +113,7 @@ export const content = {
     //          the book
     // contents: true = the contents page itself (one page, no divider).
     chapters: [
-      { id: "cuprins", title: "Cuprins", contents: true },
+      { id: "inventar", title: "Inventar", contents: true },
       {
         id: "stickere",
         title: "Stickere",
