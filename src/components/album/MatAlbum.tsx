@@ -18,6 +18,8 @@ const ms = (seconds: number) => seconds * 1000;
 // What a tap or a press on these does is theirs (a photo, a link, the
 // coupon, the contents' rows, the tabs): it never turns the page.
 const OWN_TAP = "button, a, input, select, textarea, label, [role='button'], [role='dialog']";
+// A press held longer than this (ms) is not a tap.
+const TAP_MAX_MS = 400;
 
 // The album's settings for the mat: those of theme.ts, but with the
 // proportions of the drawn book's page, and its real outline (the letters
@@ -380,20 +382,39 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   const goToChapter = (chapterId: string) => goToPage(firstPageOf(chapterId), chapterId);
 
   // --- Leafing by hand ---------------------------------------------------
-  // A tap on a page's outer edge (edgeTapZone of its width): on a wide
-  // screen the right page's right edge = next, the left page's left edge =
-  // back; on a phone (one page) its right edge = next, its left edge =
-  // back. The middle of a page does nothing (no turning by mistake).
+  // A tap near an edge (edgeTapZone of the width). Decided only by where it
+  // is on the screen, measured at the tap (never by the element under the
+  // finger: on a phone the neighbouring page shows past the spine, and a
+  // tap there used to count from that page's edges, the wrong way):
+  //   phone   the album's visible part (its board and cover, cut to the
+  //           screen): right 25% = next, left 25% = back, any page
+  //   wide    the right page's right 25% = next, the left page's left 25%
+  //           = back (and past them, on the book)
+  // The middle does nothing (no turning by mistake).
   // Returns 1 = next, -1 = back, 0 = nothing (also: nowhere to go).
   const edgeStep = (target: Element, x: number): number => {
-    const pageEl = target.closest(".ab-page");
-    if (!layout || !pageEl || target.closest(OWN_TAP)) return 0;
-    const r = pageEl.getBoundingClientRect();
-    const f = (x - r.left) / r.width;
-    const leftPage = pageEl.classList.contains("ab-left");
-    const forward = f >= 1 - edgeTapZone && (!layout.spread || !leftPage);
-    const back = f <= edgeTapZone && (!layout.spread || leftPage);
-    const step = forward ? 1 : back ? -1 : 0;
+    const bookEl = book.current;
+    if (!layout || !bookEl || target.closest(OWN_TAP)) return 0;
+    const rectOf = (sel: string) => bookEl.querySelector(sel)?.getBoundingClientRect();
+    let step = 0;
+    if (!layout.spread) {
+      const parts = [rectOf(".ab-board"), rectOf(".ab-cover")].filter((r) => r && r.width > 0) as DOMRect[];
+      if (!parts.length) return 0;
+      const left = Math.max(0, Math.min(...parts.map((r) => r.left)));
+      const right = Math.min(window.innerWidth, Math.max(...parts.map((r) => r.right)));
+      const f = (x - left) / (right - left);
+      step = f >= 1 - edgeTapZone ? 1 : f <= edgeTapZone ? -1 : 0;
+    } else {
+      // The pages on the screen: the left one (the cover's inside at the
+      // start), the right one.
+      const shown = views[index].pages;
+      const rightNum = shown.find((n) => n % 2 === 1);
+      const leftNum = shown.find((n) => n % 2 === 0);
+      const rightPage = rightNum ? rectOf(`[data-page="${rightNum}"]`) : undefined;
+      const leftPage = leftNum ? rectOf(`[data-page="${leftNum}"]`) : rectOf(".ab-lining");
+      if (rightPage && x >= rightPage.right - rightPage.width * edgeTapZone) step = 1;
+      else if (leftPage && x <= leftPage.left + leftPage.width * edgeTapZone) step = -1;
+    }
     return index + step >= 0 && index + step < views.length ? step : 0;
   };
 
@@ -439,7 +460,9 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       if (swiped) {
         // Swiped to the left: the next page (it comes from the right).
         latest.current.go(dx < 0 ? 1 : -1);
-      } else if (Math.hypot(dx, dy) <= tapSlop) {
+      } else if (Math.hypot(dx, dy) <= tapSlop && e.timeStamp - s.t <= TAP_MAX_MS) {
+        // A tap (only here, on pointerup: no click / touchend as well, so
+        // one tap is never counted twice). During a turn go() ignores it.
         const step = latest.current.edgeStep(s.target, s.x);
         if (step) latest.current.go(step);
       }
@@ -521,6 +544,9 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       {layout && poses && (
         <div
           ref={flyer}
+          // The view on the screen (see albumViews), for the automated
+          // test (tests/album-nav.spec.ts); only while open.
+          data-page-index={opened ? index : undefined}
           className="absolute top-1/2 left-1/2"
           style={{
             width: layout.width,

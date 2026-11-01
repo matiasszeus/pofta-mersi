@@ -362,7 +362,7 @@ function Page({ page, side, live, onGoToChapter, hint = false, onHintEnd }: Page
   const style: CSSProperties = side === "under" ? { transform: "translateZ(0)" } : {};
   if (page.kind === "divider") style.backgroundColor = page.color;
   return (
-    <div className={`ab-page ${place} ${look}`} style={style}>
+    <div className={`ab-page ${place} ${look}`} style={style} data-page={page.number}>
       <PageContent page={page} live={live} onGoToChapter={onGoToChapter} />
       {page.kind !== "blank" && (
         <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
