@@ -3,7 +3,8 @@
 //
 //   node scripts/prepare-videos.mjs
 //
-// For each video in VIDEOS (the originals are only read, never changed):
+// For each video in VIDEOS (the originals, in media/: outside public/, so
+// never served by the site; only read, never changed):
 //   - a square around the object, wherever it goes in any frame: ffmpeg's
 //     cropdetect finds, frame by frame, the box that is not background
 //     (black); the square holds all of them plus `margin` px, centred on
@@ -20,8 +21,8 @@ import { mkdirSync, statSync } from "node:fs";
 import { dirname } from "node:path";
 
 const VIDEOS = [
-  { from: "public/videos/bratara1.mp4", to: "public/videos/bratari/model-1" },
-  { from: "public/videos/bratara2.mp4", to: "public/videos/bratari/model-2" },
+  { from: "media/videos/bratara1.mp4", to: "public/videos/bratari/model-1" },
+  { from: "media/videos/bratara2.mp4", to: "public/videos/bratari/model-2" },
 ];
 const SIZE = 480;
 const FPS = 30;
