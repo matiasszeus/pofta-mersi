@@ -375,6 +375,50 @@ export const theme = {
       },
     },
 
+    // The pocket calculator on the mat: the cart (links to /cos). It shows
+    // the number of pieces in the cart (LED, top right) and their total in
+    // lei (the LCD). Looks: docs/calculator-cos-referinta.html, where it is
+    // 180px wide; every size scales with its width.
+    calc: {
+      // Width in CSS px: phones (screens narrower than 768px), then
+      // tablets and desktops (there also never taller than maxHeightVh %
+      // of the screen height, for phones held sideways).
+      width: {
+        phone: { min: 92, vw: 26, max: 116 },
+        wide: { min: 120, vw: 9.5, max: 140, maxHeightVh: 34 },
+      },
+      ratio: 248 / 180, // height / width
+      rotate: -8, // degrees
+      // Upright screens: left of the note, `gapToNote` px between them, its
+      // top `offsetY` px lower than the note's. Wide screens (no room left
+      // of the note, right next to the album): left of the album instead,
+      // `gapToAlbum` px from it, mirroring the note; same top.
+      gapToNote: 16,
+      gapToAlbum: 16,
+      offsetY: 8,
+      // It fades in together with the note.
+      colors: {
+        body: ["#2B3442", palette.ink, "#141B25"], // gradient, top-left to bottom-right
+        shadow: "rgb(16 24 33 / 0.45)",
+        brand: palette.lilac, // "MERSI"
+        brandSmall: "rgb(244 238 224 / 0.55)", // "CALC"
+        led: palette.neon, // the pieces' count
+        ledBackground: "#0A0D12",
+        lcd: ["#C8D9BE", "#B4C9A8"], // gradient, top to bottom
+        lcdFrame: "#0E141C",
+        lcdDigits: palette.ink,
+        keyDigit: palette.paper,
+        keyOperation: palette.lilac,
+        keyClear: "#E9867A",
+        keyEquals: palette.sage,
+        keyText: palette.ink,
+      },
+      // Segments that are off: "8"s this faint (LED / LCD); lit LCD ones.
+      ledOff: 0.1,
+      lcdOff: 0.07,
+      lcdOn: 0.92,
+    },
+
     // How the objects look and move (shared by all of them).
     object: {
       // Soft shadow following the object's outline: a darkened, blurred copy
@@ -435,9 +479,8 @@ export const theme = {
         { char: "P", x: -0.05, y: 0.09, size: 0.18, rotation: -20 },
         { char: "F", x: 0.77, y: 0.07, size: 0.17, rotation: 18 },
         { char: "T", x: 0.83, y: 0.39, size: 0.17, rotation: 80 },
-        // Top, between P and F (only on screens tall enough for 7-8 letters).
+        // Top, between P and F (not on phones: see `phone`).
         { char: "O", x: 0.4, y: 0.04, size: 0.17, rotation: -12 },
-        { char: "A", x: 0.08, y: 0.73, size: 0.17, rotation: 12 },
         { char: "M", x: -0.08, y: 0.86, size: 0.19, rotation: 70 },
         { char: "S", x: 0.76, y: 0.88, size: 0.18, rotation: -16 },
         { char: "I", x: 0.44, y: 0.9, size: 0.16, rotation: 35 },
@@ -449,41 +492,37 @@ export const theme = {
         { char: "F", x: 0.84, y: 0.04, size: 0.125, rotation: 18 },
         { char: "T", x: 0.89, y: 0.38, size: 0.125, rotation: 80 },
         { char: "O", x: 0.06, y: 0.4, size: 0.12, rotation: -10 },
-        { char: "A", x: 0.19, y: 0.7, size: 0.12, rotation: 12 },
         { char: "M", x: -0.03, y: 0.78, size: 0.14, rotation: 70 },
         { char: "S", x: 0.86, y: 0.78, size: 0.125, rotation: -16 },
         { char: "I", x: 0.22, y: 0.1, size: 0.11, rotation: 35 },
       ],
-      // Smaller screens get fewer letters, never smaller ones. Decided once,
-      // when the page opens (turning the phone neither adds nor removes
-      // any); the others are not even built.
+      // Which letters lie on the mat. Decided once, when the page opens
+      // (turning the phone neither adds nor removes any); the others are
+      // not even built.
       //   corners    always there
-      //   dropOrder  the others, removed group by group, first group first
-      //   minHeight  screen height (CSS px) a letter needs to be there, on
-      //              phones only (see `phone`); wider screens do not check
-      //              it (a laptop window is often only ~600px tall)
-      // On top of that, a letter that would still touch the album or the
-      // note takes its whole group (and all groups before it) away.
+      //   dropOrder  tablets and desktops: the others, removed group by
+      //              group, first group first, when a letter of a group
+      //              would touch the album or the note (it takes its whole
+      //              group, and all groups before it, away)
+      // A letter that would touch the calculator is moved instead (the
+      // nearest place where it touches nothing), never removed.
       keep: {
         corners: ["P", "F", "M", "S"],
-        dropOrder: [["I"], ["O", "T"], ["A"]],
-        minHeight: { I: 650, O: 700, T: 700, A: 700 } as Record<string, number>,
+        dropOrder: [["I"], ["O", "T"]],
       },
       // Phones (screens narrower than maxWidth CSS px, the same limit as
-      // the logo's phone / tablet size): these letters are left out
-      // altogether (not even built), and these are moved (x, y as above).
-      // Tablets and desktops keep all of them, where they are.
+      // the logo's phone / tablet size): only the corners P, F (top) and
+      // M, S (bottom); the others are left out altogether (not even
+      // built). These are moved (x, y as above).
       phone: {
         maxWidth: 768,
-        without: ["O"],
+        without: ["O", "T", "I"],
         moved: { F: { x: 0.68 } } as Record<string, { x?: number; y?: number }>,
       },
-      // Phones (portrait) only: the more letters fit, the smaller they are,
-      // so the mat does not look crowded. Up to `few` letters: full size;
-      // from `many` on: `factor` times that (0.85 = 15% smaller); in
-      // between, in proportion. Each letter keeps its place (the middle of
-      // its box); the album and the note do not change.
-      phoneScale: { few: 4, many: 7, factor: 0.85 },
+      // Phones (portrait) only: the letters drawn this many times their
+      // size (0.85 = 15% smaller), so the mat does not look crowded. Each
+      // letter keeps its place (the middle of its box).
+      phoneScale: 0.85,
       // How the album and the note fit on the mat with the letters.
       //   albumScale  the album lying on the mat, times its size in
       //               `objects` (phones / tablets and desktops); the open

@@ -25,6 +25,20 @@ export const content = {
   ],
 
 
+  // The cart: the calculator on the atelier's mat and the page /cos.
+  cart: {
+    title: "coșul tău",
+    back: "← înapoi în atelier",
+    // What screen readers say for the calculator (a link to /cos).
+    // "1 produs", "2 produse", "20 de produse" (Romanian: "de" from 20 on,
+    // except 101-119, 201-219...).
+    calcLabel: (pieces: number, total: string) => {
+      const rest = pieces % 100;
+      const word = pieces === 1 ? "produs" : rest >= 20 || (rest === 0 && pieces > 0) ? "de produse" : "produse";
+      return `Coșul tău: ${pieces} ${word}, total ${total} lei`;
+    },
+  },
+
   // The album.
   album: {
     coverTitle: "ALBUM",

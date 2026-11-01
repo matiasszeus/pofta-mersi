@@ -158,9 +158,10 @@ function Scene({ animate, chars, mat, onObjectsCue, onSettled }: SceneProps) {
   const { width, height } = useThree((state) => state.size);
   // Layout height: the visible part, from the top of the canvas.
   const visibleHeight = Math.min(useVisibleHeight(height), height);
-  const spots = letterSpots(width, visibleHeight).filter((s) => chars.has(s.char));
-  // Phones: more letters, smaller letters (see phoneScale in theme.ts).
-  const scale = letterScale(spots.length, width, visibleHeight);
+  // Clear of the calculator (see letterSpots).
+  const spots = letterSpots(width, visibleHeight, mat).filter((s) => chars.has(s.char));
+  // Upright screens: a little smaller (see phoneScale in theme.ts).
+  const scale = letterScale(width, visibleHeight);
   // Camera height for which the mat fills the screen at 1 unit = 1 px.
   const distance = height / 2 / Math.tan(rad(cfg.fov / 2));
   const startHeight = distance * cfg.fall.startHeight;

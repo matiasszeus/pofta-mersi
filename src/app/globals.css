@@ -1,4 +1,9 @@
 @import "tailwindcss";
+/* Tailwind looks for class names in every file of the project; the
+   reference pages in docs/ and the original media are not the site (and a
+   reference page open in an editor can even block the dev server). */
+@source not "../../docs";
+@source not "../../media";
 
 body {
   /* All text: Whitenice, with Hanken Grotesk for the characters Whitenice

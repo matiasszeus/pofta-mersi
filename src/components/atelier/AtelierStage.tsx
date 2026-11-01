@@ -8,7 +8,8 @@ import { preloadLanding, whenIdle } from "@/lib/preload";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
-import { fitMat, type Mat, type MatObjectConfig } from "./objectLayout";
+import { calcRect, fitMat, type Mat, type MatObjectConfig } from "./objectLayout";
+import { PocketCalculator } from "./PocketCalculator";
 
 const { objects, object } = theme.atelier;
 const { slam } = object;
@@ -88,6 +89,9 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
       {/* The note is there from the start; its corner lifts when the first
           object (the album) hits the mat. */}
       <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} mat={mat} />
+      {/* The cart, next to the note (it fades in with it). Its place is
+          worked out from the screen's size: only in the browser. */}
+      {screen && <PocketCalculator rect={calcRect(screen.w, screen.h, mat)} />}
       <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} lettersMat={lettersMat} />
       {mat.objects.map((o, i) => (
         <MatObject

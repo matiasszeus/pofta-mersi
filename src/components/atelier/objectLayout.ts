@@ -110,17 +110,120 @@ export function rectMiddle(r: Rect) {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
+// The pocket calculator (the cart; see calc in theme.ts): left of the note
+// on upright screens, left of the album on wide ones, mirroring the note.
+const calc = theme.atelier.calc;
+
+function calcWidthPx(screenWidth: number, screenHeight: number) {
+  const clamp = (w: { min: number; vw: number; max: number }) =>
+    Math.min(w.max, Math.max(w.min, (w.vw / 100) * screenWidth));
+  if (isPhone(screenWidth)) return clamp(calc.width.phone);
+  return Math.min(clamp(calc.width.wide), ((calc.width.wide.maxHeightVh / 100) * screenHeight) / calc.ratio);
+}
+
+// Its box on a screen of this size, in CSS px (its turn ignored): its top
+// offsetY px under the note's, and as far left as it takes for the real
+// outlines (the calculator's, turned, and the note's / the album's, turned)
+// to be exactly the gap apart at their nearest points. Both are turned, so
+// their boxes' edges would say little.
+export function calcRect(screenWidth: number, screenHeight: number, mat: Mat = baseMat): Rect {
+  const width = calcWidthPx(screenWidth, screenHeight);
+  const height = width * calc.ratio;
+  const n = noteRect(screenWidth, screenHeight, mat);
+  const top = n.top + calc.offsetY;
+  const upright = orientationOf(screenWidth, screenHeight) === "portrait";
+  const others = upright
+    ? [noteOutline(screenWidth, screenHeight, mat, 0)]
+    : objectOutline(mat.objects[0], screenWidth, screenHeight, 0);
+  const gap = upright ? calc.gapToNote : calc.gapToAlbum;
+  const rightOf = Math.min(...others.flat().map((p) => p.x));
+  const at = (left: number) => calcOutline({ left, top, width, height }, 0);
+  const distance = (left: number) => Math.min(...others.map((o) => shapeDistance(at(left), o)));
+  // Further left = further apart: halve the range until the gap is right.
+  let lo = rightOf - 3 * width; // surely far enough
+  let hi = rightOf; // surely overlapping
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (distance(mid) > gap) lo = mid;
+    else hi = mid;
+  }
+  return { left: lo, top, width, height };
+}
+
+// The calculator's outline, turned around its middle (like its CSS).
+function calcOutline(r: Rect, margin: number): Point[] {
+  const { x, y } = rectMiddle(r);
+  return turnedBox(r.left, r.top, r.left + r.width, r.top + r.height, margin, calc.rotate, x, y);
+}
+
+// The shortest distance between two convex shapes (0 if they overlap):
+// from a corner of one to an edge of the other.
+function shapeDistance(a: Point[], b: Point[]) {
+  if (shapesOverlap(a, b)) return 0;
+  const toEdge = (p: Point, q: Point, r: Point) => {
+    const dx = r.x - q.x;
+    const dy = r.y - q.y;
+    const t = Math.max(0, Math.min(1, ((p.x - q.x) * dx + (p.y - q.y) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(p.x - (q.x + t * dx), p.y - (q.y + t * dy));
+  };
+  let best = Infinity;
+  for (const [s, t] of [[a, b], [b, a]]) {
+    for (const p of s) {
+      for (let i = 0; i < t.length; i++) best = Math.min(best, toEdge(p, t[i], t[(i + 1) % t.length]));
+    }
+  }
+  return best;
+}
+
 const letters = theme.atelier.letters;
 export type LetterSpot = (typeof letters.portrait)[number];
 
 // The letters' places on a screen of this size: those for its orientation,
 // on phones without the left-out letters and with the moved ones moved
-// (see `phone` in theme.ts).
-export function letterSpots(screenWidth: number, screenHeight: number): LetterSpot[] {
-  const spots = letters[orientationOf(screenWidth, screenHeight)];
-  const { maxWidth, without, moved } = letters.phone;
-  if (screenWidth >= maxWidth) return spots;
-  return spots.filter((s) => !without.includes(s.char)).map((s) => ({ ...s, ...moved[s.char] }));
+// (see `phone` in theme.ts). Given what lies on the mat: a letter that
+// would touch the calculator is moved clear of it (see clearOfCalc).
+export function letterSpots(screenWidth: number, screenHeight: number, mat?: Mat): LetterSpot[] {
+  let spots: LetterSpot[] = letters[orientationOf(screenWidth, screenHeight)];
+  const { without, moved } = letters.phone;
+  if (isPhone(screenWidth)) {
+    spots = spots.filter((s) => !without.includes(s.char)).map((s) => ({ ...s, ...moved[s.char] }));
+  }
+  if (!mat) return spots;
+  const scale = letterScale(screenWidth, screenHeight);
+  const calcShape = [calcOutline(calcRect(screenWidth, screenHeight, mat), letters.clearance)];
+  const shapes = blockerOutlines(mat, screenWidth, screenHeight, letters.clearance);
+  return spots.map((s) =>
+    letterBlocked(s, screenWidth, screenHeight, calcShape, scale)
+      ? clearOfCalc(s, screenWidth, screenHeight, shapes, scale, calcShape[0])
+      : s,
+  );
+}
+
+// The nearest place to `spot` where the letter touches nothing on the mat
+// (shapes), its middle still on the screen: tried at growing distances
+// (4px steps), in 24 directions, those pointing away from the calculator
+// first. None within 240px: where it was.
+function clearOfCalc(
+  spot: LetterSpot,
+  screenWidth: number,
+  screenHeight: number,
+  shapes: Point[][],
+  scale: number,
+  calcShape: Point[],
+): LetterSpot {
+  const from = rectMiddle(letterRect(spot, screenWidth, screenHeight));
+  const c = calcShape.reduce((m, p) => ({ x: m.x + p.x / calcShape.length, y: m.y + p.y / calcShape.length }), { x: 0, y: 0 });
+  const away = Math.atan2(from.y - c.y, from.x - c.x);
+  const directions = Array.from({ length: 24 }, (_, i) => away + (Math.PI / 12) * (i % 2 ? -1 : 1) * Math.ceil(i / 2));
+  for (let d = 4; d <= 240; d += 4) {
+    for (const a of directions) {
+      const moved = { ...spot, x: spot.x + (d * Math.cos(a)) / screenWidth, y: spot.y + (d * Math.sin(a)) / screenHeight };
+      const m = rectMiddle(letterRect(moved, screenWidth, screenHeight));
+      if (m.x < 0 || m.x > screenWidth || m.y < 0 || m.y > screenHeight) continue;
+      if (!letterBlocked(moved, screenWidth, screenHeight, shapes, scale)) return moved;
+    }
+  }
+  return spot;
 }
 
 // A letter's box on a screen of this size, in CSS px (see `letters` in
@@ -130,15 +233,13 @@ export function letterRect(spot: LetterSpot, screenWidth: number, screenHeight: 
   return { left: spot.x * screenWidth, top: spot.y * screenHeight, width: size, height: size };
 }
 
-// How much smaller the letters are drawn when this many lie on the mat
-// (see phoneScale in theme.ts), and on short phones (fit.shortScale): 1 on
-// wide screens.
-export function letterScale(count: number, screenWidth: number, screenHeight: number) {
+// How much smaller the letters are drawn on upright screens (see
+// phoneScale in theme.ts), and on short phones (fit.shortScale): 1 on wide
+// screens.
+export function letterScale(screenWidth: number, screenHeight: number) {
   if (orientationOf(screenWidth, screenHeight) !== "portrait") return 1;
-  const { few, many, factor } = letters.phoneScale;
-  const t = Math.min(1, Math.max(0, (count - few) / (many - few)));
   const short = isPhone(screenWidth) && screenHeight < letters.fit.shortHeight ? letters.fit.shortScale : 1;
-  return (1 + (factor - 1) * t) * short;
+  return letters.phoneScale * short;
 }
 
 const isPhone = (screenWidth: number) => screenWidth < letters.phone.maxWidth;
@@ -185,19 +286,25 @@ function objectOutline(o: MatObjectConfig, screenWidth: number, screenHeight: nu
   );
 }
 
+// The note's outline, turned around its pivot (like .note-mat).
+function noteOutline(screenWidth: number, screenHeight: number, mat: Mat, margin: number): Point[] {
+  const n = noteRect(screenWidth, screenHeight, mat);
+  const px = n.left + NOTE_PIVOT.x * n.width;
+  const py = n.top + NOTE_PIVOT.y * n.height;
+  return turnedBox(n.left, n.top, n.left + n.width, n.top + n.height, margin, note.rotation, px, py);
+}
+
 export function blockerOutlines(
   mat: Mat,
   screenWidth: number,
   screenHeight: number,
   margin: number,
 ): Point[][] {
-  const shapes = mat.objects.flatMap((o) => objectOutline(o, screenWidth, screenHeight, margin));
-  // The note, turned around its pivot (like .note-mat).
-  const n = noteRect(screenWidth, screenHeight, mat);
-  const px = n.left + NOTE_PIVOT.x * n.width;
-  const py = n.top + NOTE_PIVOT.y * n.height;
-  shapes.push(turnedBox(n.left, n.top, n.left + n.width, n.top + n.height, margin, note.rotation, px, py));
-  return shapes;
+  return [
+    ...mat.objects.flatMap((o) => objectOutline(o, screenWidth, screenHeight, margin)),
+    noteOutline(screenWidth, screenHeight, mat, margin),
+    calcOutline(calcRect(screenWidth, screenHeight, mat), margin),
+  ];
 }
 
 // Do two convex shapes overlap? Separating axis test: they do not if, along
@@ -233,13 +340,12 @@ export function letterBlocked(spot: LetterSpot, screenWidth: number, screenHeigh
 }
 
 // Which letters lie on the mat on a screen of this size (see `keep` in
-// theme.ts). The corners always; the others while none of their group
-// touches the album or the note (their real outline, see blockerOutlines),
-// and (phones only) the screen is tall enough.
+// theme.ts). The corners always (phones have only those); the others while
+// none of their group touches the album or the note (their real outline,
+// see blockerOutlines; clear of the calculator, see letterSpots).
 export function chooseLetters(screenWidth: number, screenHeight: number, mat: Mat = baseMat): Set<string> {
-  const { corners, dropOrder, minHeight } = letters.keep;
-  const spots = letterSpots(screenWidth, screenHeight);
-  const tooShort = (char: string) => isPhone(screenWidth) && screenHeight < (minHeight[char] ?? 0);
+  const { corners, dropOrder } = letters.keep;
+  const spots = letterSpots(screenWidth, screenHeight, mat);
   const shapes = blockerOutlines(mat, screenWidth, screenHeight, letters.clearance);
   const touches = (char: string) => {
     const spot = spots.find((s) => s.char === char);
@@ -253,7 +359,7 @@ export function chooseLetters(screenWidth: number, screenHeight: number, mat: Ma
   // Drop groups in order: every group up to the last one that cannot stay.
   let dropped = 0;
   groups.forEach((group, i) => {
-    if (group.some((c) => tooShort(c) || touches(c))) dropped = i + 1;
+    if (group.some((c) => touches(c))) dropped = i + 1;
   });
   return new Set([...corners, ...groups.slice(dropped).flat()]);
 }
@@ -295,7 +401,8 @@ export function fitMat(base: Mat, screenWidth: number, screenHeight: number, for
   const normal = objectRect(album, screenWidth, screenHeight);
   // forLetters: the note keeps its usual distance from the album's box.
   const usualGap = noteRect(screenWidth, screenHeight, start).top - (normal.top + normal.height);
-  const corners = letterSpots(screenWidth, screenHeight).filter((s) => letters.keep.corners.includes(s.char));
+  const corners = (m: Mat) =>
+    letterSpots(screenWidth, screenHeight, m).filter((s) => letters.keep.corners.includes(s.char));
   const ys = (o: MatObjectConfig) => objectOutline(o, screenWidth, screenHeight, 0).flat().map((pt) => pt.y);
 
   // The album k times its size (around its middle) and moved up by `lift`
@@ -329,7 +436,7 @@ export function fitMat(base: Mat, screenWidth: number, screenHeight: number, for
     const shapes = blockerOutlines(m, screenWidth, screenHeight, letters.clearance);
     return (
       noteBottom(m) <= screenHeight - letters.clearance &&
-      corners.every((spot) => !letterBlocked(spot, screenWidth, screenHeight, shapes, letterSize))
+      corners(m).every((spot) => !letterBlocked(spot, screenWidth, screenHeight, shapes, letterSize))
     );
   };
   // At size k: where it is, or else moved up so that the free mat above
@@ -361,12 +468,5 @@ export function fitMat(base: Mat, screenWidth: number, screenHeight: number, for
     }
     return place(lo, letterSize) ?? (forLetters ? arrange(lo, 0) : balanced(lo));
   };
-  // How big the letters are depends on how many lie on the mat (decided
-  // on the mat forLetters, which depends on its album): first with all of
-  // them, then with those chosen.
-  const all = letterSpots(screenWidth, screenHeight).length;
-  const firstTry = best(letterScale(all, screenWidth, screenHeight));
-  const chosenOn = forLetters ? firstTry : fitMat(base, screenWidth, screenHeight, true);
-  const count = chooseLetters(screenWidth, screenHeight, chosenOn).size;
-  return count === all ? firstTry : best(letterScale(count, screenWidth, screenHeight));
+  return best(letterScale(screenWidth, screenHeight));
 }

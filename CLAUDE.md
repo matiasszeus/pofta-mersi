@@ -5,7 +5,8 @@ Website for **Pofta Mersi**, an artist's brand (artwork, stickers, apparel, smal
 - **Landing page** (`/`): the highest-impact page, an interactive 3D hero. A tap dives
   into the atelier.
 - **Atelier** (`/atelier`): a cutting mat seen from above, with the 3D letters that landed
-  on it, the album (links to `/album`) and a handwritten note.
+  on it, the album (links to `/album`), a handwritten note and a pocket calculator: the
+  cart (links to `/cos`; its data in `src/lib/cart.ts`, localStorage).
 - **Later**: gallery-style pages where the artist shows his work and the items for sale
   (`/album` is a placeholder for now).
 - **Lab** (`/lab`): sandbox for experiments (the landing + a debug switch). Never linked
@@ -81,6 +82,7 @@ src/app/
   lab/page.tsx          # sandbox: LandingHero + debug switch, noindex, never linked
   atelier/page.tsx      # the atelier
   album/page.tsx        # placeholder
+  cos/page.tsx          # the cart (placeholder)
 src/components/hero/
   LandingHero.tsx       # the landing: static title, 3D scene, tap -> dive -> /atelier
   HeroCanvas.tsx        # Canvas, camera, lights
@@ -88,8 +90,10 @@ src/components/hero/
   LetterGlyph.tsx       # one 3D letter (shared with the atelier)
   Bounds.tsx            # viewport-based walls
   StaticTitle.tsx       # still picture of the title until the 3D scene is ready
-src/components/atelier/ # mat, letters on the mat, album (MatObject), note
-  objectLayout.ts       # where album, note and letters go (CSS and px)
+src/components/atelier/ # mat, letters on the mat, album (MatObject), note, calculator
+  objectLayout.ts       # where album, note, calculator and letters go (CSS and px)
+  PocketCalculator.tsx  # the cart on the mat
+src/lib/cart.ts         # the cart's data (localStorage), useCos()
 src/components/site/    # header with the logo (pages after the atelier)
 src/config/theme.ts     # colors, fonts, sizes, positions (single source of truth)
 src/config/content.ts   # texts
