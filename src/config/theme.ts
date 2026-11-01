@@ -601,7 +601,12 @@ export const theme = {
 
     // The layers, from the back: board, stack of pages (its edges), the
     // page underneath, the sheet (the contents on its front), the cover.
-    thickness: 18, // u: the stack of pages showing right of and below
+    // The stacks of pages showing past the open book's pages, like a real
+    // book's (u): on the right the sheets still to turn (and the last
+    // page), on the left (from the second view on) those already turned,
+    // perLeaf u for each sheet, never more than max. They change as a sheet
+    // passes the middle of its turn, in `change` seconds.
+    stack: { perLeaf: 2, max: 14, change: 0.2 },
     board: {
       // u: how far it reaches past the page (top, and right / bottom
       // past the stack); corner radius on the right.

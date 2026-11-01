@@ -3,7 +3,7 @@ import Image from "next/image";
 import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { bookTabs, contentsId, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
+import { bookTabs, contentsId, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, stackRight, type BookPage } from "./albumPages";
 import { u, uMinusT } from "./albumUnits";
 import { ChapterPage } from "./ChapterPage";
 import { PartnerCredit } from "./PartnerCredit";
@@ -22,6 +22,11 @@ const curlAt = (seconds: number) => `${((seconds / curlTotal) * 100).toFixed(2)}
 // Written as CSS once, for the pseudo-elements (::after) and the many
 // u-sized lengths.
 const css = `
+/* The stacks' thicknesses in u (see theme.album.stack): --t on the right,
+   --tl on the left. Registered as numbers so they can be animated (each
+   on the stack's own parts, see MatAlbum: nothing else in the 3D changes). */
+@property --t { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --tl { syntax: "<number>"; inherits: true; initial-value: 0; }
 /* The book's and the slide's boxes are empty 3D containers the size of a
    page: they let taps through (else they catch them before a page lying
    behind their plane, like a turned sheet); their parts take them. */
@@ -126,6 +131,32 @@ const css = `
   ${curlAt(hint.lift * 1.5 + hint.pause)} { transform: scale(1); }
   100% { transform: scale(0); }
 }
+/* The stack of turned sheets, on the left: drawn on the open cover's
+   inside (it turns with the cover, lies under the turned sheets), as the
+   right one mirrored. The cover's back face: x from its outer edge, the
+   left page's area from 6u (its lining), y from 6u above the page. The
+   board reaches past it under the stack (black like the cover). */
+.ab-board-l {
+  position: absolute; top: 0; right: 0;
+  left: calc(var(--u) * (${coverParts.over - board.beyond}px - var(--tl) * 1px));
+  bottom: calc(var(--u) * (${coverParts.over - board.beyond}px - var(--tl) * 1px));
+  background: ${colors.board}; border-radius: ${u(board.radius)} 0 0 ${u(board.radius)};
+}
+.ab-edge-l, .ab-edge-bl { position: absolute; }
+.ab-edge-l {
+  top: ${u(coverParts.over + 6)}; bottom: calc(var(--u) * (${coverParts.over}px - var(--tl) * 1px));
+  left: calc(var(--u) * (${coverParts.over + 2}px - var(--tl) * 1px)); width: calc(var(--u) * var(--tl) * 1px);
+  border-radius: ${u(3)} 0 0 ${u(3)};
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--u) * var(--tl) * 1px), 0 100%);
+  background: repeating-linear-gradient(270deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
+}
+.ab-edge-bl {
+  right: ${u(8)}; left: calc(var(--u) * (${coverParts.over + 2}px - var(--tl) * 1px));
+  bottom: calc(var(--u) * (${coverParts.over}px - var(--tl) * 1px)); height: calc(var(--u) * var(--tl) * 1px);
+  border-radius: 0 0 ${u(3)} ${u(3)};
+  clip-path: polygon(calc(var(--u) * var(--tl) * 1px) 0, 100% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(180deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
+}
 /* A sheet: turns around the spine when leafing (see leafTransform). */
 .ab-leaf { position: absolute; inset: 0; transform-origin: left center; }
 .ab-cover {
@@ -223,7 +254,8 @@ export function AlbumBook({
     onHintEnd,
   });
   const open = skipOpening;
-  const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
+  // The stacks as the book lies closed: every sheet on the right.
+  const vars = { "--u": unit, "--t": stackRight(0), "--tl": 0, perspective: `${theme.album.perspective}px` } as CSSProperties;
 
   return (
     <div className="absolute inset-0" style={vars}>
@@ -236,9 +268,11 @@ export function AlbumBook({
           className="ab-slide album-3d absolute inset-0 will-change-transform"
           style={{ transform: `translate3d(${open && spread ? 50 : 0}%, 0px, 0px)` }}
         >
-          <div ref={boardRef} className="ab-board" />
-          <div className="ab-edge-r" />
-          <div className="ab-edge-b" />
+          {/* ab-stack-r / ab-stack-l: the parts whose thickness changes
+              while leafing (MatAlbum animates --t / --tl on them). */}
+          <div ref={boardRef} className="ab-board ab-stack-r" />
+          <div className="ab-edge-r ab-stack-r" />
+          <div className="ab-edge-b ab-stack-r" />
           <div className="ab-ribbon" />
           <Page {...pageProps(lastPage)} side="under" />
           <div className="ab-tabs">
@@ -296,6 +330,9 @@ export function AlbumBook({
               />
             </div>
             <div className="ab-face ab-back ab-cover-back">
+              <div className="ab-board-l ab-stack-l" />
+              <div className="ab-edge-l ab-stack-l" />
+              <div className="ab-edge-bl ab-stack-l" />
               <div className="ab-page ab-left ab-lining" style={{ top: u(6), bottom: u(6), left: u(6), right: 0 }} />
             </div>
           </div>

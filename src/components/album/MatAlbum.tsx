@@ -8,9 +8,9 @@ import { useStableViewport } from "@/lib/stableViewport";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
 import { albumLayout, visibleBox, type AlbumLayout, type ViewBox } from "./albumLayout";
-import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
+import { albumViews, firstPageOf, sheets, stackLeft, stackRight, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
-const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
+const { opening, page, board, pages, stack, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
 const { edgeTapZone, swipeThreshold, hintCurl: hint } = theme.album;
 const ms = (seconds: number) => seconds * 1000;
@@ -26,7 +26,8 @@ const OWN_TAP = "button, a, input, select, textarea, label, [role='button'], [ro
 // width (1u = 1 / unitWidth).
 export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
   const u = 1 / unitWidth;
-  const beyond = (board.beyond + thickness) * u;
+  // Closed: every sheet on the right.
+  const beyond = (board.beyond + stackRight(0)) * u;
   const ribbonLeft = ribbon.left * u;
   return {
     ...album,
@@ -126,6 +127,17 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   };
   const done = (...list: (Animation | null)[]) => Promise.all(list.map((a) => a?.finished));
 
+  // The stacks of pages past the pages (see theme.album.stack): as thick
+  // as with `turned` sheets turned. At once, or from `delay` ms on over
+  // stack.change seconds (as a sheet passes the middle of its turn). Only
+  // the stacks' own parts change (--t / --tl, see AlbumBook); a single
+  // keyframe: from wherever they are.
+  const setStacks = (turned: number, delay?: number) => {
+    const timing = delay === undefined ? { duration: 0 } : { duration: ms(stack.change), delay, easing: "ease-in-out" };
+    book.current?.querySelectorAll(".ab-stack-r").forEach((el) => animate(el, [{ "--t": stackRight(turned) }], timing));
+    book.current?.querySelectorAll(".ab-stack-l").forEach((el) => animate(el, [{ "--tl": stackLeft(turned) }], timing));
+  };
+
   // The opening (or, when `open` turns false, back on the mat). Runs on a
   // tap and on every replay; not when the screen is resized.
   useEffect(() => {
@@ -136,6 +148,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const now = { duration: 0 };
     // The page it opens on: the sheets before it already turned.
     for (let s = 0; s < start.turned; s++) animate(leaves.current[s], [{ transform: leafTransform(s, true) }], now);
+    setStacks(start.turned);
 
     async function play(p: Poses) {
       if (reducedMotion) {
@@ -201,6 +214,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       const t = leafTransform(s, s < turned);
       animate(el, [{ transform: t }, { transform: t }], { duration: 0 });
     });
+    setStacks(turned);
     set(anims.current.board, [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }]);
     // Only on a resize.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,10 +246,13 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
         for (const s of moving) animate(leaves.current[s], [sheet(s, target), sheet(s, target)], { duration: 0 });
         animate(slide.current, [pane(target), pane(target)], { duration: 0 }, "slide");
+        setStacks(target.turned);
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         return;
       }
       const t = { duration: ms(pages.turn.duration), easing: pages.turn.easing };
+      // The stacks change once the sheet is past the middle (upright).
+      if (moving.length) setStacks(target.turned, t.duration / 2);
       await done(
         ...moving.map((s) => animate(leaves.current[s], [sheet(s, from), sheet(s, target)], t)),
         animate(slide.current, [pane(from), pane(target)], t, "slide"),
@@ -320,10 +337,19 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
         for (const s of moving) animate(leaves.current[s], [sheet(s, target), sheet(s, target)], { duration: 0 });
         animate(slide.current, [pane(target), pane(target)], { duration: 0 }, "slide");
+        setStacks(target.turned);
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         return;
       }
       const last = seen.length - 1;
+      // The stacks change sheet by sheet, each as that sheet passes the
+      // middle of its turn (a skipped one: as it jumps).
+      const forwards = target.turned > from.turned;
+      moving.forEach((s, j) => {
+        const i = seen.indexOf(s);
+        const passAt = i < 0 ? jumpAt(s) : starts[i] + ms(i === last ? ff.lastDuration : ff.duration) / 2;
+        setStacks(forwards ? from.turned + j + 1 : from.turned - j - 1, passAt);
+      });
       await done(
         // Each one waits for its turn showing where it was ("fill both");
         // the last one with the normal turn's easing (lastDuration).
@@ -553,7 +579,7 @@ const SLIDE_NONE = "translate3d(calc(0% + 0px), 0px, 0px)";
 function slideFor(view: AlbumView, layout: AlbumLayout) {
   const x = (percent: number, px: number) => `translate3d(calc(${percent}% + ${px}px), 0px, 0px)`;
   if (layout.spread) return x(50, layout.shiftSpread);
-  return view.side === "left" ? x(100, layout.shiftLeft) : x(0, layout.shiftRight);
+  return view.side === "left" ? x(100, layout.shiftLeft(stackLeft(view.turned))) : x(0, layout.shiftRight);
 }
 
 const bookKeyframes = (p: Poses): Keyframe[] => [
