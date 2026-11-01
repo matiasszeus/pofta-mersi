@@ -302,7 +302,7 @@ function DividerText({ title, blurb, accent }: { title: string; blurb?: string; 
         {drawnTitle(title)}
       </div>
       {blurb && (
-        <div className="opacity-75" style={{ fontSize: u(15) }}>
+        <div className="opacity-75" style={{ fontSize: u(theme.album.dividerBlurbSize) }}>
           {at < 0 ? (
             blurb
           ) : (

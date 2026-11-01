@@ -631,6 +631,7 @@ export const theme = {
       soonOpacity: 0.45,
     },
     pageNumber: { size: 12, bottom: 14, side: 20 }, // u
+    dividerBlurbSize: 19, // u: the line under a divider's title (~20px on a phone)
     // A chapter's page (u): its title top left, the subtitle under it. A
     // page without the title: the subtitle alone, a little bigger (16u =
     // ~17px on a phone), about halfway down where the title was.
