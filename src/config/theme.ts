@@ -703,15 +703,29 @@ export const theme = {
       note: { left: 30, top: 300, width: 140, size: 18, lineHeight: 1.2, rotation: -3 },
       arrow: { left: 120, gap: 4, width: 56 },
     },
-    // On a photo with a video: a small play button in its bottom-right
-    // corner (u: 24 = ~26px on a phone), and how long (seconds) the
-    // picture takes to fade into the playing video.
+    // On a photo with a video: a play button in its middle (u: 37.4 =
+    // ~40px on a phone), over its blurred picture.
     playButton: {
-      size: 24.3,
-      inset: 6,
-      background: "rgb(29 38 51 / 0.75)", // ink
+      size: 37.4,
+      background: "rgb(29 38 51 / 0.8)", // ink
       color: palette.paper,
-      fade: 0.2,
+      shadow: "0 1px 3px rgb(0 0 0 / 0.35)",
+    },
+    // A photo tapped on the album's page: it grows from its place into the
+    // middle of the screen, with its video (and back when closed).
+    //   side      its video's square: the smallest of these (CSS units)
+    //   backdrop  the layer over everything else
+    //   rotation  degrees, a little crooked
+    //   duration  seconds to grow / shrink, with `easing` (as the album's
+    //             lift)
+    //   swipe     px down that close it on a phone
+    zoom: {
+      side: { vw: 86, vh: 70, max: 520 },
+      backdrop: "rgb(16 24 33 / 0.7)",
+      rotation: -2,
+      duration: 0.45,
+      easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+      swipe: 70,
     },
     // A Dymo label (a photo's name, stuck on the white of its frame
     // below the picture, centred; labelRotation in photos.places). Sizes

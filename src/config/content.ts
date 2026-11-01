@@ -62,10 +62,11 @@ export const content = {
   // The album.
   album: {
     coverTitle: "ALBUM",
-    // A photo with a video in the album: what screen readers say for it.
+    // A photo with a video in the album: what screen readers say for it
+    // (it opens the big view), and for the big view itself.
     video: {
-      play: (name: string) => `Pornește video ${name}`,
-      stop: (name: string) => `Oprește video ${name}`,
+      open: (name: string) => `Pornește video ${name}`,
+      dialog: (name: string) => `Video ${name}`,
     },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",

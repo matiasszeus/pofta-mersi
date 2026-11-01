@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Image from "next/image";
 import { crazeRetro } from "@/app/fonts";
 import { content, type AlbumModel, type AlbumPageContent } from "@/config/content";
@@ -7,14 +8,14 @@ import { theme } from "@/config/theme";
 import { drawnTitle } from "./albumPages";
 import { u, uCss } from "./albumUnits";
 import { DymoLabel } from "./DymoLabel";
+import { PhotoZoom } from "./PhotoZoom";
 
 const { chapterPage: cp, photos, priceTag: tag } = theme.album;
 
 type ChapterPageProps = {
   title: string;
   content: AlbumPageContent;
-  // The page lies still on the screen: its videos play. Otherwise (hidden,
-  // turning, the album opening or closed) they show their posters.
+  // The page lies still on the screen: its photos can be tapped.
   live: boolean;
 };
 
@@ -22,15 +23,9 @@ type ChapterPageProps = {
 // top left (or the subtitle alone), the photos stuck on it, a price tag,
 // a handwritten note. Laid out as in docs/album-bratari-referinta.html.
 export function ChapterPage({ title, content: page, live }: ChapterPageProps) {
-  // The product whose video plays: one at a time. None as soon as the page
-  // is no longer still on the screen (turning, hidden, the album closed).
-  const [playing, setPlaying] = useState<string | null>(null);
-  const [wasLive, setWasLive] = useState(live);
-  if (wasLive !== live) {
-    // React's way to reset state when a prop changes: during the render.
-    setWasLive(live);
-    if (!live) setPlaying(null);
-  }
+  // The photo shown big (see PhotoZoom): its product, its frame on the page
+  // and its place; its button gets the focus back when it closes.
+  const [zoomed, setZoomed] = useState<{ index: number; frame: HTMLElement; button: HTMLElement } | null>(null);
   const withTitle = page.title !== false;
   const subtitle = withTitle
     ? { top: cp.subtitleTop, size: cp.subtitleSize }
@@ -57,44 +52,57 @@ export function ChapterPage({ title, content: page, live }: ChapterPageProps) {
         <Photo
           key={m.product}
           model={m}
-          place={photos.places[i % photos.places.length]}
-          playing={live && playing === m.product}
-          onToggle={() => setPlaying((now) => (now === m.product ? null : m.product))}
+          place={placeOf(i)}
+          live={live}
+          hidden={zoomed?.index === i}
+          onOpen={(frame, button) => setZoomed({ index: i, frame, button })}
         />
       ))}
       {page.priceTag && <PriceTag {...page.priceTag} />}
       {page.note && <Note text={page.note} />}
+      {zoomed && page.models && (
+        <PhotoZoom
+          product={produs(page.models[zoomed.index].product)}
+          from={zoomed.frame}
+          fromRotation={placeOf(zoomed.index).rotation}
+          labelRotation={placeOf(zoomed.index).labelRotation}
+          onClosed={() => {
+            // Shown again first (a hidden button cannot take the focus).
+            flushSync(() => setZoomed(null));
+            zoomed.button.focus({ preventScroll: true });
+          }}
+        />
+      )}
     </>
   );
 }
 
 type Place = (typeof photos.places)[number];
+const placeOf = (i: number): Place => photos.places[i % photos.places.length];
 
-// A photo stuck on the page: a white frame, the product's picture in it
-// (its video on a tap), its name on a Dymo label on the frame under it, a
-// strip of washi tape on top.
-//
-// The picture is a button: a tap plays the video right there (fading in
-// over the picture, which stays under it as its poster, so never a black
-// frame), another tap stops it. The video element exists only while it
-// plays, so nothing of it is downloaded before the first tap, and taking it
-// away stops it and frees its decoder.
+// A photo stuck on the page: a white frame, the product's blurred picture
+// in it under a play button, its name on a Dymo label on the frame under
+// it, a strip of washi tape on top. A tap shows it big with its video (see
+// PhotoZoom); meanwhile it is hidden here (it seems to have been lifted).
+// The blur is in the picture itself: a CSS filter in the 3D album would
+// trouble Safari.
 type PhotoProps = {
   model: AlbumModel;
   place: Place;
-  // This photo's video plays.
-  playing: boolean;
-  onToggle: () => void;
+  // The page lies still on the screen: it can be tapped.
+  live: boolean;
+  hidden: boolean;
+  onOpen: (frame: HTMLElement, button: HTMLElement) => void;
 };
-function Photo({ model, place, playing, onToggle }: PhotoProps) {
+function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
   const p = produs(model.product);
-  // The video has its first frame on the screen: fade it in.
-  const [shown, setShown] = useState(false);
+  const frame = useRef<HTMLDivElement>(null);
   const { padding, tape } = photos;
   const pb = theme.album.playButton;
-  const label = playing ? content.album.video.stop(p.nume) : content.album.video.play(p.nume);
+  const canOpen = live && !!p.videoMare;
   return (
     <div
+      ref={frame}
       className="absolute box-border bg-white"
       style={{
         left: u(place.left),
@@ -104,26 +112,24 @@ function Photo({ model, place, playing, onToggle }: PhotoProps) {
         padding: `${u(padding.side)} ${u(padding.side)} ${u(padding.bottom)}`,
         boxShadow: uCss(photos.shadow),
         rotate: `${place.rotation}deg`,
+        visibility: hidden ? "hidden" : undefined,
       }}
     >
-      {/* Black like the videos' own background. */}
       <button
         type="button"
-        aria-label={p.video ? label : undefined}
-        aria-pressed={p.video ? playing : undefined}
-        disabled={!p.video}
+        aria-label={content.album.video.open(p.nume)}
+        disabled={!canOpen}
         className="relative block h-full w-full cursor-pointer overflow-hidden bg-black p-0"
         // Only this photo: never the page or the album around it.
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setShown(false);
-          onToggle();
+          if (frame.current) onOpen(frame.current, e.currentTarget);
         }}
       >
         <Image
-          src={p.poza}
+          src={p.pozaBlur ?? p.poza}
           alt={model.alt}
           fill
           unoptimized
@@ -131,42 +137,20 @@ function Photo({ model, place, playing, onToggle }: PhotoProps) {
           draggable={false}
           className="object-cover select-none"
         />
-        {playing && p.video && (
-          <video
-            className="ab-video absolute inset-0 h-full w-full object-cover"
-            style={{ opacity: shown ? 1 : 0, transition: `opacity ${pb.fade}s ease` }}
-            src={p.video}
-            poster={p.poza}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="none"
-            disablePictureInPicture
-            disableRemotePlayback
-            aria-hidden
-            onPlaying={() => setShown(true)}
-            ref={(el) => {
-              if (!el) return;
-              // Muted before it plays: browsers only autoplay silent videos.
-              el.muted = true;
-              el.play().catch(() => {}); // AbortError: stopped again before it started
-            }}
-          />
-        )}
-        {p.video && !playing && (
+        {p.videoMare && (
           <span
             aria-hidden
-            className="absolute flex items-center justify-center rounded-full"
+            className="absolute top-1/2 left-1/2 flex items-center justify-center rounded-full"
             style={{
-              right: u(pb.inset),
-              bottom: u(pb.inset),
               width: u(pb.size),
               height: u(pb.size),
+              marginLeft: u(-pb.size / 2),
+              marginTop: u(-pb.size / 2),
               background: pb.background,
+              boxShadow: pb.shadow,
             }}
           >
-            <svg viewBox="0 0 10 10" style={{ width: "42%", height: "42%", marginLeft: "8%" }}>
+            <svg viewBox="0 0 10 10" style={{ width: "40%", height: "40%", marginLeft: "8%" }}>
               <path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill={pb.color} />
             </svg>
           </span>

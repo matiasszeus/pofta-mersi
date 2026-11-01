@@ -7,10 +7,22 @@
 //   categorie  which chapter of the album it belongs to
 //   poza       its picture (square WebP); for a bracelet: a frame of its
 //              video (see scripts/prepare-videos.mjs --poza)
-//   video      optional: a short looping video of it, played on a tap
+//   pozaBlur   optional: the same, blurred and small (--blur): on the
+//              album's page, under a play button
+//   video      optional: a short looping video of it (480px)
+//   videoMare  optional: the same, better (720px, --mare): in the big view
 
 export type Categorie = "bratari" | "stickere";
-export type Produs = { id: string; nume: string; pret: number; categorie: Categorie; poza: string; video?: string };
+export type Produs = {
+  id: string;
+  nume: string;
+  pret: number;
+  categorie: Categorie;
+  poza: string;
+  pozaBlur?: string;
+  video?: string;
+  videoMare?: string;
+};
 
 export const produse: Produs[] = [
   {
@@ -19,7 +31,9 @@ export const produse: Produs[] = [
     pret: 30,
     categorie: "bratari",
     poza: "/images/bratari/basalt.webp",
+    pozaBlur: "/images/bratari/basalt-blur.webp",
     video: "/videos/bratari/basalt.mp4",
+    videoMare: "/videos/bratari/basalt-720.mp4",
   },
   {
     id: "bratara-synthesis",
@@ -27,7 +41,9 @@ export const produse: Produs[] = [
     pret: 30,
     categorie: "bratari",
     poza: "/images/bratari/synthesis.webp",
+    pozaBlur: "/images/bratari/synthesis-blur.webp",
     video: "/videos/bratari/synthesis.mp4",
+    videoMare: "/videos/bratari/synthesis-720.mp4",
   },
 ];
 

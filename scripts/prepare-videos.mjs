@@ -7,6 +7,15 @@
 //   node scripts/prepare-videos.mjs --poza basalt=6 synthesis=3
 //       the chosen frame of each (seconds) as its picture: WebP in
 //       public/images/bratari/ (shown before the video plays)
+//   node scripts/prepare-videos.mjs --blur basalt=3 synthesis=3
+//       the chosen frame of each, blurred (BLUR) and darkened (DARKEN),
+//       small (BLUR_SIZE px, it is stretched anyway): <name>-blur.webp in
+//       public/images/bratari/ (the photo on the album's page, under its
+//       play button: blurred here, never with a CSS filter in the 3D
+//       album)
+//   node scripts/prepare-videos.mjs --mare
+//       a better version of each video for the big view: BIG x BIG px,
+//       CRF BIG_CRF: <name>-720.mp4
 //
 // Videos, frames and pictures are all cut the same way (below), so the
 // picture is exactly the video's frame.
@@ -34,6 +43,11 @@ const VIDEO_DIR = "public/videos/bratari";
 const PICTURE_DIR = "public/images/bratari";
 const FRAMES_DIR = "tmp/cadre";
 const SIZE = 480;
+const BIG = 720;
+const BIG_CRF = 23;
+const BLUR = 12; // gaussian sigma, px at SIZE
+const DARKEN = 0.85; // brightness kept
+const BLUR_SIZE = 240;
 const FPS = 30;
 const MAX_BYTES = 200 * 1024;
 const margin = 28; // px of black kept around the object (original's px)
@@ -73,8 +87,8 @@ function measure(file) {
 }
 
 // The ffmpeg filters: crop the square (as much of it as lies in the frame),
-// fill it up with black, scale it.
-function squareFilters({ width, height, box }) {
+// fill it up with black, scale it to size x size.
+function squareFilters({ width, height, box }, size = SIZE) {
   const side = Math.ceil(Math.max(box[2] - box[0], box[3] - box[1]) + 2 * margin);
   const left = Math.round((box[0] + box[2]) / 2 - side / 2);
   const top = Math.round((box[1] + box[3]) / 2 - side / 2);
@@ -88,7 +102,7 @@ function squareFilters({ width, height, box }) {
     filters: [
       `crop=${cw}:${ch}:${cx}:${cy}`,
       `pad=${side}:${side}:${cx - left}:${cy - top}:black`,
-      `scale=${SIZE}:${SIZE}:flags=lanczos`,
+      `scale=${size}:${size}:flags=lanczos`,
     ].join(","),
   };
 }
@@ -132,6 +146,46 @@ if (mode === "--poza") {
     const { filters } = squareFilters(measure(v.from));
     const file = `${PICTURE_DIR}/${name}.webp`;
     frame(v.from, filters, Number(t), file, ["-c:v", "libwebp", "-quality", "85"]);
+    console.log(`${file}: ${Math.round(statSync(file).size / 1024)} KB`);
+  }
+  process.exit(0);
+}
+
+if (mode === "--blur") {
+  mkdirSync(PICTURE_DIR, { recursive: true });
+  for (const arg of args) {
+    const [name, t] = arg.split("=");
+    const v = VIDEOS.find((x) => x.name === name);
+    if (!v || !t) throw new Error(`"${arg}": expected name=seconds, name one of ${VIDEOS.map((x) => x.name)}`);
+    const { filters } = squareFilters(measure(v.from));
+    const blur = [
+      filters,
+      "format=rgb24",
+      `gblur=sigma=${BLUR}`,
+      `lutrgb=r=val*${DARKEN}:g=val*${DARKEN}:b=val*${DARKEN}`,
+      `scale=${BLUR_SIZE}:${BLUR_SIZE}:flags=lanczos`,
+    ].join(",");
+    const file = `${PICTURE_DIR}/${name}-blur.webp`;
+    frame(v.from, blur, Number(t), file, ["-c:v", "libwebp", "-quality", "70"]);
+    console.log(`${file}: ${Math.round(statSync(file).size / 1024)} KB`);
+  }
+  process.exit(0);
+}
+
+if (mode === "--mare") {
+  for (const v of VIDEOS) {
+    const { filters } = squareFilters(measure(v.from), BIG);
+    const file = `${VIDEO_DIR}/${v.name}-${BIG}.mp4`;
+    execFileSync(FFMPEG, [
+      "-hide_banner", "-loglevel", "error", "-y",
+      "-i", v.from,
+      "-vf", `${filters},fps=${FPS}`,
+      "-an",
+      "-c:v", "libx264", "-preset", "veryslow", "-crf", String(BIG_CRF),
+      "-profile:v", "high", "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
+      file,
+    ]);
     console.log(`${file}: ${Math.round(statSync(file).size / 1024)} KB`);
   }
   process.exit(0);
