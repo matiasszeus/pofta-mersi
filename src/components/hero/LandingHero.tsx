@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { PageBackground } from "@/components/PageBackground";
 import { FlowerBackground } from "@/components/hero/FlowerBackground";
 import { SceneBoundary } from "@/components/hero/SceneBoundary";
+import { shouldUse3D } from "@/lib/gpuTier";
 import { SlideBand } from "@/components/hero/SlideBand";
 import { StaticTitle } from "@/components/hero/StaticTitle";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
@@ -43,20 +44,6 @@ type Phase = "idle" | "waiting" | "diving" | "sliding" | "fading" | "arrived";
 // stays for good).
 type Scene = "loading" | "ready" | "failed";
 
-// Whether this browser can draw 3D at all (checked once).
-let webglSupport: boolean | undefined;
-function hasWebGL() {
-  if (webglSupport === undefined) {
-    try {
-      const canvas = document.createElement("canvas");
-      webglSupport = !!(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
-    } catch {
-      webglSupport = false;
-    }
-  }
-  return webglSupport;
-}
-
 // "?snapshot" in the address: only the 3D title on a see-through page, for
 // scripts/render-title.mjs to photograph it (see StaticTitle).
 const noSubscribe = () => () => {};
@@ -76,8 +63,11 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
   const reducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("idle");
   const [sceneState, setScene] = useState<Scene>("loading");
-  // No WebGL: the 3D scene is not even tried. (On the server: assume yes.)
-  const webgl = useSyncExternalStore(noSubscribe, hasWebGL, () => true);
+  // No 3D on this device (no WebGL, or WebGL without a graphics card, see
+  // shouldUse3D): the scene is not even tried, the still picture of the
+  // title stays. The snapshot for scripts/render-title.mjs always draws it.
+  // (On the server: assume yes.)
+  const webgl = useSyncExternalStore(noSubscribe, () => snapshot || shouldUse3D(), () => true);
   const scene: Scene = webgl ? sceneState : "failed";
   // How the last tap set off: with the 3D dive, or without it.
   const [mode, setMode] = useState<"dive" | "slide" | "fade">("dive");

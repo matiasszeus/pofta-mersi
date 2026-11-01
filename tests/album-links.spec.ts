@@ -86,7 +86,9 @@ test("tap on the album: /album; leafing to BRĂȚĂRI: /album/bratari, no new hi
 
 test("/ is the landing as before", async ({ page }) => {
   await page.goto("/");
-  await page.locator("canvas").first().waitFor();
+  // The title: the still picture is always there (the 3D scene only on
+  // devices with a graphics card, see shouldUse3D).
+  await page.locator("img.static-title").waitFor({ state: "attached" });
   expect(new URL(page.url()).pathname).toBe("/");
   expect(await page.locator(".atelier-main").count()).toBe(0);
   expect(await page.locator("[data-object]").count()).toBe(0);
