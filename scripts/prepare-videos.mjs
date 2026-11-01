@@ -35,9 +35,11 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, statSync } from "node:fs";
 
 // name: the product's (src/config/products.ts points at these files).
+// cropped: already a square around the bracelet (cut by hand): only scaled,
+// never cut again.
 const VIDEOS = [
-  { name: "basalt", from: "media/videos/bratara1.mp4" },
-  { name: "synthesis", from: "media/videos/bratara2.mp4" },
+  { name: "basalt", from: "media/videos/Wh.mp4", cropped: true },
+  { name: "synthesis", from: "media/videos/WhatsAp1.mp4", cropped: true },
 ];
 const VIDEO_DIR = "public/videos/bratari";
 const PICTURE_DIR = "public/images/bratari";
@@ -107,6 +109,13 @@ function squareFilters({ width, height, box }, size = SIZE) {
   };
 }
 
+// The filters for one video at size x size: its square found and cut (see
+// squareFilters), or, already cut by hand, only scaled.
+function filtersFor(v, size = SIZE) {
+  if (v.cropped) return { side: null, filters: `scale=${size}:${size}:flags=lanczos` };
+  return squareFilters(measure(v.from), size);
+}
+
 // One frame, `seconds` in, cut like the video, written to `file`
 // (its extension picks the format).
 function frame(from, filters, seconds, file, extra = []) {
@@ -127,7 +136,7 @@ if (mode === "--cadre") {
   const seconds = (args[0] ?? "1,3,6,9").split(",").map(Number);
   mkdirSync(FRAMES_DIR, { recursive: true });
   for (const v of VIDEOS) {
-    const { filters } = squareFilters(measure(v.from));
+    const { filters } = filtersFor(v);
     for (const t of seconds) {
       const file = `${FRAMES_DIR}/${v.name}-${t}s.png`;
       frame(v.from, filters, t, file);
@@ -143,7 +152,7 @@ if (mode === "--poza") {
     const [name, t] = arg.split("=");
     const v = VIDEOS.find((x) => x.name === name);
     if (!v || !t) throw new Error(`"${arg}": expected name=seconds, name one of ${VIDEOS.map((x) => x.name)}`);
-    const { filters } = squareFilters(measure(v.from));
+    const { filters } = filtersFor(v);
     const file = `${PICTURE_DIR}/${name}.webp`;
     frame(v.from, filters, Number(t), file, ["-c:v", "libwebp", "-quality", "85"]);
     console.log(`${file}: ${Math.round(statSync(file).size / 1024)} KB`);
@@ -157,7 +166,7 @@ if (mode === "--blur") {
     const [name, t] = arg.split("=");
     const v = VIDEOS.find((x) => x.name === name);
     if (!v || !t) throw new Error(`"${arg}": expected name=seconds, name one of ${VIDEOS.map((x) => x.name)}`);
-    const { filters } = squareFilters(measure(v.from));
+    const { filters } = filtersFor(v);
     const blur = [
       filters,
       "format=rgb24",
@@ -174,7 +183,7 @@ if (mode === "--blur") {
 
 if (mode === "--mare") {
   for (const v of VIDEOS) {
-    const { filters } = squareFilters(measure(v.from), BIG);
+    const { filters } = filtersFor(v, BIG);
     const file = `${VIDEO_DIR}/${v.name}-${BIG}.mp4`;
     execFileSync(FFMPEG, [
       "-hide_banner", "-loglevel", "error", "-y",
@@ -194,9 +203,8 @@ if (mode === "--mare") {
 for (const v of VIDEOS) {
   mkdirSync(VIDEO_DIR, { recursive: true });
   const to = `${VIDEO_DIR}/${v.name}`;
-  const m = measure(v.from);
-  const { side, filters } = squareFilters(m);
-  console.log(`${v.from}: ${m.width}x${m.height}, object in ${m.box.join(",")}, square ${side}px`);
+  const { side, filters } = filtersFor(v);
+  console.log(`${v.from}: ${side ? `square ${side}px around the object` : "already square"}`);
 
   let bytes = Infinity;
   for (let crf = 28; crf <= 40 && bytes > MAX_BYTES; crf += 2) {
