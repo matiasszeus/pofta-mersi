@@ -39,11 +39,14 @@ export type AlbumCredit = {
 // An offer on a chapter's divider, on a tag: big and small text.
 export type AlbumOffer = { mare: string; mic: string };
 
-// One chapter of the album (see album.chapters below).
+// One chapter of the album (see album.chapters below). slug: its part of
+// the address, /album/<slug> (letters a-z, digits and "-" only: no
+// diacritics, no spaces).
 export type AlbumChapter =
-  | { id: string; title: string; contents: true }
+  | { id: string; slug: string; title: string; contents: true }
   | {
       id: string;
+      slug: string;
       title: string;
       contents?: false;
       color?: string;
@@ -122,10 +125,12 @@ export const content = {
     //          none = not there yet: "în curând" in the contents, not in
     //          the book
     // contents: true = the contents page itself (one page, no divider).
+    // slug: the chapter's address, /album/<slug> (see AlbumChapter).
     chapters: [
-      { id: "inventar", title: "Inventar", contents: true },
+      { id: "inventar", slug: "inventar", title: "Inventar", contents: true },
       {
         id: "stickere",
+        slug: "stickere",
         title: "Stickere",
         color: palette.lilac,
         oferta: { mare: "−20%", mic: "la 10+ stickere" },
@@ -142,6 +147,7 @@ export const content = {
       },
       {
         id: "bratari",
+        slug: "bratari",
         title: "Brățări",
         color: palette.sage,
         blurb: "din material textil",
@@ -159,8 +165,8 @@ export const content = {
           },
         ],
       },
-      { id: "tricouri", title: "Tricouri", pages: [] },
-      { id: "tote-bags", title: "Tote bags", pages: [] },
+      { id: "tricouri", slug: "tricouri", title: "Tricouri", pages: [] },
+      { id: "tote-bags", slug: "tote-bags", title: "Tote bags", pages: [] },
     ] as AlbumChapter[],
   },
 };

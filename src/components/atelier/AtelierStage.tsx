@@ -39,9 +39,13 @@ type StageProps = {
   objectOverrides?: Record<string, MatObjectConfig>;
   // The album is open: the 3D letters stop drawing (see MatLettersCanvas).
   albumOpen?: boolean;
+  // Optional: called once the album lies on the mat (its slam is over; with
+  // reduced motion: as soon as it is placed). For links that open it
+  // (/album, see AtelierWithAlbum).
+  onAlbumDown?: () => void;
 };
 
-function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false }: StageProps) {
+function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown }: StageProps) {
   const reducedMotion = useReducedMotion();
   const animate = !reducedMotion;
   const [landed, setLanded] = useState(false);
@@ -82,6 +86,17 @@ function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false
   const screen = useScreenSize();
   const album = objectOverrides?.[objects[0].key] ?? objects[0];
   const mat = useMemo(() => (screen ? matLayout(screen.w, screen.h, album) : null), [screen, album]);
+
+  // The album is down on the mat: its slam (the first object's) is over.
+  const albumPlaced = mat !== null;
+  useEffect(() => {
+    if (!onAlbumDown || !albumPlaced || (animate && !landed)) return;
+    const wait = animate ? (slamDelay(0) + slam.fall + slam.squashDuration) * 1000 : 0;
+    const timer = setTimeout(onAlbumDown, wait);
+    return () => clearTimeout(timer);
+    // Once: when it has landed (not again on a resize).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landed, albumPlaced, animate]);
 
   return (
     <>

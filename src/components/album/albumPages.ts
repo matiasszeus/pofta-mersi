@@ -160,3 +160,15 @@ export function viewWithPage(pageNumber: number, spread: boolean) {
 // not in the book.
 export const firstPageOf = (chapterId: string) =>
   bookPages.find((p) => p.chapterId === chapterId)?.number ?? 1;
+
+// Addresses (/album/<slug>, see AlbumChapter.slug):
+//   bookSlugs    the chapters that are in the book (with pages), for the
+//                pages made in advance (generateStaticParams)
+//   chapterOfSlug  the chapter id to open the album at, or null: no such
+//                chapter, or not in the book yet ("în curând")
+export const bookSlugs = content.album.chapters.filter((c) => isChapter(c) && c.pages.length > 0).map((c) => c.slug);
+export function chapterOfSlug(slug: string): string | null {
+  const c = content.album.chapters.find((x) => x.slug === slug);
+  if (!c) return null;
+  return c.contents || c.pages.length > 0 ? c.id : null;
+}

@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
+import { chapterOfSlug } from "./albumPages";
 import { MatAlbum, matAlbumObject } from "./MatAlbum";
 
 const album = matAlbumObject(theme.atelier.objects[0]);
@@ -23,12 +25,35 @@ const dimVars = {
 } as CSSProperties;
 
 // The atelier's stage with the album drawn in code lying on the mat: a tap
-// opens it right there (see MatAlbum), "închide" puts it back. Used by
-// /atelier and /lab/album; `lab` adds a button to replay the opening.
-export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
+// opens it right there (see MatAlbum), the X puts it back. Used by
+// /atelier, /album, /album/<chapter> and /lab/album (see AtelierScreen);
+// `lab` adds a button to replay the opening.
+//
+// initialChapter (/album: "inventar"; /album/<slug>: that slug): the album
+// opens by itself once it lies on the mat, at that chapter's first page. A
+// chapter that does not exist or is not in the book yet: the contents, and
+// the address becomes /album. Closed and opened again: the contents.
+export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolean; initialChapter?: string }) {
   const reducedMotion = useReducedMotion();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
+  // Where the first opening starts (the contents if the link's chapter is
+  // not in the book).
+  const linkChapter = initialChapter === undefined ? null : (chapterOfSlug(initialChapter) ?? "inventar");
+  const openAt = run === 0 && linkChapter ? linkChapter : "inventar";
+
+  // A link to a chapter that is not there: the address becomes /album.
+  useEffect(() => {
+    if (initialChapter !== undefined && initialChapter !== "inventar" && chapterOfSlug(initialChapter) === null) {
+      router.replace("/album");
+    }
+  }, [initialChapter, router]);
+
+  // A link (/album...): open it once it lies on the mat.
+  const onAlbumDown = useCallback(() => {
+    if (linkChapter) setOpen(true);
+  }, [linkChapter]);
   // The vignette is in the page from the tap until it has faded out after
   // closing (then taken away, not left at opacity 0).
   const [vignette, setVignette] = useState(false);
@@ -63,10 +88,10 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
     () => ({
       // Given where the album lies on the mat (see matLayout).
       [album.key]: (_: typeof album, place: Placed) => (
-        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} />
+        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} initialPage={openAt} />
       ),
     }),
-    [open, run, reducedMotion],
+    [open, run, reducedMotion, openAt],
   );
 
   return (
@@ -78,6 +103,7 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
         objectArt={art}
         objectOverrides={overrides}
         albumOpen={open}
+        onAlbumDown={onAlbumDown}
       />
       {/* The vignette, between the mat (and what lies on it) and the album;
           while open it also takes the taps meant for the things on the mat. */}

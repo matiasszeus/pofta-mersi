@@ -1,23 +1,11 @@
-import type { Viewport } from "next";
-import { MatBackground } from "@/components/atelier/MatBackground";
-import { PageTitle } from "@/components/site/PageTitle";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { theme } from "@/config/theme";
+import type { Metadata } from "next";
+import { AtelierScreen, atelierViewport } from "@/components/atelier/AtelierScreen";
 
-// Tints the mobile browser's own bars (Safari, Chrome) to match the page.
-export const viewport: Viewport = {
-  themeColor: theme.atelier.background,
-};
+export const viewport = atelierViewport;
+export const metadata: Metadata = { title: "Album · POFTA MERSI" };
 
-// Placeholder: the album with the stickers will come here.
+// A direct link to the album: the atelier (no landing first), the album
+// opening by itself at the contents (INVENTAR). See AtelierScreen.
 export default function AlbumPage() {
-  return (
-    <main className="relative min-h-dvh">
-      <MatBackground />
-      <SiteHeader />
-      <PageTitle>ALBUM</PageTitle>
-      <SiteFooter />
-    </main>
-  );
+  return <AtelierScreen initialChapter="inventar" />;
 }
