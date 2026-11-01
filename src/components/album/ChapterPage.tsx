@@ -6,6 +6,7 @@ import { produs } from "@/config/products";
 import { theme } from "@/config/theme";
 import { drawnTitle } from "./albumPages";
 import { u, uCss } from "./albumUnits";
+import { DymoLabel } from "./DymoLabel";
 
 const { chapterPage: cp, photos, priceTag: tag } = theme.album;
 
@@ -54,8 +55,9 @@ export function ChapterPage({ title, content, live }: ChapterPageProps) {
 
 type Place = (typeof photos.places)[number];
 
-// A photo stuck on the page: a white frame, the model's video in it and
-// the product's name under it, a strip of washi tape on top.
+// A photo stuck on the page: a white frame, the model's video in it, the
+// product's name on a Dymo label on the frame under it, a strip of washi
+// tape on top.
 //
 // The video element exists only while the page is live: until then (and
 // while the page turns in 3D, where Safari can make a video flicker or
@@ -115,12 +117,12 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
           />
         )}
       </div>
+      {/* In the middle of the frame's white under the picture. */}
       <div
-        className={`absolute inset-x-0 text-center ${crazeRetro.className}`}
-        style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize) }}
+        className="absolute inset-x-0 bottom-0 flex items-center justify-center"
+        style={{ height: u(padding.bottom) }}
       >
-        {/* Craze Retro: capitals, no diacritics (see drawnTitle). */}
-        {drawnTitle(produs(model.product).nume)}
+        <DymoLabel rotation={place.labelRotation}>{produs(model.product).nume}</DymoLabel>
       </div>
       <div
         className="absolute"

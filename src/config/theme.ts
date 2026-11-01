@@ -652,18 +652,28 @@ export const theme = {
       height: 170,
       padding: { side: 7, bottom: 30 },
       shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
-      captionSize: 13, // the products' names (Craze Retro, capitals)
-      captionBottom: 6,
       tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
       places: [
-        { left: 22, top: 96, rotation: -4, tape: { color: palette.lilac, rotation: -6 } },
-        { left: 168, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 } },
+        { left: 22, top: 96, rotation: -4, tape: { color: palette.lilac, rotation: -6 }, labelRotation: -1.5 },
+        { left: 168, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 }, labelRotation: 1.5 },
       ],
       // The handwritten note under them (18u = ~19px on a phone), and its
       // arrow right under it (left: from the page's edge; gap: under the
       // note's last line).
       note: { left: 30, top: 300, width: 140, size: 18, lineHeight: 1.2, rotation: -3 },
       arrow: { left: 120, gap: 4, width: 56 },
+    },
+    // A Dymo label (a photo's name, stuck on the white of its frame
+    // below the picture, centred; labelRotation in photos.places). Sizes
+    // in u (11px text on a phone).
+    dymo: {
+      background: palette.ink,
+      color: palette.paper,
+      radius: 2,
+      padding: { top: 3.7, right: 7.5, bottom: 3.7, left: 9.4 },
+      shadow: "inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 1px rgb(0 0 0 / 0.3)",
+      size: 10.3,
+      letterSpacing: "0.18em",
     },
     // A price tag (u), high in the free space above the second photo: a
     // mustard label pointed on the left (its tip `tip` of its width),
