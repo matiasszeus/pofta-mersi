@@ -95,6 +95,16 @@ export function rectMiddle(r: Rect) {
 const letters = theme.atelier.letters;
 export type LetterSpot = (typeof letters.portrait)[number];
 
+// The letters' places on a screen of this size: those for its orientation,
+// on phones without the left-out letters and with the moved ones moved
+// (see `phone` in theme.ts).
+export function letterSpots(screenWidth: number, screenHeight: number): LetterSpot[] {
+  const spots = letters[orientationOf(screenWidth, screenHeight)];
+  const { maxWidth, without, moved } = letters.phone;
+  if (screenWidth >= maxWidth) return spots;
+  return spots.filter((s) => !without.includes(s.char)).map((s) => ({ ...s, ...moved[s.char] }));
+}
+
 // A letter's box on a screen of this size, in CSS px (see `letters` in
 // theme.ts): a square `size` wide, the letter centred in it.
 export function letterRect(spot: LetterSpot, screenWidth: number, screenHeight: number): Rect {
@@ -120,7 +130,7 @@ function overlaps(a: Rect, b: Rect) {
 // enough and none of their group touches the album or the note.
 export function chooseLetters(screenWidth: number, screenHeight: number): Set<string> {
   const { corners, dropOrder, minHeight } = letters.keep;
-  const spots = letters[orientationOf(screenWidth, screenHeight)];
+  const spots = letterSpots(screenWidth, screenHeight);
   const blockers = [...theme.atelier.objects.map((o) => objectRect(o, screenWidth, screenHeight)), noteRect(screenWidth, screenHeight)];
   const touches = (char: string) => {
     const spot = spots.find((s) => s.char === char);
@@ -131,10 +141,14 @@ export function chooseLetters(screenWidth: number, screenHeight: number): Set<st
     return blockers.some((b) => overlaps(core, b));
   };
 
+  // Only the letters this screen has (phones leave some out).
+  const groups = dropOrder
+    .map((group) => group.filter((c) => spots.some((s) => s.char === c)))
+    .filter((group) => group.length > 0);
   // Drop groups in order: every group up to the last one that cannot stay.
   let dropped = 0;
-  dropOrder.forEach((group, i) => {
+  groups.forEach((group, i) => {
     if (group.some((c) => screenHeight < (minHeight[c] ?? 0) || touches(c))) dropped = i + 1;
   });
-  return new Set([...corners, ...dropOrder.slice(dropped).flat()]);
+  return new Set([...corners, ...groups.slice(dropped).flat()]);
 }

@@ -6,7 +6,16 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
-import { chooseLetters, letterRect, letterScale, objectRect, orientationOf, rectMiddle, type LetterSpot } from "./objectLayout";
+import {
+  chooseLetters,
+  letterRect,
+  letterScale,
+  letterSpots,
+  objectRect,
+  orientationOf,
+  rectMiddle,
+  type LetterSpot,
+} from "./objectLayout";
 
 // The atelier's 3D letters, lying on the mat. The canvas is transparent: the
 // mat behind it is the page's own HTML/SVG background.
@@ -141,7 +150,7 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
   // Layout height: the visible part, from the top of the canvas.
   const visibleHeight = Math.min(useVisibleHeight(height), height);
   const orientation = orientationOf(width, visibleHeight);
-  const spots = cfg[orientation].filter((s) => chars.has(s.char));
+  const spots = letterSpots(width, visibleHeight).filter((s) => chars.has(s.char));
   // Phones: more letters, smaller letters (see phoneScale in theme.ts).
   const scale = letterScale(spots.length, orientation);
   // Camera height for which the mat fills the screen at 1 unit = 1 px.

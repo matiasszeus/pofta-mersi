@@ -467,6 +467,15 @@ export const theme = {
         dropOrder: [["I"], ["O", "T"], ["A"]],
         minHeight: { I: 650, O: 700, T: 700, A: 700 } as Record<string, number>,
       },
+      // Phones (screens narrower than maxWidth CSS px, the same limit as
+      // the logo's phone / tablet size): these letters are left out
+      // altogether (not even built), and these are moved (x, y as above).
+      // Tablets and desktops keep all of them, where they are.
+      phone: {
+        maxWidth: 768,
+        without: ["O"],
+        moved: { F: { x: 0.68 } } as Record<string, { x?: number; y?: number }>,
+      },
       // Phones (portrait) only: the more letters fit, the smaller they are,
       // so the mat does not look crowded. Up to `few` letters: full size;
       // from `many` on: `factor` times that (0.85 = 15% smaller); in
