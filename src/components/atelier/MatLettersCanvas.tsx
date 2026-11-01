@@ -332,9 +332,11 @@ type MatLettersCanvasProps = {
   onObjectsCue?: () => void;
   // What lies on the mat: the letters keep clear of it.
   mat: Mat;
+  // The mat that decides which letters lie on it (see fitMat).
+  lettersMat: Mat;
 };
 
-export default function MatLettersCanvas({ animate, onObjectsCue, mat }: MatLettersCanvasProps) {
+export default function MatLettersCanvas({ animate, onObjectsCue, mat, lettersMat }: MatLettersCanvasProps) {
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
@@ -342,7 +344,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue, mat }: MatLett
   // opened on, so turning the phone neither adds nor removes any. The
   // others are never built. (This canvas fills the screen: see
   // AtelierLetters.)
-  const [chars] = useState(() => chooseLetters(window.innerWidth, window.innerHeight, mat));
+  const [chars] = useState(() => chooseLetters(window.innerWidth, window.innerHeight, lettersMat));
 
   return (
     // frameloop "demand" = draw a frame only when something changes (e.g. a

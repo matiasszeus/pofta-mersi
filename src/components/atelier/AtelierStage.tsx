@@ -76,9 +76,11 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
   // Again on every resize (Instagram's browser changes its height after
   // loading).
   const screen = useScreenSize();
-  const mat: Mat = useMemo(() => {
+  // lettersMat: the one that decides which letters lie on it (see fitMat).
+  const [mat, lettersMat]: Mat[] = useMemo(() => {
     const base = { objects: objects.map((o) => objectOverrides?.[o.key] ?? o), notePlace: theme.atelier.note.place };
-    return screen ? fitMat(base, screen.w, screen.h) : base;
+    if (!screen) return [base, base];
+    return [fitMat(base, screen.w, screen.h), fitMat(base, screen.w, screen.h, true)];
   }, [screen, objectOverrides]);
 
   return (
@@ -86,7 +88,7 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
       {/* The note is there from the start; its corner lifts when the first
           object (the album) hits the mat. */}
       <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} mat={mat} />
-      <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} />
+      <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} lettersMat={lettersMat} />
       {mat.objects.map((o, i) => (
         <MatObject
           key={o.key}

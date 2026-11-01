@@ -14,15 +14,17 @@ type AtelierLettersProps = {
   onLanded: () => void;
   // What lies on the mat: the letters keep clear of it.
   mat: Mat;
+  // The mat that decides which letters lie on it (see fitMat).
+  lettersMat: Mat;
 };
 
 // The letters lying on the atelier's mat, in a transparent layer between the
 // mat and the page's content.
-export function AtelierLetters({ animate, onLanded, mat }: AtelierLettersProps) {
+export function AtelierLetters({ animate, onLanded, mat, lettersMat }: AtelierLettersProps) {
   return (
     // fixed + 100lvh, like the mat's drawings, so the two always line up.
     <div className="pointer-events-none fixed inset-0 h-lvh">
-      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} />
+      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} lettersMat={lettersMat} />
     </div>
   );
 }

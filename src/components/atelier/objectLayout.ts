@@ -28,6 +28,9 @@ export const baseMat: Mat = { objects: theme.atelier.objects, notePlace: note.pl
 // The point of the note on the mat it turns around (and lifts its corner
 // from): near the tape, as fractions of its box. Used by AtelierNote too.
 export const NOTE_PIVOT = { x: 0.35, y: 0.04 };
+// How far the tape reaches above the note's box, as a fraction of its
+// height (AtelierNote draws it at -top-[3%]).
+const NOTE_TAPE_TOP = 0.03;
 
 // The same rule as CSS's (orientation: landscape), i.e. Tailwind's
 // `landscape:` variant: wider than tall.
@@ -170,25 +173,25 @@ function turnedBox(
   }));
 }
 
+// One object's outline: its box (or its `outline` parts), turned around
+// the middle of its box like .obj-art.
+function objectOutline(o: MatObjectConfig, screenWidth: number, screenHeight: number, margin: number): Point[][] {
+  const r = objectRect(o, screenWidth, screenHeight);
+  const { x: cx, y: cy } = rectMiddle(r);
+  const w = r.width;
+  const boxes = o.outline ?? [{ left: 0, top: 0, right: 1, bottom: r.height / w }];
+  return boxes.map((b) =>
+    turnedBox(r.left + b.left * w, r.top + b.top * w, r.left + b.right * w, r.top + b.bottom * w, margin, o.rotation, cx, cy),
+  );
+}
+
 export function blockerOutlines(
   mat: Mat,
   screenWidth: number,
   screenHeight: number,
   margin: number,
 ): Point[][] {
-  const shapes: Point[][] = [];
-  for (const o of mat.objects) {
-    // Turned around the middle of its box (like .obj-art).
-    const r = objectRect(o, screenWidth, screenHeight);
-    const { x: cx, y: cy } = rectMiddle(r);
-    const w = r.width;
-    const boxes = o.outline ?? [{ left: 0, top: 0, right: 1, bottom: r.height / w }];
-    for (const b of boxes) {
-      shapes.push(
-        turnedBox(r.left + b.left * w, r.top + b.top * w, r.left + b.right * w, r.top + b.bottom * w, margin, o.rotation, cx, cy),
-      );
-    }
-  }
+  const shapes = mat.objects.flatMap((o) => objectOutline(o, screenWidth, screenHeight, margin));
   // The note, turned around its pivot (like .note-mat).
   const n = noteRect(screenWidth, screenHeight, mat);
   const px = n.left + NOTE_PIVOT.x * n.width;
@@ -255,66 +258,115 @@ export function chooseLetters(screenWidth: number, screenHeight: number, mat: Ma
   return new Set([...corners, ...groups.slice(dropped).flat()]);
 }
 
-// The mat on a phone held upright, fitted to its screen (see letters.fit in
-// theme.ts): the album as big as it is normally, or, if that does not fit,
-// the biggest size (never below minAlbumWidthVw; smaller around its
-// middle) at which P, F, M, S keep
-// `clearance` px from the album and the note, and the note, at its usual
-// distance under the album, ends above the bottom of the screen. The note
-// shrinks by as much. Elsewhere: the mat as it is.
-export function fitMat(base: Mat, screenWidth: number, screenHeight: number): Mat {
-  if (!isPhone(screenWidth) || orientationOf(screenWidth, screenHeight) !== "portrait") return base;
-  const [album, ...others] = base.objects;
-  const normal = objectRect(album, screenWidth, screenHeight);
-  const noteNormal = noteRect(screenWidth, screenHeight, base);
-  // The usual distance from the album's bottom to the note's top.
-  const distance = noteNormal.top - (normal.top + normal.height);
-  const corners = letterSpots(screenWidth, screenHeight).filter((s) => letters.keep.corners.includes(s.char));
+type SizeParams = { widthVw: number; maxWidth: number; maxHeightVh: number };
+// The same size limits, times k.
+const sizeTimes = (p: SizeParams, k: number) => ({
+  widthVw: p.widthVw * k,
+  maxWidth: p.maxWidth * k,
+  maxHeightVh: p.maxHeightVh * k,
+});
 
-  const scaled = (k: number): Mat => {
-    if (k >= 1) return base;
-    const size = (p: { widthVw: number; maxWidth: number; maxHeightVh: number }) => ({
-      widthVw: p.widthVw * k,
-      maxWidth: p.maxWidth * k,
-      maxHeightVh: p.maxHeightVh * k,
-    });
-    const p = base.notePlace.portrait;
-    // Smaller around its middle: its top comes down a little (room for
-    // P and F above it), its bottom up (the note follows).
-    const y = album.portrait.y + ((1 - k) * normal.height) / 2;
-    return {
-      objects: [{ ...album, portrait: { ...album.portrait, ...size(album.portrait), y } }, ...others],
-      // top 0 + gap: always exactly `distance` under the album.
-      notePlace: { ...base.notePlace, portrait: { ...p, ...size(p), top: 0, clearOf: "below", gap: distance } },
-    };
+// The mat fitted to its screen (see fit in theme.ts): the album lying on it
+// a little smaller than in `objects` (albumScale). On a phone held upright
+// also: the note `noteGap` px under the album's lowest point; if that does
+// not fit, both move up together, keeping as much free mat above the album
+// as under the note; if that still does not fit, the biggest album (never
+// below minAlbumWidthVw; smaller around its middle) at which P, F, M, S
+// keep `clearance` px from the album and the note, and the note ends above
+// the bottom of the screen. The note shrinks with the album.
+//
+// forLetters: the mat as it was before albumScale and noteGap existed (the
+// album at its full size, the note at its usual distance, not moved up).
+// Which letters lie on the mat is decided on that one, so these two
+// settings never change it.
+export function fitMat(base: Mat, screenWidth: number, screenHeight: number, forLetters = false): Mat {
+  const fit = letters.fit;
+  const phone = isPhone(screenWidth);
+  const [first, ...others] = base.objects;
+  const scale = forLetters ? 1 : phone ? fit.albumScale.phone : fit.albumScale.wide;
+  const album = {
+    ...first,
+    portrait: { ...first.portrait, ...sizeTimes(first.portrait, scale) },
+    landscape: { ...first.landscape, ...sizeTimes(first.landscape, scale) },
   };
-  const fits = (k: number, scale: number) => {
-    const mat = scaled(k);
-    const shapes = blockerOutlines(mat, screenWidth, screenHeight, letters.clearance);
-    const n = noteRect(screenWidth, screenHeight, mat);
+  const start: Mat = { ...base, objects: [album, ...others] };
+  if (!phone || orientationOf(screenWidth, screenHeight) !== "portrait") return start;
+
+  const normal = objectRect(album, screenWidth, screenHeight);
+  // forLetters: the note keeps its usual distance from the album's box.
+  const usualGap = noteRect(screenWidth, screenHeight, start).top - (normal.top + normal.height);
+  const corners = letterSpots(screenWidth, screenHeight).filter((s) => letters.keep.corners.includes(s.char));
+  const ys = (o: MatObjectConfig) => objectOutline(o, screenWidth, screenHeight, 0).flat().map((pt) => pt.y);
+
+  // The album k times its size (around its middle) and moved up by `lift`
+  // px; the note k times its size, noteGap under the album's lowest point.
+  const arrange = (k: number, lift: number): Mat => {
+    const a = {
+      ...album,
+      portrait: {
+        ...album.portrait,
+        ...sizeTimes(album.portrait, k),
+        y: album.portrait.y + ((1 - k) * normal.height) / 2 - lift,
+      },
+    };
+    const p = start.notePlace.portrait;
+    // top 0 + gap: always exactly `gap` under the album's box.
+    const notePlace = (gap: number) => ({
+      ...start.notePlace,
+      portrait: { ...p, ...sizeTimes(p, k), top: 0, clearOf: "below" as const, gap },
+    });
+    if (forLetters) return { objects: [a, ...others], notePlace: notePlace(usualGap) };
+    const box = objectRect(a, screenWidth, screenHeight);
+    const n = noteRect(screenWidth, screenHeight, { objects: [a, ...others], notePlace: notePlace(0) });
+    const gap = Math.max(...ys(a)) - (box.top + box.height) + fit.noteGap + NOTE_TAPE_TOP * n.height;
+    return { objects: [a, ...others], notePlace: notePlace(gap) };
+  };
+  const noteBottom = (m: Mat) => {
+    const n = noteRect(screenWidth, screenHeight, m);
+    return n.top + n.height;
+  };
+  const fits = (m: Mat, letterSize: number) => {
+    const shapes = blockerOutlines(m, screenWidth, screenHeight, letters.clearance);
     return (
-      n.top + n.height <= screenHeight - letters.clearance &&
-      corners.every((spot) => !letterBlocked(spot, screenWidth, screenHeight, shapes, scale))
+      noteBottom(m) <= screenHeight - letters.clearance &&
+      corners.every((spot) => !letterBlocked(spot, screenWidth, screenHeight, shapes, letterSize))
     );
   };
-  const smallest = Math.min(1, ((letters.fit.minAlbumWidthVw / 100) * screenWidth) / normal.width);
+  // At size k: where it is, or else moved up so that the free mat above
+  // the album and under the note are equal. null = neither fits.
+  const balanced = (k: number) => {
+    const m = arrange(k, 0);
+    const above = Math.min(...ys(m.objects[0]));
+    const below = screenHeight - noteBottom(m);
+    return arrange(k, Math.max(0, (above - below) / 2));
+  };
+  const place = (k: number, letterSize: number) => {
+    const m = arrange(k, 0);
+    if (fits(m, letterSize) || forLetters) return fits(m, letterSize) ? m : null;
+    const b = balanced(k);
+    return fits(b, letterSize) ? b : null;
+  };
+  const smallest = Math.min(1, ((fit.minAlbumWidthVw / 100) * screenWidth) / normal.width);
   // The biggest size that fits (halving the range each time), for letters
-  // drawn at `scale`.
-  const biggest = (scale: number) => {
-    if (fits(1, scale)) return 1;
+  // drawn `letterSize` times their size.
+  const best = (letterSize: number) => {
+    const whole = place(1, letterSize);
+    if (whole) return whole;
     let lo = smallest;
     let hi = 1;
     for (let i = 0; i < 16; i++) {
       const mid = (lo + hi) / 2;
-      if (fits(mid, scale)) lo = mid;
+      if (place(mid, letterSize)) lo = mid;
       else hi = mid;
     }
-    return lo;
+    return place(lo, letterSize) ?? (forLetters ? arrange(lo, 0) : balanced(lo));
   };
-  // How big the letters are depends on how many lie on the mat, which
-  // depends on the album: first with all of them, then with those chosen.
+  // How big the letters are depends on how many lie on the mat (decided
+  // on the mat forLetters, which depends on its album): first with all of
+  // them, then with those chosen.
   const all = letterSpots(screenWidth, screenHeight).length;
-  const first = scaled(biggest(letterScale(all, screenWidth, screenHeight)));
-  const count = chooseLetters(screenWidth, screenHeight, first).size;
-  return count === all ? first : scaled(biggest(letterScale(count, screenWidth, screenHeight)));
+  const firstTry = best(letterScale(all, screenWidth, screenHeight));
+  const chosenOn = forLetters ? firstTry : fitMat(base, screenWidth, screenHeight, true);
+  const count = chooseLetters(screenWidth, screenHeight, chosenOn).size;
+  return count === all ? firstTry : best(letterScale(count, screenWidth, screenHeight));
 }
