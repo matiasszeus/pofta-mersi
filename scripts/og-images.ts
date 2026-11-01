@@ -14,7 +14,7 @@
 // Uses the production build (it starts it on port 3100 if nothing runs
 // there) and the Google Chrome installed on this computer.
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
@@ -79,7 +79,8 @@ try {
   await browser.close();
   if (server?.pid) {
     // npx starts next in a child process: stop the whole tree.
-    if (process.platform === "win32") spawn("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
+    // (Waited for: the script must not end with the server still running.)
+    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"], { stdio: "ignore" });
     else server.kill();
   }
 }
