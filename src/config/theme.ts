@@ -456,9 +456,10 @@ export const theme = {
       // Each letter, per orientation: the top-left corner of its box (a
       // square, `size` wide) at (x * screen width, y * screen height), the
       // letter centred in it; negative or near 1 = partly cut off by the
-      // edge. size: how big the letter shows (its height; the same on every
-      // screen, fewer letters on small ones), as a fraction of the screen's
-      // shorter side: 0.17 = ~66px on a 390px wide phone.
+      // edge. size: how big the letter shows (its height), as a fraction
+      // of the screen's shorter side on phones (0.17 = ~66px on a 390px
+      // wide phone); on wider screens of the desktop reference's height
+      // (layout.wide), made smaller with the album and the rest.
       // rotation: degrees, clockwise (like CSS). They land in this order.
       // Only around the edges and in the corners, never over the album or
       // the note.

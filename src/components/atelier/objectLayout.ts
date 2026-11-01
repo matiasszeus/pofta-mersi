@@ -75,6 +75,14 @@ function fromSpec(spec: Spec, ratio: number, screenWidth: number, screenHeight: 
   };
 }
 
+// Wide screens: how many times smaller than on the reference (see
+// layout.wide) everything is drawn: by the width, or by the height on
+// screens wider for their height than the reference. The letters too.
+function wideScale(screenWidth: number, screenHeight: number) {
+  const ref = layout.wide.reference;
+  return Math.min(screenWidth / ref.width, screenHeight / ref.height);
+}
+
 // The album, the note and the calculator on a screen of this size (see
 // layout in theme.ts). `album`: the album's settings (its proportions and
 // outline), from theme.ts or /lab/album's drawn one.
@@ -83,11 +91,26 @@ export function matLayout(screenWidth: number, screenHeight: number, album: MatO
 
   if (!phoneLayout(screenWidth, screenHeight)) {
     const w = layout.wide;
-    // Smaller on screens wider for their height than the reference.
-    const k = Math.min(1, screenHeight / screenWidth / (w.reference.height / w.reference.width));
-    const albumBox = shrunk(fromSpec(w.album, albumRatio, screenWidth, screenHeight), k);
-    const c = shrunk(fromSpec(w.calc, calc.ratio, screenWidth, screenHeight), k);
-    const n = shrunk(fromSpec(w.note, noteRatio, screenWidth, screenHeight), k);
+    const ref = w.reference;
+    let place: (spec: Spec, ratio: number) => Placed;
+    if (screenHeight / screenWidth > ref.height / ref.width) {
+      // Taller for its width than the reference (4:3, tablets): the
+      // reference made smaller by the width, in the middle of the height,
+      // so the free mat is shared above and below.
+      const s = screenWidth / ref.width;
+      const top = (screenHeight - ref.height * s) / 2;
+      place = (spec, ratio) => {
+        const p = fromSpec(spec, ratio, ref.width * s, ref.height * s);
+        return { ...p, top: p.top + top };
+      };
+    } else {
+      // Wider: smaller by the height, each around its middle.
+      const k = wideScale(screenWidth, screenHeight) / (screenWidth / ref.width);
+      place = (spec, ratio) => shrunk(fromSpec(spec, ratio, screenWidth, screenHeight), k);
+    }
+    const albumBox = place(w.album, albumRatio);
+    const c = place(w.calc, calc.ratio);
+    const n = place(w.note, noteRatio);
     // Never closer than minGap to the album.
     c.left = Math.min(c.left, albumBox.left - w.minGap - c.width);
     n.left = Math.max(n.left, albumBox.left + albumBox.width + w.minGap);
@@ -239,9 +262,15 @@ export function letterScale(screenWidth: number, screenHeight: number) {
 }
 
 // A letter's box on a screen of this size, in CSS px (see `letters` in
-// theme.ts): a square `size` wide, the letter centred in it.
+// theme.ts): a square `size` wide, the letter centred in it. `size` is a
+// fraction of the screen's shorter side on phones; on wide screens of the
+// reference's height, made smaller as much as the album (wideScale), so
+// letters and album keep their proportions.
 export function letterRect(spot: LetterSpot, screenWidth: number, screenHeight: number): Rect {
-  const size = spot.size * Math.min(screenWidth, screenHeight);
+  const side = phoneLayout(screenWidth, screenHeight)
+    ? Math.min(screenWidth, screenHeight)
+    : layout.wide.reference.height * wideScale(screenWidth, screenHeight);
+  const size = spot.size * side;
   return { left: spot.x * screenWidth, top: spot.y * screenHeight, width: size, height: size };
 }
 
