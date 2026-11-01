@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { crazeRetro } from "@/app/fonts";
-import type { AlbumModel, AlbumPageContent } from "@/config/content";
+import { content, type AlbumModel, type AlbumPageContent } from "@/config/content";
 import { produs } from "@/config/products";
 import { theme } from "@/config/theme";
 import { drawnTitle } from "./albumPages";
@@ -21,8 +21,17 @@ type ChapterPageProps = {
 // One of a chapter's pages (after its divider): its title and subtitle
 // top left (or the subtitle alone), the photos stuck on it, a price tag,
 // a handwritten note. Laid out as in docs/album-bratari-referinta.html.
-export function ChapterPage({ title, content, live }: ChapterPageProps) {
-  const withTitle = content.title !== false;
+export function ChapterPage({ title, content: page, live }: ChapterPageProps) {
+  // The product whose video plays: one at a time. None as soon as the page
+  // is no longer still on the screen (turning, hidden, the album closed).
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [wasLive, setWasLive] = useState(live);
+  if (wasLive !== live) {
+    // React's way to reset state when a prop changes: during the render.
+    setWasLive(live);
+    if (!live) setPlaying(null);
+  }
+  const withTitle = page.title !== false;
   const subtitle = withTitle
     ? { top: cp.subtitleTop, size: cp.subtitleSize }
     : { top: cp.subtitleAlone.top, size: cp.subtitleAlone.size };
@@ -36,38 +45,54 @@ export function ChapterPage({ title, content, live }: ChapterPageProps) {
           {drawnTitle(title)}
         </div>
       )}
-      {content.subtitle && (
+      {page.subtitle && (
         <div
           className="absolute"
           style={{ left: u(cp.left), top: u(subtitle.top), fontSize: u(subtitle.size), opacity: cp.subtitleOpacity }}
         >
-          {content.subtitle}
+          {page.subtitle}
         </div>
       )}
-      {content.models?.map((m, i) => (
-        <Photo key={m.video} model={m} place={photos.places[i % photos.places.length]} live={live} />
+      {page.models?.map((m, i) => (
+        <Photo
+          key={m.product}
+          model={m}
+          place={photos.places[i % photos.places.length]}
+          playing={live && playing === m.product}
+          onToggle={() => setPlaying((now) => (now === m.product ? null : m.product))}
+        />
       ))}
-      {content.priceTag && <PriceTag {...content.priceTag} />}
-      {content.note && <Note text={content.note} />}
+      {page.priceTag && <PriceTag {...page.priceTag} />}
+      {page.note && <Note text={page.note} />}
     </>
   );
 }
 
 type Place = (typeof photos.places)[number];
 
-// A photo stuck on the page: a white frame, the model's video in it, the
-// product's name on a Dymo label on the frame under it, a strip of washi
-// tape on top.
+// A photo stuck on the page: a white frame, the product's picture in it
+// (its video on a tap), its name on a Dymo label on the frame under it, a
+// strip of washi tape on top.
 //
-// The video element exists only while the page is live: until then (and
-// while the page turns in 3D, where Safari can make a video flicker or
-// vanish) the poster, a still picture of its first frame, stands in for
-// it. Taking the video away also stops it and frees its decoder.
-function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: boolean }) {
-  // The browser refused to play it (iPhone in Low Power Mode): the poster
-  // stays, rather than a native play button.
-  const [refused, setRefused] = useState(false);
+// The picture is a button: a tap plays the video right there (fading in
+// over the picture, which stays under it as its poster, so never a black
+// frame), another tap stops it. The video element exists only while it
+// plays, so nothing of it is downloaded before the first tap, and taking it
+// away stops it and frees its decoder.
+type PhotoProps = {
+  model: AlbumModel;
+  place: Place;
+  // This photo's video plays.
+  playing: boolean;
+  onToggle: () => void;
+};
+function Photo({ model, place, playing, onToggle }: PhotoProps) {
+  const p = produs(model.product);
+  // The video has its first frame on the screen: fade it in.
+  const [shown, setShown] = useState(false);
   const { padding, tape } = photos;
+  const pb = theme.album.playButton;
+  const label = playing ? content.album.video.stop(p.nume) : content.album.video.play(p.nume);
   return (
     <div
       className="absolute box-border bg-white"
@@ -82,9 +107,23 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
       }}
     >
       {/* Black like the videos' own background. */}
-      <div className="relative h-full w-full overflow-hidden bg-black">
+      <button
+        type="button"
+        aria-label={p.video ? label : undefined}
+        aria-pressed={p.video ? playing : undefined}
+        disabled={!p.video}
+        className="relative block h-full w-full cursor-pointer overflow-hidden bg-black p-0"
+        // Only this photo: never the page or the album around it.
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShown(false);
+          onToggle();
+        }}
+      >
         <Image
-          src={model.poster}
+          src={p.poza}
           alt={model.alt}
           fill
           unoptimized
@@ -92,31 +131,47 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
           draggable={false}
           className="object-cover select-none"
         />
-        {live && !refused && (
+        {playing && p.video && (
           <video
             className="ab-video absolute inset-0 h-full w-full object-cover"
-            src={model.video}
-            poster={model.poster}
+            style={{ opacity: shown ? 1 : 0, transition: `opacity ${pb.fade}s ease` }}
+            src={p.video}
+            poster={p.poza}
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="none"
             disablePictureInPicture
             disableRemotePlayback
             aria-hidden
+            onPlaying={() => setShown(true)}
             ref={(el) => {
               if (!el) return;
               // Muted before it plays: browsers only autoplay silent videos.
               el.muted = true;
-              el.play().catch((e: DOMException) => {
-                // AbortError: taken away again before it started; fine.
-                if (e.name === "NotAllowedError") setRefused(true);
-              });
+              el.play().catch(() => {}); // AbortError: stopped again before it started
             }}
           />
         )}
-      </div>
+        {p.video && !playing && (
+          <span
+            aria-hidden
+            className="absolute flex items-center justify-center rounded-full"
+            style={{
+              right: u(pb.inset),
+              bottom: u(pb.inset),
+              width: u(pb.size),
+              height: u(pb.size),
+              background: pb.background,
+            }}
+          >
+            <svg viewBox="0 0 10 10" style={{ width: "42%", height: "42%", marginLeft: "8%" }}>
+              <path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill={pb.color} />
+            </svg>
+          </span>
+        )}
+      </button>
       {/* In the middle of the frame's white under the picture. */}
       <div
         className="absolute inset-x-0 bottom-0 flex items-center justify-center"

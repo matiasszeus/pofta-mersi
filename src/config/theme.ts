@@ -663,6 +663,16 @@ export const theme = {
       note: { left: 30, top: 300, width: 140, size: 18, lineHeight: 1.2, rotation: -3 },
       arrow: { left: 120, gap: 4, width: 56 },
     },
+    // On a photo with a video: a small play button in its bottom-right
+    // corner (u: 24 = ~26px on a phone), and how long (seconds) the
+    // picture takes to fade into the playing video.
+    playButton: {
+      size: 24.3,
+      inset: 6,
+      background: "rgb(29 38 51 / 0.75)", // ink
+      color: palette.paper,
+      fade: 0.2,
+    },
     // A Dymo label (a photo's name, stuck on the white of its frame
     // below the picture, centred; labelRotation in photos.places). Sizes
     // in u (11px text on a phone).

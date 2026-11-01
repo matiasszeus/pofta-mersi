@@ -1,7 +1,15 @@
-// Prepares the album's videos for the web (needs ffmpeg in PATH, or its
-// path in FFMPEG):
+// Prepares the album's videos and their pictures for the web (needs ffmpeg
+// in PATH, or its path in FFMPEG):
 //
-//   node scripts/prepare-videos.mjs
+//   node scripts/prepare-videos.mjs                  the videos
+//   node scripts/prepare-videos.mjs --cadre 1,3,6,9  frames to choose from,
+//       at these seconds, as PNG in tmp/cadre/ (not kept in git)
+//   node scripts/prepare-videos.mjs --poza basalt=6 synthesis=3
+//       the chosen frame of each (seconds) as its picture: WebP in
+//       public/images/bratari/ (shown before the video plays)
+//
+// Videos, frames and pictures are all cut the same way (below), so the
+// picture is exactly the video's frame.
 //
 // For each video in VIDEOS (the originals, in media/: outside public/, so
 // never served by the site; only read, never changed):
@@ -14,16 +22,17 @@
 //     (the index at the start, so it starts playing before it is all
 //     downloaded); the smallest quality step under MAX_BYTES (CRF: higher =
 //     smaller file, less detail)
-//   - a poster: its first frame as WebP, shown until the video plays (and
-//     while the page turns)
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, statSync } from "node:fs";
-import { dirname } from "node:path";
 
+// name: the product's (src/config/products.ts points at these files).
 const VIDEOS = [
-  { from: "media/videos/bratara1.mp4", to: "public/videos/bratari/model-1" },
-  { from: "media/videos/bratara2.mp4", to: "public/videos/bratari/model-2" },
+  { name: "basalt", from: "media/videos/bratara1.mp4" },
+  { name: "synthesis", from: "media/videos/bratara2.mp4" },
 ];
+const VIDEO_DIR = "public/videos/bratari";
+const PICTURE_DIR = "public/images/bratari";
+const FRAMES_DIR = "tmp/cadre";
 const SIZE = 480;
 const FPS = 30;
 const MAX_BYTES = 200 * 1024;
@@ -84,8 +93,53 @@ function squareFilters({ width, height, box }) {
   };
 }
 
+// One frame, `seconds` in, cut like the video, written to `file`
+// (its extension picks the format).
+function frame(from, filters, seconds, file, extra = []) {
+  execFileSync(FFMPEG, [
+    "-hide_banner", "-loglevel", "error", "-y",
+    "-ss", String(seconds),
+    "-i", from,
+    "-vf", filters,
+    "-frames:v", "1",
+    ...extra,
+    file,
+  ]);
+}
+
+const [mode, ...args] = process.argv.slice(2);
+
+if (mode === "--cadre") {
+  const seconds = (args[0] ?? "1,3,6,9").split(",").map(Number);
+  mkdirSync(FRAMES_DIR, { recursive: true });
+  for (const v of VIDEOS) {
+    const { filters } = squareFilters(measure(v.from));
+    for (const t of seconds) {
+      const file = `${FRAMES_DIR}/${v.name}-${t}s.png`;
+      frame(v.from, filters, t, file);
+      console.log(file);
+    }
+  }
+  process.exit(0);
+}
+
+if (mode === "--poza") {
+  mkdirSync(PICTURE_DIR, { recursive: true });
+  for (const arg of args) {
+    const [name, t] = arg.split("=");
+    const v = VIDEOS.find((x) => x.name === name);
+    if (!v || !t) throw new Error(`"${arg}": expected name=seconds, name one of ${VIDEOS.map((x) => x.name)}`);
+    const { filters } = squareFilters(measure(v.from));
+    const file = `${PICTURE_DIR}/${name}.webp`;
+    frame(v.from, filters, Number(t), file, ["-c:v", "libwebp", "-quality", "85"]);
+    console.log(`${file}: ${Math.round(statSync(file).size / 1024)} KB`);
+  }
+  process.exit(0);
+}
+
 for (const v of VIDEOS) {
-  mkdirSync(dirname(v.to), { recursive: true });
+  mkdirSync(VIDEO_DIR, { recursive: true });
+  const to = `${VIDEO_DIR}/${v.name}`;
   const m = measure(v.from);
   const { side, filters } = squareFilters(m);
   console.log(`${v.from}: ${m.width}x${m.height}, object in ${m.box.join(",")}, square ${side}px`);
@@ -100,19 +154,9 @@ for (const v of VIDEOS) {
       "-c:v", "libx264", "-preset", "veryslow", "-crf", String(crf),
       "-profile:v", "high", "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
-      `${v.to}.mp4`,
+      `${to}.mp4`,
     ]);
-    bytes = statSync(`${v.to}.mp4`).size;
+    bytes = statSync(`${to}.mp4`).size;
     console.log(`  crf ${crf}: ${Math.round(bytes / 1024)} KB`);
   }
-
-  execFileSync(FFMPEG, [
-    "-hide_banner", "-loglevel", "error", "-y",
-    "-i", v.from,
-    "-vf", filters,
-    "-frames:v", "1",
-    "-c:v", "libwebp", "-quality", "80",
-    `${v.to}.webp`,
-  ]);
-  console.log(`  poster: ${Math.round(statSync(`${v.to}.webp`).size / 1024)} KB`);
 }

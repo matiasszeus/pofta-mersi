@@ -7,14 +7,13 @@ import { palette } from "./theme";
 //             divider facing it already shows it)
 //   subtitle  under the chapter's title, top left (without the title: a
 //             little bigger, in its place)
-//   models    photos stuck on the page, each a looping video (made by
-//             scripts/prepare-videos.mjs; poster: its first frame) with
-//             the product's name under it, in the white frame. product:
-//             its id in src/config/products.ts (name and price come from
-//             there)
+//   models    photos stuck on the page: the product's picture, and its
+//             video on a tap (both from src/config/products.ts, like its
+//             name, under it on the white frame). product: its id there;
+//             alt: what the picture shows, for screen readers
 //   priceTag  a tag: `title` big, `unit` small in its bottom-right corner
 //   note      a handwritten note under the photos, with a small arrow
-export type AlbumModel = { product: string; video: string; poster: string; alt: string };
+export type AlbumModel = { product: string; alt: string };
 export type AlbumPageContent = {
   id: string;
   title?: boolean;
@@ -55,6 +54,11 @@ export const content = {
   // The album.
   album: {
     coverTitle: "ALBUM",
+    // A photo with a video in the album: what screen readers say for it.
+    video: {
+      play: (name: string) => `Pornește video ${name}`,
+      stop: (name: string) => `Oprește video ${name}`,
+    },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",
     replay: "reia animația",
@@ -92,18 +96,8 @@ export const content = {
             id: "bratari-1",
             title: false,
             models: [
-              {
-                product: "bratara-basalt",
-                video: "/videos/bratari/model-1.mp4",
-                poster: "/videos/bratari/model-1.webp",
-                alt: "Brățara Basalt, rotindu-se",
-              },
-              {
-                product: "bratara-synthesis",
-                video: "/videos/bratari/model-2.mp4",
-                poster: "/videos/bratari/model-2.webp",
-                alt: "Brățara Synthesis, rotindu-se",
-              },
+              { product: "bratara-basalt", alt: "Brățara Basalt" },
+              { product: "bratara-synthesis", alt: "Brățara Synthesis" },
             ],
             priceTag: { title: "3 foi", unit: "/ buc" },
             note: "mai ieftin decât un pachet de țigări",
