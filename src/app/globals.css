@@ -211,8 +211,14 @@ body {
 /* Pictures of the artwork (cover, stickers, bracelets, note, backgrounds):
    no "Save image" menu on a long press (iPhone), not selected like text.
    Together with draggable={false} (no dragging the picture off to the
-   desktop). Right-click stays as it is everywhere. */
+   desktop). Right-click stays as it is everywhere.
+   pointer-events: none: taps and long presses go to what is under the
+   picture (the photo's frame, the album, the page), never to the picture
+   itself. Needed on newer iPhones: their long-press menu (Save to Photos,
+   Copy Subject, Look Up) ignores -webkit-touch-callout on a picture. The
+   taps still work: the element under it handles them. */
 .art {
+  pointer-events: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
