@@ -908,6 +908,10 @@ export const theme = {
       },
     },
 
+    // Arriving from a link (/album, /album/<chapter>): once the cover's
+    // picture and the fonts are there, `delay` ms before the album opens.
+    deepLink: { delay: 500 },
+
     // Leafing by hand (MatAlbum).
     // A tap on a page's outer part (this much of its width) turns it:
     // the right page's right edge = next, the left page's left edge = back

@@ -2,11 +2,15 @@ import type { Metadata, Viewport } from "next";
 import { NoZoom } from "@/components/site/NoZoom";
 import { RotateNotice } from "@/components/site/RotateNotice";
 import { theme } from "@/config/theme";
+import { siteUrl } from "@/lib/pageMetadata";
 import { hankenGrotesk, whitenice } from "./fonts";
 import "./globals.css";
 
+// Every page sets its own title and preview (see src/lib/pageMetadata.ts);
+// metadataBase turns their paths ("/og/album.jpg") into full addresses.
 export const metadata: Metadata = {
-  title: "POFTA MERSI",
+  metadataBase: new URL(siteUrl),
+  title: "Pofta Mersi",
 };
 
 export const viewport: Viewport = {

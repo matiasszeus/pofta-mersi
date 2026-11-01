@@ -49,7 +49,7 @@ const dimVars = {
 //                            opens there (as from a link)
 // Pages the browser keeps and restores (back/forward cache) are left as
 // they were.
-const linkOpenDelay = 500; // ms
+const linkOpenDelay = theme.album.deepLink.delay; // ms
 // Our history entries carry this, so X knows it can go back.
 const OURS = "pmAlbum";
 // A history entry's data: Next.js's own (it keeps the page in it: without

@@ -48,6 +48,8 @@ export type AlbumChapter =
       id: string;
       slug: string;
       title: string;
+      // For the link's preview (see meta below); else meta.album.
+      description?: string;
       contents?: false;
       color?: string;
       blurb?: string;
@@ -58,6 +60,17 @@ export type AlbumChapter =
     };
 
 export const content = {
+  // How a page shows up when its link is shared (WhatsApp, Instagram,
+  // Facebook) and in search results: its title and a short description
+  // (see src/lib/pageMetadata.ts). The chapters' descriptions are with the
+  // chapters (album.chapters, `description`).
+  meta: {
+    siteName: "Pofta Mersi",
+    description: "Pofta Mersi: stickere, brățări și obiecte făcute de mână.",
+    atelier: "Atelierul Pofta Mersi: albumul, notițele și coșul, pe planșa de tăiat.",
+    album: "Albumul Pofta Mersi: stickere, brățări și ce mai urmează.",
+  },
+
   // The small line at the bottom of the pages after the landing.
   copyright: "© 2026 Pofta Mersi",
   // A phone held sideways (see RotateNotice).
@@ -132,6 +145,7 @@ export const content = {
         id: "stickere",
         slug: "stickere",
         title: "Stickere",
+        description: "Stickere Pofta Mersi, din album. −20% la 10+ stickere.",
         color: palette.lilac,
         oferta: { mare: "−20%", mic: "la 10+ stickere" },
         credit: {
@@ -149,6 +163,7 @@ export const content = {
         id: "bratari",
         slug: "bratari",
         title: "Brățări",
+        description: "Brățări Pofta Mersi din material textil.",
         color: palette.sage,
         blurb: "din material textil",
         accent: "textil",

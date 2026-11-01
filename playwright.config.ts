@@ -27,6 +27,12 @@ export default defineConfig({
         userAgent: iPhone.userAgent,
       },
     },
+    {
+      name: "desktop",
+      // The edge-tap test is about phones (one page on the screen).
+      testIgnore: /album-nav\.spec\.ts/,
+      use: { channel: "chrome", viewport: { width: 1280, height: 800 } },
+    },
   ],
   webServer: {
     command: "npx next start -p 3100",
