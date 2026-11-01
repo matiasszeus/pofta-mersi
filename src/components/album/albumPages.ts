@@ -1,4 +1,4 @@
-import { content, type AlbumChapter, type AlbumPageContent } from "@/config/content";
+import { content, type AlbumChapter, type AlbumCredit, type AlbumOffer, type AlbumPageContent } from "@/config/content";
 import { theme } from "@/config/theme";
 
 // Everything about the book's pages, worked out from the one list of
@@ -22,7 +22,17 @@ const colorOf = (c: Chapter) => c.color ?? theme.album.colors.divider;
 //   blank     paper only: makes the count odd (see below)
 export type BookPage =
   | { kind: "contents"; number: number; chapterId: string }
-  | { kind: "divider"; number: number; chapterId: string; title: string; blurb?: string; accent?: string; color: string }
+  | {
+      kind: "divider";
+      number: number;
+      chapterId: string;
+      title: string;
+      blurb?: string;
+      accent?: string;
+      oferta?: AlbumOffer;
+      credit?: AlbumCredit;
+      color: string;
+    }
   | { kind: "page"; number: number; chapterId: string; title: string; content: AlbumPageContent }
   | { kind: "blank"; number: number; chapterId: null };
 
@@ -40,6 +50,8 @@ function buildPages(): BookPage[] {
         title: c.title,
         blurb: c.blurb,
         accent: c.accent,
+        oferta: c.oferta,
+        credit: c.credit,
         color: colorOf(c),
       });
       for (const p of c.pages) list.push({ kind: "page", number: next(), chapterId: c.id, title: c.title, content: p });

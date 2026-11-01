@@ -64,9 +64,10 @@ type MatObjectProps = {
   entrance: Entrance;
   // Seconds from the start of the slam phase until this object starts falling.
   slamDelay?: number;
-  // Optional: a tap calls this (with the link element) instead of going to
-  // the object's page. Used for the album (see AtelierWithAlbum).
-  onActivate?: (link: HTMLAnchorElement) => void;
+  // Optional: a tap calls this (with the object's element) instead of
+  // going to the object's page; the object is then no link. Used for the
+  // album, which opens right on the mat (see AtelierWithAlbum).
+  onActivate?: (element: HTMLElement) => void;
   // Optional: drawn instead of the picture and its shadow, filling the
   // object's box (the album drawn in code).
   art?: ReactNode;
@@ -108,21 +109,9 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
   // Shown this wide, so the browser picks a suitably sized file.
   const sizes = place ? `${Math.ceil(place.width)}px` : "50vw";
 
-  return (
-    <Link
-      href={object.href}
-      aria-label={object.ariaLabel}
-      data-object={object.key}
-      onClick={
-        onActivate &&
-        ((e) => {
-          e.preventDefault(); // no navigation
-          onActivate(e.currentTarget);
-        })
-      }
-      className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) ${place ? "" : "invisible"} ${state}`}
-      style={vars}
-    >
+  const classes = `mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) ${place ? "" : "invisible"} ${state}`;
+  const inside = (
+    <>
       {entrance === "slam" && <style>{slamKeyframes(animationName, rotation)}</style>}
       <div className="obj-art relative w-full">
         {art ?? (
@@ -150,6 +139,35 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
           </>
         )}
       </div>
-    </Link>
+    </>
+  );
+
+  return (
+    // Opening right here (onActivate): not a link (the album opened on it
+    // has links and buttons of its own, which may not sit inside one); a
+    // tap anywhere on it, or its button (keyboard, screen readers).
+    onActivate ? (
+      <div
+        data-object={object.key}
+        onClick={(e) => onActivate(e.currentTarget)}
+        className={`${classes} cursor-pointer`}
+        style={vars}
+      >
+        <button
+          type="button"
+          aria-label={object.ariaLabel}
+          className="mat-object-button sr-only"
+          onClick={(e) => {
+            e.stopPropagation();
+            onActivate(e.currentTarget.parentElement!);
+          }}
+        />
+        {inside}
+      </div>
+    ) : (
+      <Link href={object.href} aria-label={object.ariaLabel} data-object={object.key} className={classes} style={vars}>
+        {inside}
+      </Link>
+    )
   );
 }

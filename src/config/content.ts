@@ -24,6 +24,21 @@ export type AlbumPageContent = {
   note?: string;
 };
 
+// The credit for a partner on a chapter's divider (the stickers' printer):
+// a handwritten line (one string per line) and a link to their site, and
+// a discount code at their shop, copied on a tap.
+export type AlbumCredit = {
+  text: string[];
+  url: string;
+  ariaLabel: string;
+  cod: string;
+  codLabel: string;
+  copyLabel: string;
+  copied: string;
+};
+// An offer on a chapter's divider, on a tag: big and small text.
+export type AlbumOffer = { mare: string; mic: string };
+
 // One chapter of the album (see album.chapters below).
 export type AlbumChapter =
   | { id: string; title: string; contents: true }
@@ -34,6 +49,8 @@ export type AlbumChapter =
       color?: string;
       blurb?: string;
       accent?: string;
+      oferta?: AlbumOffer;
+      credit?: AlbumCredit;
       pages: AlbumPageContent[];
     };
 
@@ -84,6 +101,11 @@ export const content = {
     //   color  its divider page, its dot in the contents, its tab
     //   blurb  under the title on its divider
     //   accent optional: a word of the blurb, in color (theme.album.colors.accent)
+    //   oferta optional: an offer on a tag on its divider (the discount
+    //          itself is worked out in src/lib/cart.ts)
+    //   credit optional: a partner's credit on its divider
+    //          (oferta / credit: the divider has its title on the left, see
+    //          theme.album.stickereDivider)
     //   pages  its pages after the divider (see AlbumPageContent above);
     //          none = not there yet: "în curând" in the contents, not in
     //          the book
@@ -94,7 +116,16 @@ export const content = {
         id: "stickere",
         title: "Stickere",
         color: palette.lilac,
-        blurb: "[o frază despre stickere]",
+        oferta: { mare: "−20%", mic: "la 10+ stickere" },
+        credit: {
+          text: ["eu le creez,", "ei le printează ↗"],
+          url: "https://etichetecreative.ro/",
+          ariaLabel: "Etichete Creative, site",
+          cod: "POFTAMERSI10",
+          codLabel: "cod de reducere la ei",
+          copyLabel: "Copiază codul de reducere POFTAMERSI10",
+          copied: "copiat!",
+        },
         pages: [{ id: "stickere-1" }],
       },
       {

@@ -6,6 +6,8 @@ import { theme } from "@/config/theme";
 import { bookTabs, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
 import { u, uMinusT } from "./albumUnits";
 import { ChapterPage } from "./ChapterPage";
+import { PartnerCredit } from "./PartnerCredit";
+import { PriceTag } from "./PriceTag";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
 const text = content.album;
@@ -14,6 +16,11 @@ const text = content.album;
 // Written as CSS once, for the pseudo-elements (::after) and the many
 // u-sized lengths.
 const css = `
+/* The book's and the slide's boxes are empty 3D containers the size of a
+   page: they let taps through (else they catch them before a page lying
+   behind their plane, like a turned sheet); their parts take them. */
+.ab-book, .ab-slide { pointer-events: none; }
+.ab-slide > * { pointer-events: auto; }
 .ab-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 /* translateZ(1px): never exactly in the same plane as the front (Safari). */
 .ab-back { transform: rotateY(180deg) translateZ(1px); }
@@ -165,10 +172,10 @@ export function AlbumBook({
       <style>{css}</style>
       {/* will-change: each moving part keeps its own graphics layer the
           whole time (Safari would otherwise rebuild it when a move ends). */}
-      <div ref={bookRef} className="album-3d absolute inset-0 will-change-transform" style={{ transform: bookTransform }}>
+      <div ref={bookRef} className="ab-book album-3d absolute inset-0 will-change-transform" style={{ transform: bookTransform }}>
         <div
           ref={slideRef}
-          className="album-3d absolute inset-0 will-change-transform"
+          className="ab-slide album-3d absolute inset-0 will-change-transform"
           style={{ transform: `translate3d(${open && spread ? 50 : 0}%, 0px, 0px)` }}
         >
           <div ref={boardRef} className="ab-board" />
@@ -239,7 +246,14 @@ function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "
     <div className={`ab-page ${place} ${look}`} style={style}>
       {page.kind === "contents" && <ContentsList />}
       {page.kind === "divider" && (
-        <DividerText chapterId={page.chapterId} title={page.title} blurb={page.blurb} accent={page.accent} />
+        <DividerText
+          chapterId={page.chapterId}
+          title={page.title}
+          blurb={page.blurb}
+          accent={page.accent}
+          oferta={page.oferta}
+          credit={page.credit}
+        />
       )}
       {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
       {page.kind !== "blank" && (
@@ -290,9 +304,29 @@ function ContentsList() {
 
 // A chapter's divider: its title big, and the blurb (its `accent` word in
 // color).
-type DividerTextProps = { chapterId: string; title: string; blurb?: string; accent?: string };
-function DividerText({ chapterId, title, blurb, accent }: DividerTextProps) {
+type DividerTextProps = Pick<
+  Extract<BookPage, { kind: "divider" }>,
+  "chapterId" | "title" | "blurb" | "accent" | "oferta" | "credit"
+>;
+function DividerText({ chapterId, title, blurb, accent, oferta, credit }: DividerTextProps) {
   const at = blurb && accent ? blurb.indexOf(accent) : -1;
+  // With an offer or a credit (the stickers): the title on the left, the
+  // tag and the credit around it (see theme.album.stickereDivider).
+  if (oferta || credit) {
+    const d = theme.album.stickereDivider;
+    return (
+      <>
+        <div
+          className={`${crazeRetro.className} absolute origin-left leading-none`}
+          style={{ left: u(d.title.left), top: u(d.title.top), fontSize: u(d.title.size), rotate: `${d.title.rotation}deg` }}
+        >
+          {drawnTitle(title)}
+        </div>
+        {oferta && <PriceTag big={oferta.mare} small={oferta.mic} look={d.offerTag} />}
+        {credit && <PartnerCredit credit={credit} />}
+      </>
+    );
+  }
   return (
     <>
       {/* The chapter's pictures, under the title (see dividerPictures). */}

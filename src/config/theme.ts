@@ -739,6 +739,53 @@ export const theme = {
       size: 10.3,
       letterSpacing: "0.18em",
     },
+    // The stickers' divider (page 2), as on the canvas board "Pagina 2 · C"
+    // (u; a phone's page: 1u = ~1.07px): the title on the left, a fifth of
+    // the way down; the offer on a tag (like the bracelets' price tag) on
+    // the right under it, clear of the spine's shadow; the credit for the
+    // printer at the bottom left: their logo (a WebP with its small shadow
+    // in it, never a CSS filter in the 3D album; `size` its width) and a
+    // handwritten line, and under them the discount code on washi tape.
+    stickereDivider: {
+      title: { left: 24.3, top: 84.7, size: 46.8, rotation: -4 },
+      offerTag: {
+        left: 150,
+        top: 150,
+        width: 101,
+        height: 52.4,
+        titleSize: 26.2, // ~28px
+        titleTop: 5,
+        unitSize: 10.3, // ~11px
+        unitOpacity: 0.8,
+        rotation: 9,
+      },
+      credit: {
+        logo: {
+          src: "/images/parteneri/etichete-creative.webp",
+          width: 424,
+          height: 209,
+          left: 10,
+          top: 262,
+          size: 141, // the logo itself ~142px wide (the picture has a margin for its shadow)
+          rotation: -7,
+        },
+        text: { left: 164, top: 280, size: 15.9, lineHeight: 1.25, rotation: -3 }, // ~17px
+        washi: {
+          left: 152,
+          top: 337,
+          width: 137,
+          height: 46,
+          rotation: -4,
+          color: palette.sage,
+          opacity: 0.92,
+          clipPath: "polygon(2% 6%, 0 30%, 3% 52%, 1% 78%, 3% 100%, 97% 96%, 100% 72%, 98% 48%, 100% 22%, 98% 0)",
+          gap: 4,
+          labelSize: 9.4, // ~10px
+          codeSize: 13.1, // ~14px
+          copiedFor: 1.5, // seconds "copiat!" shows
+        },
+      },
+    },
     // A price tag (u), high in the free space above the second photo: a
     // mustard label pointed on the left (its tip `tip` of its width),
     // turned, with a small hole in the tip and a thin thread from it

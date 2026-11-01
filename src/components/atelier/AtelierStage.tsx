@@ -30,7 +30,7 @@ const slamDelay = (i: number) => i * slam.stagger;
 type StageProps = {
   // Optional: a tap on an object calls this instead of going to its page
   // (see MatObject). Used for the album (see AtelierWithAlbum).
-  onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
+  onObjectActivate?: (key: string, element: HTMLElement) => void;
   // Optional, per object key: drawn instead of its picture (see MatObject;
   // given the object's settings and its place on this mat), and its own
   // settings instead of the ones in theme.ts.

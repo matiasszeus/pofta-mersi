@@ -60,11 +60,13 @@ body {
   }
 }
 .mat-object:active .obj-art,
-.mat-object:focus-visible .obj-art {
+.mat-object:focus-visible .obj-art,
+.mat-object:has(> .mat-object-button:focus-visible) .obj-art {
   scale: var(--obj-hover-scale);
 }
 .mat-object:active .obj-shadow,
-.mat-object:focus-visible .obj-shadow {
+.mat-object:focus-visible .obj-shadow,
+.mat-object:has(> .mat-object-button:focus-visible) .obj-shadow {
   translate: var(--obj-shadow-hover-x) var(--obj-shadow-hover-y);
   scale: var(--obj-shadow-hover-scale);
   opacity: var(--obj-shadow-hover-opacity);

@@ -1,16 +1,18 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { produse, type Produs } from "@/config/products";
+import { produse, reducereStickere, type Categorie, type Produs } from "@/config/products";
 
 // The cart: kept in the browser (localStorage, under KEY), so it survives a
 // refresh and is shared by all the site's tabs. Nothing is sent anywhere.
 
-export type CartItem = { id: string; nume: string; pret: number; cantitate: number };
-export type CartSummary = { total: number; bucati: number };
+export type CartItem = { id: string; nume: string; pret: number; cantitate: number; categorie?: Categorie };
+// total: what is to be paid (lei, the discount taken off); reducere: the
+// discount (lei, 0 if none); bucati: the pieces (quantities added up).
+export type CartSummary = { total: number; bucati: number; reducere: number };
 
 const KEY = "pofta-cos";
-const EMPTY: CartSummary = { total: 0, bucati: 0 };
+const EMPTY: CartSummary = { total: 0, bucati: 0, reducere: 0 };
 
 // localStorage can be missing or refuse (private windows, blocked site
 // data): the cart is then simply empty.
@@ -59,8 +61,9 @@ export function adauga(p: Produs, cantitate = 1) {
     there.cantitate += cantitate;
     there.nume = p.nume;
     there.pret = p.pret;
+    there.categorie = p.categorie;
   } else {
-    items.push({ id: p.id, nume: p.nume, pret: p.pret, cantitate });
+    items.push({ id: p.id, nume: p.nume, pret: p.pret, cantitate, categorie: p.categorie });
   }
   scrie(items);
 }
@@ -94,12 +97,25 @@ let last: { raw: string | null; summary: CartSummary } = { raw: null, summary: E
 function getSnapshot(): CartSummary {
   const raw = readRaw();
   if (raw === last.raw) return last.summary;
-  const items = parse(raw);
-  const total = items.reduce((sum, i) => sum + i.pret * i.cantitate, 0);
-  const bucati = items.reduce((sum, i) => sum + i.cantitate, 0);
-  // In bani, rounded, back to lei: no 87.49999999.
-  last = { raw, summary: { total: Math.round(total * 100) / 100, bucati } };
+  last = { raw, summary: summarize(parse(raw)) };
   return last.summary;
+}
+
+// An item's category: kept with it, or (older carts) its product's.
+const categoryOf = (i: CartItem) => i.categorie ?? produse.find((p) => p.id === i.id)?.categorie;
+// Lei rounded to bani: no 87.49999999.
+const bani = (lei: number) => Math.round(lei * 100) / 100;
+
+// The cart's sums, with the stickers' discount (see reducereStickere).
+export function summarize(items: CartItem[]): CartSummary {
+  const subtotal = items.reduce((sum, i) => sum + i.pret * i.cantitate, 0);
+  const bucati = items.reduce((sum, i) => sum + i.cantitate, 0);
+  const r = reducereStickere;
+  const stickers = items.filter((i) => categoryOf(i) === r.categorie);
+  const stickerCount = stickers.reduce((sum, i) => sum + i.cantitate, 0);
+  const stickerSubtotal = stickers.reduce((sum, i) => sum + i.pret * i.cantitate, 0);
+  const reducere = stickerCount >= r.minim ? bani((stickerSubtotal * r.procent) / 100) : 0;
+  return { total: bani(subtotal - reducere), bucati, reducere };
 }
 
 // The cart's total (lei) and number of pieces (the quantities added up).

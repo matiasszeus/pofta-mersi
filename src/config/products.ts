@@ -40,6 +40,12 @@ export const produse: Produs[] = [
   },
 ];
 
+// The stickers' discount (the offer on their divider in the album): with
+// at least `minim` stickers in the cart (their quantities added up),
+// `procent` % off the stickers' subtotal only; everything else at full
+// price. Never more than that (20 stickers: still 20 %). See cart.ts.
+export const reducereStickere = { categorie: "stickere" as Categorie, minim: 10, procent: 20 };
+
 // The product with this id (an unknown id is a mistake in content.ts:
 // it stops the build rather than showing a product without a price).
 export function produs(id: string): Produs {
