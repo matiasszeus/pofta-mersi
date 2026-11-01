@@ -57,7 +57,9 @@ const css = `
   }
 `;
 
-export function StaticTitle({ hidden }: { hidden: boolean }) {
+// leaving: on a tap without 3D, it fades out sinking a little (see
+// theme.landing.titleLeave).
+export function StaticTitle({ hidden, leaving = false }: { hidden: boolean; leaving?: boolean }) {
   const { portrait, landscape } = titleSnapshot;
 
   return (
@@ -82,8 +84,11 @@ export function StaticTitle({ hidden }: { hidden: boolean }) {
           draggable={false}
           className="art static-title pointer-events-none absolute h-auto max-w-none"
           style={{
-            opacity: hidden ? 0 : 1,
-            transition: `opacity ${theme.landing.titleSwap}s linear`,
+            opacity: hidden || leaving ? 0 : 1,
+            translate: leaving ? `0 ${theme.landing.titleLeave.drop}px` : undefined,
+            transition: leaving
+              ? `opacity ${theme.landing.titleLeave.duration}s ease-in, translate ${theme.landing.titleLeave.duration}s ease-in`
+              : `opacity ${theme.landing.titleSwap}s linear`,
           }}
         />
       </picture>

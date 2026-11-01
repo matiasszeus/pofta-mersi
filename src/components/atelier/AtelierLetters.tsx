@@ -1,7 +1,10 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
+import { shouldUse3D } from "@/lib/gpuTier";
 import type { MatLayout } from "./objectLayout";
+import { StaticMatLetters } from "./StaticMatLetters";
 
 // WebGL only exists in the browser, so the canvas is never rendered on the
 // server. Until it loads, the mat simply shows without letters.
@@ -18,15 +21,25 @@ type AtelierLettersProps = {
   paused?: boolean;
 };
 
+// 3D or pictures (see shouldUse3D): decided in the browser; on the server
+// (and in the browser's first pass) nothing yet.
+const noSubscribe = () => () => {};
+function use3D(): boolean | null {
+  return useSyncExternalStore(noSubscribe, shouldUse3D, () => null);
+}
+
 // The letters lying on the atelier's mat, in a transparent layer between the
-// mat and the page's content.
+// mat and the page's content: the 3D letters, or, on devices where 3D would
+// stutter, their pictures (StaticMatLetters).
 export function AtelierLetters({ animate, onLanded, mat, paused = false }: AtelierLettersProps) {
+  const threeD = use3D();
   return (
     // fixed + 100lvh, like the mat's drawings, so the two always line up.
     // mat-dims: steps back while the album is open (globals.css): the
-    // whole canvas, not the letters' materials.
+    // whole layer, not the letters' materials.
     <div className="mat-dims pointer-events-none fixed inset-0 h-lvh">
-      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} paused={paused} />
+      {threeD === true && <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} paused={paused} />}
+      {threeD === false && <StaticMatLetters mat={mat} onLanded={onLanded} />}
     </div>
   );
 }

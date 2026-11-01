@@ -69,6 +69,10 @@ export const theme = {
     // Seconds the still picture of the title (shown until the 3D scene is
     // ready) takes to fade out over the identical 3D letters.
     titleSwap: 0.25,
+    // Without 3D (see shouldUse3D), on a tap: the still title fades out
+    // while sinking `drop` px, in `duration` seconds (instead of the
+    // letters falling); the atelier's color rises as with the dive.
+    titleLeave: { duration: 0.5, drop: 24 },
   },
 
   camera: {
@@ -566,6 +570,22 @@ export const theme = {
         blurLanded: 6,
         blurHigh: 24,
         mapSize: 1024,
+      },
+      // Without 3D (see shouldUse3D): each letter is a picture, rendered
+      // once from the same 3D letter, material and lights
+      // (scripts/letters-static.ts: npm run letters) into
+      // public/images/litere/<char>.webp, `canvas` px square, the letter
+      // `glyph` px tall in its middle, without a shadow (the page draws it,
+      // falling the same way whatever the letter's turn). They fade in, in
+      // `fade` seconds, then the objects are slammed down as usual.
+      still: {
+        dir: "/images/litere",
+        chars: ["P", "F", "T", "O", "A", "M", "S", "I"],
+        canvas: 400,
+        glyph: 260,
+        // The camera as high as above the mat of a screen this tall (px).
+        screen: 800,
+        fade: 0.35,
       },
     },
   },

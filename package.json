@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "og": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/og-images.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "letters": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/letters-static.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

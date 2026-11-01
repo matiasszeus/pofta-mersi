@@ -211,7 +211,13 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
         </div>
       )}
 
-      {!snapshot && <StaticTitle hidden={scene === "ready"} />}
+      {!snapshot && (
+        <StaticTitle
+          hidden={scene === "ready"}
+          // Without the 3D scene: the title leaves as the color rises.
+          leaving={phase === "sliding" || (phase === "arrived" && mode === "slide")}
+        />
+      )}
 
       {/* Without the 3D scene: the rising color instead of the dive. */}
       {(phase === "sliding" || (phase === "arrived" && mode === "slide")) && <SlideBand />}
