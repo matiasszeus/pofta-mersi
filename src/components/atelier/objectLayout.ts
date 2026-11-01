@@ -4,7 +4,12 @@ import { theme } from "@/config/theme";
 // letters around them), in CSS for the page and in pixels for the 3D letters.
 // Both are worked out from the same settings in theme.ts, so they agree.
 
-export type MatObjectConfig = (typeof theme.atelier.objects)[number];
+// A part of an object's outline, from the top-left corner of its box, as
+// fractions of the box's width (also for top / bottom).
+export type OutlineBox = { left: number; top: number; right: number; bottom: number };
+// outline: what the object really covers, if not just its box (the album
+// drawn in code: its pages' edge, tabs and ribbon stick out).
+export type MatObjectConfig = (typeof theme.atelier.objects)[number] & { outline?: OutlineBox[] };
 type Place = MatObjectConfig["portrait"];
 type Size = { widthVw: number; maxWidth: number; maxHeightVh: number };
 export type Orientation = "portrait" | "landscape";
@@ -12,6 +17,10 @@ export type Rect = { left: number; top: number; width: number; height: number };
 
 const note = theme.atelier.note;
 const noteRatio = note.paper.height / note.paper.width;
+
+// The point of the note on the mat it turns around (and lifts its corner
+// from): near the tape, as fractions of its box. Used by AtelierNote too.
+export const NOTE_PIVOT = { x: 0.35, y: 0.04 };
 
 // The same rule as CSS's (orientation: landscape), i.e. Tailwind's
 // `landscape:` variant: wider than tall.
@@ -121,27 +130,112 @@ export function letterScale(count: number, orientation: Orientation) {
   return 1 + (factor - 1) * t;
 }
 
-function overlaps(a: Rect, b: Rect) {
-  return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+// What the objects and the note really cover on a screen of this size: a
+// few turned rectangles (corners in CSS px), each grown by `margin` px on
+// every side.
+type Point = { x: number; y: number };
+
+// The corners of a box grown by `margin`, turned by `degrees` (clockwise,
+// like CSS) around the point (cx, cy).
+function turnedBox(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  margin: number,
+  degrees: number,
+  cx: number,
+  cy: number,
+): Point[] {
+  const a = (degrees * Math.PI) / 180;
+  const corners = [
+    [left - margin, top - margin],
+    [right + margin, top - margin],
+    [right + margin, bottom + margin],
+    [left - margin, bottom + margin],
+  ];
+  return corners.map(([x, y]) => ({
+    x: cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a),
+    y: cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a),
+  }));
+}
+
+export function blockerOutlines(
+  objects: MatObjectConfig[],
+  screenWidth: number,
+  screenHeight: number,
+  margin: number,
+): Point[][] {
+  const shapes: Point[][] = [];
+  for (const o of objects) {
+    // Turned around the middle of its box (like .obj-art).
+    const r = objectRect(o, screenWidth, screenHeight);
+    const { x: cx, y: cy } = rectMiddle(r);
+    const w = r.width;
+    const boxes = o.outline ?? [{ left: 0, top: 0, right: 1, bottom: r.height / w }];
+    for (const b of boxes) {
+      shapes.push(
+        turnedBox(r.left + b.left * w, r.top + b.top * w, r.left + b.right * w, r.top + b.bottom * w, margin, o.rotation, cx, cy),
+      );
+    }
+  }
+  // The note, turned around its pivot (like .note-mat).
+  const n = noteRect(screenWidth, screenHeight);
+  const px = n.left + NOTE_PIVOT.x * n.width;
+  const py = n.top + NOTE_PIVOT.y * n.height;
+  shapes.push(turnedBox(n.left, n.top, n.left + n.width, n.top + n.height, margin, note.rotation, px, py));
+  return shapes;
+}
+
+// Do two convex shapes overlap? Separating axis test: they do not if, along
+// the direction across one of their edges, their shadows do not meet.
+function shapesOverlap(a: Point[], b: Point[]) {
+  for (const shape of [a, b]) {
+    for (let i = 0; i < shape.length; i++) {
+      const p = shape[i];
+      const q = shape[(i + 1) % shape.length];
+      const axis = { x: q.y - p.y, y: p.x - q.x };
+      const project = (s: Point[]) => s.map((v) => v.x * axis.x + v.y * axis.y);
+      const pa = project(a);
+      const pb = project(b);
+      if (Math.max(...pa) < Math.min(...pb) || Math.max(...pb) < Math.min(...pa)) return false;
+    }
+  }
+  return true;
+}
+
+// Would this letter touch one of these shapes? The letter counts as the
+// middle part of its box (boxInset), at its drawn size (scale).
+export function letterBlocked(spot: LetterSpot, screenWidth: number, screenHeight: number, shapes: Point[][], scale = 1) {
+  const r = letterRect(spot, screenWidth, screenHeight);
+  const { x, y } = rectMiddle(r);
+  const half = (r.width * scale) / 2 - r.width * letters.boxInset;
+  const core = [
+    { x: x - half, y: y - half },
+    { x: x + half, y: y - half },
+    { x: x + half, y: y + half },
+    { x: x - half, y: y + half },
+  ];
+  return shapes.some((s) => shapesOverlap(core, s));
 }
 
 // Which letters lie on the mat on a screen of this size (see `keep` in
 // theme.ts). The corners always; the others while none of their group
-// touches the album or the note, and (phones only) the screen is tall
-// enough.
-export function chooseLetters(screenWidth: number, screenHeight: number): Set<string> {
+// touches the album or the note (their real outline, see blockerOutlines),
+// and (phones only) the screen is tall enough.
+export function chooseLetters(
+  screenWidth: number,
+  screenHeight: number,
+  objects: MatObjectConfig[] = theme.atelier.objects,
+): Set<string> {
   const { corners, dropOrder, minHeight } = letters.keep;
   const spots = letterSpots(screenWidth, screenHeight);
   const phone = screenWidth < letters.phone.maxWidth;
   const tooShort = (char: string) => phone && screenHeight < (minHeight[char] ?? 0);
-  const blockers = [...theme.atelier.objects.map((o) => objectRect(o, screenWidth, screenHeight)), noteRect(screenWidth, screenHeight)];
+  const shapes = blockerOutlines(objects, screenWidth, screenHeight, letters.clearance);
   const touches = (char: string) => {
     const spot = spots.find((s) => s.char === char);
-    if (!spot) return false;
-    const r = letterRect(spot, screenWidth, screenHeight);
-    const inset = r.width * letters.boxInset;
-    const core = { left: r.left + inset, top: r.top + inset, width: r.width - 2 * inset, height: r.height - 2 * inset };
-    return blockers.some((b) => overlaps(core, b));
+    return !!spot && letterBlocked(spot, screenWidth, screenHeight, shapes);
   };
 
   // Only the letters this screen has (phones leave some out).

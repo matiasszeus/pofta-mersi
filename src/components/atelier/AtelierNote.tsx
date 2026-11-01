@@ -15,14 +15,15 @@ import { textFonts } from "@/app/fonts";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { noteCss } from "./objectLayout";
+import { NOTE_PIVOT, noteCss } from "./objectLayout";
 
 const note = theme.atelier.note;
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
 // The point of the note on the mat it turns around (and lifts its corner
-// from): near the tape. Shared by the CSS and by the lift-off maths.
-const PIVOT = { x: 0.35, y: 0.04 };
+// from): near the tape. Shared by the CSS, the lift-off maths and the
+// letters' check against the note.
+const PIVOT = NOTE_PIVOT;
 
 // "#1D2633", 0.4 -> "rgb(29 38 51 / 0.4)"
 function rgba(hex: string, opacity: number) {

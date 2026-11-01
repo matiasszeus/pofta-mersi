@@ -484,6 +484,9 @@ export const theme = {
       // between, in proportion. Each letter keeps its place (the middle of
       // its box); the album and the note do not change.
       phoneScale: { few: 4, many: 7, factor: 0.85 },
+      // Free mat kept between a letter and the album's / the note's real
+      // outline (turned, with all that sticks out), in CSS px.
+      clearance: 12,
       // For that check a letter counts as the middle part of its box: this
       // fraction is trimmed from each side (a turned letter's corners do not
       // reach the box's corners).

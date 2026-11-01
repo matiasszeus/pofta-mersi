@@ -8,14 +8,29 @@ import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
 import { albumLayout, albumViews, viewOf, type AlbumView } from "./albumLayout";
 
-const { opening, page, board, pages } = theme.album;
+const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn, dim: dimming } = opening;
 const ms = (seconds: number) => seconds * 1000;
 
 // The album's settings for the mat: those of theme.ts, but with the
-// proportions of the drawn book's page.
+// proportions of the drawn book's page, and its real outline (the letters
+// keep clear of it): the board with the pages' edge (right and bottom),
+// the tabs on the right, the ribbon below. In fractions of the page's
+// width (1u = 1 / unitWidth).
 export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
-  return { ...album, width: 340, height: 340 * page.ratio };
+  const u = 1 / unitWidth;
+  const beyond = (board.beyond + thickness) * u;
+  const ribbonLeft = ribbon.left * u;
+  return {
+    ...album,
+    width: 340,
+    height: 340 * page.ratio,
+    outline: [
+      { left: 0, top: -board.top * u, right: 1 + beyond, bottom: page.ratio + beyond },
+      { left: 1, top: tabs.tops[0] * u, right: 1 + tabs.width * u, bottom: (tabs.tops[tabs.tops.length - 1] + tabs.height) * u },
+      { left: ribbonLeft, top: page.ratio, right: ribbonLeft + ribbon.width * u, bottom: page.ratio + ribbon.below * u },
+    ],
+  };
 }
 
 type MatAlbumProps = {

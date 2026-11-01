@@ -7,7 +7,9 @@ import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
 import {
+  blockerOutlines,
   chooseLetters,
+  letterBlocked,
   letterRect,
   letterScale,
   letterSpots,
@@ -15,6 +17,7 @@ import {
   orientationOf,
   rectMiddle,
   type LetterSpot,
+  type MatObjectConfig,
 } from "./objectLayout";
 
 // The atelier's 3D letters, lying on the mat. The canvas is transparent: the
@@ -69,9 +72,15 @@ function landing(t: number, startHeight: number, size: number) {
 // whose browser bar covers the bottom of the page (iOS Safari): it reaches
 // under the bar, so the letters must be placed by the visible part, not by
 // the canvas.
+// In-app browsers (Instagram) change it after the page has loaded, and
+// sometimes only the visual viewport reports that.
 function subscribeResize(onChange: () => void) {
   window.addEventListener("resize", onChange);
-  return () => window.removeEventListener("resize", onChange);
+  window.visualViewport?.addEventListener("resize", onChange);
+  return () => {
+    window.removeEventListener("resize", onChange);
+    window.visualViewport?.removeEventListener("resize", onChange);
+  };
 }
 function useVisibleHeight(fallback: number) {
   return useSyncExternalStore(subscribeResize, () => window.innerHeight, () => fallback);
@@ -138,6 +147,7 @@ type SceneProps = {
   animate: boolean;
   // The letters on the mat (chosen once, when the page opens).
   chars: Set<string>;
+  objects: MatObjectConfig[];
   // Called once, when the objects should start falling: `slam.delay`
   // seconds after the last letter touches the mat (negative = before).
   onObjectsCue: () => void;
@@ -145,7 +155,7 @@ type SceneProps = {
   onSettled: () => void;
 };
 
-function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
+function Scene({ animate, chars, objects, onObjectsCue, onSettled }: SceneProps) {
   const { width, height } = useThree((state) => state.size);
   // Layout height: the visible part, from the top of the canvas.
   const visibleHeight = Math.min(useVisibleHeight(height), height);
@@ -173,7 +183,7 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
   const objectsCue = Math.max(0, lastTouchdown + slam.delay);
   // ...and each hits the mat `fall` seconds after it starts. The jolts are
   // timed here, on this scene's own clock, so they match the impacts exactly.
-  const impacts = theme.atelier.objects.map((o, i) => ({
+  const impacts = objects.map((o, i) => ({
     at: objectsCue + i * slam.stagger + slam.fall,
     middle: rectMiddle(objectRect(o, width, visibleHeight)),
   }));
@@ -194,6 +204,12 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
     return { x: middle.x - width / 2, y: height / 2 - middle.y, size, rotation: -rad(spot.rotation) };
   };
   const placed = spots.map(place);
+  // The letters stay those chosen when the page opened, placed for the
+  // screen as it is now (Instagram changes its height after loading, a
+  // phone turns). One that would now lie on the album or the note (their
+  // real outline) is hidden.
+  const shapes = blockerOutlines(objects, width, visibleHeight, cfg.clearance);
+  const hidden = spots.map((spot) => letterBlocked(spot, width, visibleHeight, shapes, scale));
 
   useFrame((state) => {
     if (settled.current) return;
@@ -285,6 +301,7 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
       </mesh>
 
       {spots.map((spot, i) => {
+        if (hidden[i]) return null;
         const { x, y, size, rotation } = placed[i];
         return (
           <MatLetter
@@ -312,9 +329,11 @@ type MatLettersCanvasProps = {
   // Called once, when the objects should start falling (see slam.delay in
   // theme.ts). Not called when not animating.
   onObjectsCue?: () => void;
+  // The objects on the mat: the letters keep clear of them.
+  objects: MatObjectConfig[];
 };
 
-export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCanvasProps) {
+export default function MatLettersCanvas({ animate, onObjectsCue, objects }: MatLettersCanvasProps) {
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
@@ -322,7 +341,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCa
   // opened on, so turning the phone neither adds nor removes any. The
   // others are never built. (This canvas fills the screen: see
   // AtelierLetters.)
-  const [chars] = useState(() => chooseLetters(window.innerWidth, window.innerHeight));
+  const [chars] = useState(() => chooseLetters(window.innerWidth, window.innerHeight, objects));
 
   return (
     // frameloop "demand" = draw a frame only when something changes (e.g. a
@@ -334,6 +353,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue }: MatLettersCa
         <Scene
           animate={animate}
           chars={chars}
+          objects={objects}
           onObjectsCue={() => onObjectsCue?.()}
           onSettled={() => setSettled(true)}
         />

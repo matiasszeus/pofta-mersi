@@ -70,17 +70,19 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
   // times it on its own clock, from the same cue that starts the objects.)
 
   const entrance: Entrance = !animate ? "fade" : landed ? "slam" : "waiting";
+  // The objects as they lie on this mat (theirs, or the overrides).
+  const onMat = objects.map((o) => objectOverrides?.[o.key] ?? o);
 
   return (
     <>
       {/* The note is there from the start; its corner lifts when the first
           object (the album) hits the mat. */}
       <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} />
-      <AtelierLetters animate={animate} onLanded={onLanded} />
-      {objects.map((o, i) => (
+      <AtelierLetters animate={animate} onLanded={onLanded} objects={onMat} />
+      {onMat.map((o, i) => (
         <MatObject
           key={o.key}
-          object={objectOverrides?.[o.key] ?? o}
+          object={o}
           entrance={entrance}
           slamDelay={slamDelay(i)}
           onActivate={onObjectActivate && ((link) => onObjectActivate(o.key, link))}
