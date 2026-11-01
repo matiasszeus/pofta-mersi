@@ -488,7 +488,7 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
           tabIndex={-1}
           data-chapter-title={chapterId}
           className={`${crazeRetro.className} leading-none outline-none`}
-          style={{ fontSize: u(50), rotate: "-4deg" }}
+          style={{ fontSize: u(theme.album.dividerTitle.size), rotate: `${theme.album.dividerTitle.rotation}deg` }}
         >
           {drawnTitle(title)}
         </h2>

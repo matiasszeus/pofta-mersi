@@ -98,6 +98,8 @@ export const content = {
     },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",
+    // The X in the top-right corner of the open album (screen readers).
+    closeAlbum: "Închide albumul",
     replay: "reia animația",
     soon: "în curând",
     // The chapters, in the book's order: the only place it is written.

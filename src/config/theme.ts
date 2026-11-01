@@ -622,7 +622,7 @@ export const theme = {
     contents: {
       padding: { top: 34, right: 28, bottom: 30, left: 34 },
       titleSize: 42,
-      titleTurn: -2, // degrees
+      titleTurn: 0, // degrees (the pages' titles stand straight)
       listTop: 34,
       rowGap: 20,
       itemSize: 21,
@@ -642,6 +642,13 @@ export const theme = {
     objectsOpacity: 0.35,
     dimFade: 0.4,
     dividerBlurbSize: 21, // u: the line under a divider's title (~22px on a phone)
+    // A divider's title (u; degrees): in the middle of the page, straight.
+    dividerTitle: { size: 50, rotation: 0 },
+    // The open album's close button, top right: a round X.
+    //   size        px (44: a comfortable touch target)
+    //   background  the circle; color: the X's two lines (cream)
+    //   iconSize    the X, px; lineWidth: its lines (SVG units of 24)
+    closeButton: { size: 44, background: "rgb(16 24 33 / 0.55)", color: palette.paper, iconSize: 18, lineWidth: 2.2 },
     // Pictures lying on a chapter's divider, under its title (per chapter
     // id; cut off at the page's edges). src: a transparent WebP of
     // width x height px; left, top, size (its width): u, its top-left
@@ -747,7 +754,7 @@ export const theme = {
     // in it, never a CSS filter in the 3D album; `size` its width) and a
     // handwritten line, and under them the discount code on washi tape.
     stickereDivider: {
-      title: { left: 24.3, top: 84.7, size: 46.8, rotation: -4 },
+      title: { left: 24.3, top: 84.7, size: 46.8, rotation: 0 },
       offerTag: {
         left: 150,
         top: 150,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
@@ -33,6 +33,27 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   // closing (then taken away, not left at opacity 0).
   const [vignette, setVignette] = useState(false);
   if (open && !vignette) setVignette(true);
+
+  // Back on the mat (the same closing animation). A new run: reopened, it
+  // starts again from the contents.
+  const close = useCallback(() => {
+    setOpen(false);
+    setRun((n) => n + 1);
+  }, []);
+
+  // Escape closes it too (keyboard), unless a photo is open big over it:
+  // Escape closes that first (the closed note's dialog stays in the page,
+  // aria-hidden: not counted).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector("[role='dialog']:not([aria-hidden='true'])")) return;
+      close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
 
   const onObjectActivate = useCallback((key: string) => {
     if (key === album.key) setOpen(true);
@@ -76,19 +97,37 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
               {content.album.replay}
             </button>
           )}
-          <button
-            type="button"
-            className={pill}
-            onClick={() => {
-              // A new run: reopened, it starts again from the contents.
-              setOpen(false);
-              setRun((n) => n + 1);
-            }}
-          >
-            {content.album.close}
-          </button>
+          <CloseButton onClick={close} />
         </div>
       )}
     </div>
+  );
+}
+
+// The open album's close button: a dark round button with a cream X (two
+// lines, SVG). See theme.album.closeButton.
+function CloseButton({ onClick }: { onClick: () => void }) {
+  const { size, background, color, iconSize, lineWidth } = theme.album.closeButton;
+  return (
+    <button
+      type="button"
+      aria-label={content.album.closeAlbum}
+      onClick={onClick}
+      className="flex cursor-pointer items-center justify-center rounded-full border-0 p-0"
+      style={{ width: size, height: size, background, color }}
+    >
+      <svg
+        width={iconSize}
+        height={iconSize}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={lineWidth}
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        <path d="M5 5l14 14M19 5L5 19" />
+      </svg>
+    </button>
   );
 }
