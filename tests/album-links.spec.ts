@@ -99,7 +99,7 @@ test("link previews: title, description, picture, canonical", async ({ page }) =
     ["/album", "Pofta Mersi · album", "/og/album.jpg", "/album"],
     ["/album/tricouri", "Pofta Mersi · album", "/og/album.jpg", "/album"],
     ["/atelier", "Pofta Mersi · atelier", "/og/atelier.jpg", "/atelier"],
-    ["/", "Pofta Mersi", "/og/atelier.jpg", "/"],
+    ["/", "Pofta Mersi", "/og/landing.jpg", "/"],
   ]) {
     await page.goto(path);
     expect(await page.title(), path).toBe(title);

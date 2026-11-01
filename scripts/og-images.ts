@@ -1,8 +1,8 @@
 // Makes the pictures shown when a link is shared (WhatsApp, Instagram,
 // Facebook): 1200x630 JPGs in public/og/, photographed from the site
 // itself:
-//   atelier.jpg            the mat with the album lying closed (for / and
-//                          /atelier)
+//   landing.jpg            the landing: the 3D title over the flowers (/)
+//   atelier.jpg            the mat with the album lying closed (/atelier)
 //   album.jpg              the album open at the contents (/album)
 //   <chapter slug>.jpg     the album open at that chapter (/album/<slug>),
 //                          for every chapter in the book
@@ -56,20 +56,22 @@ await context.addInitScript(() => localStorage.setItem("pm-album-hint", "1"));
 const page = await context.newPage();
 
 async function shoot(path: string, file: string, albumOpen: boolean) {
-  await page.goto(BASE + path, { waitUntil: "networkidle" });
+  await page.goto(BASE + path, { waitUntil: "load" });
   if (albumOpen) {
     await page.locator("[data-page-index]").waitFor({ timeout: 15000 });
     // The close button is not part of the picture.
     await page.addStyleTag({ content: 'button[aria-label="Închide albumul"] { display: none !important; }' });
   }
-  // Everything landed and loaded (the letters, the pictures on the pages).
-  await page.waitForLoadState("networkidle");
+  // Everything landed and loaded (the letters, the pictures on the pages;
+  // the landing keeps fetching in the background: not waited for).
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
   await sleep(albumOpen ? 1500 : 7000);
   await page.screenshot({ path: `${OUT}/${file}`, type: "jpeg", quality: 88 });
   console.log(`${OUT}/${file}  <-  ${path}`);
 }
 
 try {
+  await shoot("/", "landing.jpg", false);
   await shoot("/atelier", "atelier.jpg", false);
   await shoot("/album", "album.jpg", true);
   for (const slug of bookSlugs) await shoot(`/album/${slug}`, `${slug}.jpg`, true);

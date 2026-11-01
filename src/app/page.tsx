@@ -14,7 +14,7 @@ export const metadata: Metadata = pageMetadata({
   title: content.meta.siteName,
   description: content.meta.description,
   path: "/",
-  image: "/og/atelier.jpg",
+  image: "/og/landing.jpg",
 });
 
 // The landing: the 3D title; a tap dives into the atelier.
