@@ -856,12 +856,22 @@ export const theme = {
       turn: { duration: 0.95, easing: "cubic-bezier(0.55, 0.05, 0.25, 1)" },
       // prefers-reduced-motion: no turning, a crossfade (seconds, in all).
       reducedMotionFade: 0.3,
-      // Leafing fast to a chapter (from the contents): every sheet in
-      // between turns like a page, quicker and overlapping, `stagger`
-      // seconds after the one before; at most `maxLeaves` are seen turning
-      // (the first ones and the last), the others jump in between, so it
-      // never takes much more than a second.
-      flipFast: { duration: 0.38, stagger: 0.09, maxLeaves: 8, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
+      // Leafing fast to a chapter (from the contents), when more than one
+      // sheet has to turn (one: a normal turn, as with the buttons): every
+      // sheet in between turns like a page, quicker (`duration` seconds,
+      // `easing`) and overlapping, like a thumb gathering speed and then
+      // slowing down: the first two and the last two start `staggerEdge`
+      // seconds after the one before, those in the middle `staggerMid`.
+      // The last one (it uncovers the page) turns as normal, so it lands
+      // calmly. Never more than `maxTotal` seconds in all: sheets in the
+      // middle are skipped (they jump), never the first ones or the last.
+      flipFast: {
+        duration: 0.6,
+        staggerEdge: 0.22,
+        staggerMid: 0.14,
+        maxTotal: 2.2,
+        easing: "cubic-bezier(0.45, 0.05, 0.25, 1)",
+      },
       // The buttons and the page's name between them, under the book. px.
       controls: {
         gap: 30, // from the bottom of the ribbon

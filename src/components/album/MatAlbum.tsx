@@ -198,8 +198,9 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // Phones: turning a sheet also slides the book one page width, so the
   // page you go to is on the screen; between the two sides of an open
   // spread the book only slides. Wide screens: only the sheet turns.
-  const go = (step: number) => {
-    const to = index + step;
+  const go = (step: number) => turnTo(index + step);
+  // The same to view `to`; then `after` (when it has landed).
+  const turnTo = (to: number, after?: () => void) => {
     if (!layout || !opened || turning.current || to < 0 || to >= views.length) return;
     const from = views[index];
     const target = views[to];
@@ -233,15 +234,19 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       .finally(() => {
         turning.current = false;
         setTurningRun(null);
+        after?.();
       });
   };
 
-  // Leafing fast to a page (from the contents; later the tabs): every
-  // sheet between the page on the screen and that one turns, one after the
-  // other, quicker and overlapping (see flipFast in theme.ts), forwards or
-  // backwards; on phones the book slides as in go(). Meanwhile nothing else
-  // can be pressed (turning), the pages in between show only their paper
-  // (bare), and the name under the book changes at the end.
+  // Leafing to a page (from the contents; later the tabs). One sheet (or
+  // none: the two sides of a spread) to turn: a normal turn, as with the
+  // buttons. More: a fast leafing: every sheet between the page on the
+  // screen and that one turns, one after the other, overlapping, gathering
+  // speed then slowing down, the last one as a normal turn (see flipFast in
+  // theme.ts), forwards or backwards; on phones the book slides as in
+  // go(). Meanwhile nothing else can be pressed (turning), the pages in
+  // between show only their paper (bare), and the name under the book
+  // changes at the end. Then focusChapter's title takes the focus.
   const goToPage = (pageNumber: number, focusChapter?: string) => {
     if (!layout || !opened || turning.current) return;
     const spread = layout.spread;
@@ -249,16 +254,46 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     if (to === index) return;
     const from = views[index];
     const target = views[to];
-    const ff = pages.flipFast;
+    // The chapter's title takes the focus (screen readers, keyboard).
+    const focus = () => {
+      if (!focusChapter) return;
+      requestAnimationFrame(() =>
+        book.current?.querySelector<HTMLElement>(`[data-chapter-title="${focusChapter}"]`)?.focus({ preventScroll: true }),
+      );
+    };
     // The sheets that turn, in the order they turn: forwards from the top
     // one; backwards from the one turned last.
     const lo = Math.min(from.turned, target.turned);
     const hi = Math.max(from.turned, target.turned);
     const moving = Array.from({ length: hi - lo }, (_, i) => lo + i);
     if (target.turned < from.turned) moving.reverse();
-    // Seen turning: all of them, or the first ones and the last.
-    const seen = moving.length > ff.maxLeaves ? [...moving.slice(0, ff.maxLeaves - 1), moving[moving.length - 1]] : moving;
-    const jumping = moving.filter((s) => !seen.includes(s));
+    if (moving.length <= 1) {
+      turnTo(to, focus);
+      return;
+    }
+
+    const ff = pages.flipFast;
+    const normal = pages.turn;
+    // When each of n sheets starts (seconds): the first two and the last
+    // two `staggerEdge` apart, those between `staggerMid`.
+    const startsFor = (n: number) => {
+      const starts = [0];
+      for (let i = 1; i < n; i++) starts.push(starts[i - 1] + (i <= 2 || i >= n - 2 ? ff.staggerEdge : ff.staggerMid));
+      return starts;
+    };
+    // Seen turning: all of them, or, if that takes too long, without some
+    // in the middle (they jump instead).
+    const seen = [...moving];
+    while (seen.length > 4 && startsFor(seen.length)[seen.length - 1] + normal.duration > ff.maxTotal) {
+      seen.splice(Math.floor(seen.length / 2), 1);
+    }
+    const starts = startsFor(seen.length).map(ms);
+    const total = starts[seen.length - 1] + ms(normal.duration);
+    // A skipped sheet jumps as the next one seen starts turning.
+    const jumpAt = (s: number) => {
+      const next = moving.slice(moving.indexOf(s)).find((x) => seen.includes(x))!;
+      return starts[seen.indexOf(next)];
+    };
     const onScreen = new Set([...from.pages, ...target.pages]);
     turning.current = true;
     setTurningRun(run);
@@ -276,21 +311,20 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         return;
       }
-      const at = (i: number) => ms(ff.stagger * i);
-      const total = at(seen.length - 1) + ms(ff.duration);
+      const last = seen.length - 1;
       await done(
-        // Each one waits for its turn showing where it was ("fill both").
+        // Each one waits for its turn showing where it was ("fill both");
+        // the last one turns as a normal page.
         ...seen.map((s, i) =>
           animate(leaves.current[s], [sheet(s, from), sheet(s, target)], {
-            duration: ms(ff.duration),
-            delay: at(i),
-            easing: ff.easing,
+            duration: ms(i === last ? normal.duration : ff.duration),
+            delay: starts[i],
+            easing: i === last ? normal.easing : ff.easing,
           }),
         ),
-        // The ones in between jump as the last one starts turning.
-        ...jumping.map((s) =>
-          animate(leaves.current[s], [sheet(s, from), sheet(s, target)], { duration: 1, delay: at(seen.length - 1) }),
-        ),
+        ...moving
+          .filter((s) => !seen.includes(s))
+          .map((s) => animate(leaves.current[s], [sheet(s, from), sheet(s, target)], { duration: 1, delay: jumpAt(s) })),
         animate(slide.current, [pane(from), pane(target)], { duration: total, easing: ff.easing }, "slide"),
       );
     }
@@ -301,18 +335,11 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         setBare([]);
         turning.current = false;
         setTurningRun(null);
-        // The chapter's title takes the focus (screen readers, keyboard).
-        if (focusChapter) {
-          requestAnimationFrame(() =>
-            book.current
-              ?.querySelector<HTMLElement>(`[data-chapter-title="${focusChapter}"]`)
-              ?.focus({ preventScroll: true }),
-          );
-        }
+        focus();
       });
   };
-  // Leafing fast to a chapter's first page (its divider): for the
-  // contents' buttons, later the tabs on the edge.
+  // Leafing to a chapter's first page (its divider): for the contents'
+  // buttons, later the tabs on the edge.
   const goToChapter = (chapterId: string) => goToPage(firstPageOf(chapterId), chapterId);
 
   const poses = screen && flightPoses(place, screen.w, screen.h);
