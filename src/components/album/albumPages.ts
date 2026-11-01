@@ -1,4 +1,4 @@
-import { content, type AlbumChapter } from "@/config/content";
+import { content, type AlbumChapter, type AlbumPageContent } from "@/config/content";
 import { theme } from "@/config/theme";
 
 // Everything about the book's pages, worked out from the one list of
@@ -23,7 +23,7 @@ const colorOf = (c: Chapter) => c.color ?? theme.album.colors.divider;
 export type BookPage =
   | { kind: "contents"; number: number; chapterId: string }
   | { kind: "divider"; number: number; chapterId: string; title: string; blurb?: string; color: string }
-  | { kind: "page"; number: number; chapterId: string; id: string; title: string }
+  | { kind: "page"; number: number; chapterId: string; title: string; content: AlbumPageContent }
   | { kind: "blank"; number: number; chapterId: null };
 
 function buildPages(): BookPage[] {
@@ -34,7 +34,7 @@ function buildPages(): BookPage[] {
       list.push({ kind: "contents", number: next(), chapterId: c.id });
     } else if (c.pages.length > 0) {
       list.push({ kind: "divider", number: next(), chapterId: c.id, title: c.title, blurb: c.blurb, color: colorOf(c) });
-      for (const p of c.pages) list.push({ kind: "page", number: next(), chapterId: c.id, id: p.id, title: c.title });
+      for (const p of c.pages) list.push({ kind: "page", number: next(), chapterId: c.id, title: c.title, content: p });
     }
   }
   // Page 1 lies on the right, and so does every odd page: with an odd

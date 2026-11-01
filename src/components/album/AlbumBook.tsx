@@ -4,14 +4,11 @@ import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { bookTabs, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
+import { u, uMinusT } from "./albumUnits";
+import { ChapterPage } from "./ChapterPage";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
 const text = content.album;
-
-// A length in u (see theme.album), as CSS: --u is set on the book.
-const u = (n: number) => `calc(var(--u) * ${n}px)`;
-// The same, minus / plus the stack's thickness (--t, in u).
-const uMinusT = (n: number) => `calc(var(--u) * (${n}px - var(--t) * 1px))`;
 
 // The parts' looks, from the prototype (docs/album-deschidere-referinta.html).
 // Written as CSS once, for the pseudo-elements (::after) and the many
@@ -78,6 +75,12 @@ const css = `
 .ab-row { display: flex; align-items: baseline; gap: ${u(8)}; }
 .ab-dot { width: ${u(contents.dot)}; height: ${u(contents.dot)}; border-radius: 50%; flex: none; align-self: center; box-sizing: border-box; }
 .ab-lead { flex: 1; border-bottom: ${u(2)} dotted rgb(29 38 51 / 0.35); transform: translateY(${u(-4)}); }
+/* The videos on the pages: never a native play button or controls (iPhone
+   shows one when it will not autoplay); taps go to the page. */
+.ab-video { pointer-events: none; }
+.ab-video::-webkit-media-controls,
+.ab-video::-webkit-media-controls-start-playback-button,
+.ab-video::-webkit-media-controls-overlay-play-button { display: none !important; -webkit-appearance: none; }
 .ab-pnum { position: absolute; bottom: ${u(pageNumber.bottom)}; font-size: ${u(pageNumber.size)}; color: rgb(29 38 51 / 0.55); }
 /* A sheet: turns around the spine when leafing (see leafTransform). */
 .ab-leaf { position: absolute; inset: 0; transform-origin: left center; }
@@ -123,6 +126,8 @@ type AlbumBookProps = {
   coverRef?: Ref<HTMLDivElement>;
   // The sheets, front to back (see sheets in albumPages).
   leavesRef?: MutableRefObject<(HTMLDivElement | null)[]>;
+  // The page numbers lying still on the screen: their videos play.
+  livePages?: number[];
   boardRef?: Ref<HTMLDivElement>;
 };
 
@@ -155,7 +160,9 @@ export function AlbumBook({
   coverRef,
   leavesRef,
   boardRef,
+  livePages = [],
 }: AlbumBookProps) {
+  const live = (page: BookPage) => livePages.includes(page.number);
   const open = skipOpening;
   const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
 
@@ -174,7 +181,7 @@ export function AlbumBook({
           <div className="ab-edge-r" />
           <div className="ab-edge-b" />
           <div className="ab-ribbon" />
-          <Page page={lastPage} side="under" />
+          <Page page={lastPage} side="under" live={live(lastPage)} />
           <div className="ab-tabs">
             {bookTabs.map((t) => (
               <div key={t.id} className={`ab-tab ${crazeRetro.className}`} style={{ top: u(t.top), background: t.color }}>
@@ -191,8 +198,8 @@ export function AlbumBook({
               className="ab-leaf album-3d will-change-transform"
               style={{ transform: leafTransform(s, false) }}
             >
-              <Page page={sheet.front} side="front" />
-              <Page page={sheet.back} side="back" />
+              <Page page={sheet.front} side="front" live={live(sheet.front)} />
+              <Page page={sheet.back} side="back" live={live(sheet.back)} />
             </div>
           ))}
           <div
@@ -227,7 +234,8 @@ export function AlbumBook({
 //   front  a sheet's front, a right-hand page
 //   back   a sheet's back, a left-hand page (seen once the sheet is turned)
 //   under  the last page, lying under the sheets (right-hand)
-function Page({ page, side }: { page: BookPage; side: "front" | "back" | "under" }) {
+//   live   it lies still on the screen (its videos play)
+function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "under"; live: boolean }) {
   const left = side === "back";
   const place = side === "under" ? "ab-right" : left ? "ab-face ab-back ab-left" : "ab-face ab-right";
   const look = page.kind === "divider" ? "ab-divider" : "ab-paper";
@@ -237,21 +245,12 @@ function Page({ page, side }: { page: BookPage; side: "front" | "back" | "under"
     <div className={`ab-page ${place} ${look}`} style={style}>
       {page.kind === "contents" && <ContentsList />}
       {page.kind === "divider" && <DividerText title={page.title} blurb={page.blurb} />}
-      {page.kind === "page" && <ChapterPageText title={page.title} />}
+      {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
       {page.kind !== "blank" && (
         <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
           {page.number}
         </div>
       )}
-    </div>
-  );
-}
-
-// One of a chapter's pages: its title, small; its stickers come later.
-function ChapterPageText({ title }: { title: string }) {
-  return (
-    <div className={`absolute leading-none ${crazeRetro.className}`} style={{ left: u(26), top: u(24), fontSize: u(28) }}>
-      {drawnTitle(title)}
     </div>
   );
 }

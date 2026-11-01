@@ -78,8 +78,10 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
   // (re-aimed on a resize), and every animation of this opening.
   const anims = useRef<Partial<Record<Named, Animation>>>({});
   const all = useRef<Animation[]>([]);
-  // A sheet is turning: other presses wait for it.
+  // A sheet is turning: other presses wait for it. The same as state, for
+  // the videos (they show their posters meanwhile).
   const turning = useRef(false);
+  const [turningRun, setTurningRun] = useState<number | null>(null);
   const flyer = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
   const slide = useRef<HTMLDivElement>(null);
@@ -206,6 +208,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
     const target = views[to];
     const spread = layout.spread;
     turning.current = true;
+    setTurningRun(run);
     setNav({ run, page: target.pages[0] });
 
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
@@ -230,10 +233,16 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
     }
     turn()
       .catch(() => {})
-      .finally(() => (turning.current = false));
+      .finally(() => {
+        turning.current = false;
+        setTurningRun(null);
+      });
   };
 
   const poses = screen && flightPoses(object, screen.w, screen.h);
+  // The pages lying still on the screen: open, not turning. Their videos
+  // play; prefers-reduced-motion (when honoured): only posters.
+  const livePages = opened && turningRun !== run && !reducedMotion ? views[index].pages : [];
 
   return (
     // Fills the mat object's box (same proportions as the page).
@@ -257,6 +266,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
             slideRef={slide}
             coverRef={cover}
             leavesRef={leaves}
+            livePages={livePages}
             boardRef={boardRef}
           />
         </div>

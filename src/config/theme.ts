@@ -609,6 +609,28 @@ export const theme = {
       soonOpacity: 0.45,
     },
     pageNumber: { size: 12, bottom: 14, side: 20 }, // u
+    // A chapter's page (u): its title top left, the subtitle under it.
+    chapterPage: { left: 26, top: 24, titleSize: 28, subtitleTop: 58, subtitleSize: 15, subtitleOpacity: 0.75 },
+    // Photos stuck on a page (docs/album-bratari-referinta.html), u. A white
+    // frame (wider at the bottom, where the caption goes) with a soft
+    // shadow; a strip of washi tape on its top edge. places: one per photo,
+    // in order (left, top, turn in degrees; the tape's color and turn).
+    photos: {
+      width: 140,
+      height: 170,
+      padding: { side: 7, bottom: 30 },
+      shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
+      captionSize: 13,
+      captionBottom: 6,
+      tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
+      places: [
+        { left: 22, top: 96, rotation: -4, tape: { color: palette.lilac, rotation: -6 } },
+        { left: 168, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 } },
+      ],
+      // The handwritten note under them, and its arrow.
+      note: { left: 30, top: 300, width: 130, size: 15, rotation: -3 },
+      arrow: { left: 120, top: 350, width: 56 },
+    },
     colors: {
       board: palette.coverBlack,
       paper: palette.paper,

@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/fonts/:path*", headers: cache },
       { source: "/images/:path*", headers: cache },
+      { source: "/videos/:path*", headers: cache },
     ];
   },
 };
