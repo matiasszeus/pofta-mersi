@@ -590,7 +590,11 @@ export const theme = {
     // Open, the book is centred in the visible part of the screen
     // (visualViewport), with the same free space above and below: at least
     // marginY px (room for "închide" in the top-right corner).
-    page: { ratio: 453 / 340, sideMargin: 25, maxWidth: 400, maxHeightVh: 74, marginY: 56 },
+    // Phones (one page at a time): the book's outer edge (the cover's on a
+    // left page; the stack of pages and the tabs on a right page) keeps the
+    // same distance from the screen's edge on both, at least outerMargin
+    // px.
+    page: { ratio: 453 / 340, sideMargin: 25, maxWidth: 400, maxHeightVh: 74, marginY: 56, outerMargin: 20 },
     spreadMinWidth: 700, // from this screen width on: both pages side by side
     spreadWidth: 2.12,
     perspective: 1900, // px: distance from the eye for the 3D

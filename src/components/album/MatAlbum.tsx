@@ -7,7 +7,7 @@ import { theme } from "@/config/theme";
 import { useStableViewport } from "@/lib/stableViewport";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
-import { albumLayout, visibleBox, type ViewBox } from "./albumLayout";
+import { albumLayout, visibleBox, type AlbumLayout, type ViewBox } from "./albumLayout";
 import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
 const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
@@ -144,7 +144,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
         animate(book.current, [{ transform: p.settled }, { transform: p.settled }], now, "book");
         animate(cover.current, [{ transform: coverTransform(-180) }, { transform: coverTransform(-180) }], now);
-        const s = slideFor(start, spread);
+        const s = slideFor(start, p.layout);
         animate(slide.current, [{ transform: s }, { transform: s }], now, "slide");
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         setOpenedRun(run);
@@ -167,7 +167,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         // lying on the left, face down).
         animate(cover.current, [{ transform: coverTransform(0) }, { transform: coverTransform(-180) }], turn),
         // Wide screens: the book slides half a page to the right too.
-        animate(slide.current, [{ transform: SLIDE_NONE }, { transform: slideFor(start, spread) }], turn, "slide"),
+        animate(slide.current, [{ transform: SLIDE_NONE }, { transform: slideFor(start, p.layout) }], turn, "slide"),
       );
       // Open: the buttons appear (the book itself is not touched).
       setOpenedRun(run);
@@ -192,7 +192,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const set = (a: Animation | undefined, keyframes: Keyframe[]) => {
       if (a?.effect instanceof KeyframeEffect) a.effect.setKeyframes(keyframes);
     };
-    const s = slideFor(albumViews(p.spread)[index], p.spread);
+    const s = slideFor(albumViews(p.spread)[index], p.layout);
     set(anims.current.book, bookKeyframes(p));
     set(anims.current.slide, [{ transform: s }, { transform: s }]);
     // Two pages a view or one: the same page, maybe another sheet turned.
@@ -216,7 +216,6 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     if (!layout || !opened || turning.current || to < 0 || to >= views.length) return;
     const from = views[index];
     const target = views[to];
-    const spread = layout.spread;
     turning.current = true;
     setTurningRun(run);
     setHintPage(null);
@@ -225,7 +224,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
     // The sheets that turn (one, going to the next view).
     const moving = sheets.map((_, s) => s).filter((s) => s < from.turned !== s < target.turned);
-    const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
+    const pane = (v: AlbumView) => ({ transform: slideFor(v, layout) });
     async function turn() {
       if (reducedMotion) {
         // No turning: a crossfade (out, the new page, in).
@@ -313,7 +312,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     setHintPage(null);
 
     const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
-    const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
+    const pane = (v: AlbumView) => ({ transform: slideFor(v, layout) });
     async function leaf() {
       if (reducedMotion) {
         // No leafing: a short crossfade straight to the page.
@@ -542,17 +541,19 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   );
 }
 
-type Poses = { rest: string; lifted: string; settled: string; spread: boolean; shadowLifted: string };
+type Poses = { rest: string; lifted: string; settled: string; spread: boolean; shadowLifted: string; layout: AlbumLayout };
 
 // 3D transforms everywhere (translate3d), so Safari never switches the book
 // between 3D and 2D drawing.
-const SLIDE_NONE = "translate3d(0%, 0px, 0px)";
+const SLIDE_NONE = "translate3d(calc(0% + 0px), 0px, 0px)";
 
 // How far the book is slid for a view: wide screens half a page (cover and
-// page centred together); phones one page to show a left-hand page.
-function slideFor(view: AlbumView, spread: boolean) {
-  if (spread) return "translate3d(50%, 0px, 0px)";
-  return view.side === "left" ? "translate3d(100%, 0px, 0px)" : SLIDE_NONE;
+// page centred together), phones one page to show a left-hand page; plus
+// the shifts that centre the whole book (see albumLayout).
+function slideFor(view: AlbumView, layout: AlbumLayout) {
+  const x = (percent: number, px: number) => `translate3d(calc(${percent}% + ${px}px), 0px, 0px)`;
+  if (layout.spread) return x(50, layout.shiftSpread);
+  return view.side === "left" ? x(100, layout.shiftLeft) : x(0, layout.shiftRight);
 }
 
 const bookKeyframes = (p: Poses): Keyframe[] => [
@@ -590,6 +591,7 @@ function flightPoses(mat: Placed, view: ViewBox): Poses {
     lifted: pose(toMiddle.x, toMiddle.y + lifted.y * scaleY, lifted.rotation, lifted.scale),
     settled: pose(toMiddle.x, toMiddle.y + settled.y * scaleY, 0, 1),
     spread: layout.spread,
+    layout,
     // "24u" -> px at this size.
     shadowLifted: board.shadowLifted.replace(/([\d.]+)u/g, (_, n) => `${Number(n) * layout.u}px`),
   };
