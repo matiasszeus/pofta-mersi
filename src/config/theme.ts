@@ -265,13 +265,13 @@ export const theme = {
         alt: "Albumul cu stickerele Pofta Mersi",
         href: "/album",
         ariaLabel: "Album", // what screen readers announce for the link
-        // Portrait: big, centred, its top edge at 23% of the height; on short
+        // Portrait: big, centred, its top edge at 18% of the height; on short
         // phones (under ~700px) at most 44% of the height, so the note and the
         // bottom corner letters still fit under it without touching.
         // Landscape: in the middle of the screen.
         portrait: {
           anchorX: 0.5, alignX: 0.5, x: 0,
-          anchorY: 0.23, alignY: 0, y: 0,
+          anchorY: 0.18, alignY: 0, y: 0,
           widthVw: 67, maxWidth: 380, maxHeightVh: 44,
         },
         landscape: {
@@ -318,7 +318,7 @@ export const theme = {
       // (clearOf "right") until it is `gap` px clear of the album's box.
       place: {
         portrait: {
-          left: 0.53, top: 0.71,
+          left: 0.53, top: 0.66,
           widthVw: 32, maxWidth: 170, maxHeightVh: 15,
           clearOf: "below" as "below" | "right", gap: 24,
         },
@@ -435,7 +435,8 @@ export const theme = {
         { char: "P", x: -0.05, y: 0.09, size: 0.18, rotation: -20 },
         { char: "F", x: 0.77, y: 0.07, size: 0.17, rotation: 18 },
         { char: "T", x: 0.83, y: 0.39, size: 0.17, rotation: 80 },
-        { char: "O", x: -0.03, y: 0.5, size: 0.17, rotation: -10 },
+        // Top, between P and F (only on screens tall enough for 7-8 letters).
+        { char: "O", x: 0.4, y: 0.04, size: 0.17, rotation: -12 },
         { char: "A", x: 0.08, y: 0.73, size: 0.17, rotation: 12 },
         { char: "M", x: -0.08, y: 0.86, size: 0.19, rotation: 70 },
         { char: "S", x: 0.76, y: 0.88, size: 0.18, rotation: -16 },
