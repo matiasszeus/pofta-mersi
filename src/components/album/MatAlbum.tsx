@@ -12,7 +12,7 @@ import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumVi
 
 const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
-const { gestures, hint } = pages;
+const { edgeTapZone, swipeThreshold, hintCurl: hint } = theme.album;
 const ms = (seconds: number) => seconds * 1000;
 
 // What a tap or a press on these does is theirs (a photo, a link, the
@@ -355,7 +355,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   const goToChapter = (chapterId: string) => goToPage(firstPageOf(chapterId), chapterId);
 
   // --- Leafing by hand ---------------------------------------------------
-  // A tap on a page's outer edge (gestures.edge of its width): on a wide
+  // A tap on a page's outer edge (edgeTapZone of its width): on a wide
   // screen the right page's right edge = next, the left page's left edge =
   // back; on a phone (one page) its right edge = next, its left edge =
   // back. The middle of a page does nothing (no turning by mistake).
@@ -366,8 +366,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const r = pageEl.getBoundingClientRect();
     const f = (x - r.left) / r.width;
     const leftPage = pageEl.classList.contains("ab-left");
-    const forward = f >= 1 - gestures.edge && (!layout.spread || !leftPage);
-    const back = f <= gestures.edge && (!layout.spread || leftPage);
+    const forward = f >= 1 - edgeTapZone && (!layout.spread || !leftPage);
+    const back = f <= edgeTapZone && (!layout.spread || leftPage);
     const step = forward ? 1 : back ? -1 : 0;
     return index + step >= 0 && index + step < views.length ? step : 0;
   };
@@ -409,11 +409,12 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       const dy = e.clientY - s.y;
       const far = Math.abs(dx);
       const speed = far / Math.max(1, e.timeStamp - s.t); // px per ms
-      const swiped = far > Math.abs(dy) && (far >= gestures.swipe || (far > gestures.tapSlop && speed >= gestures.swipeSpeed));
+      const { distance, speed: fast, tapSlop } = swipeThreshold;
+      const swiped = far > Math.abs(dy) && (far >= distance || (far > tapSlop && speed >= fast));
       if (swiped) {
         // Swiped to the left: the next page (it comes from the right).
         latest.current.go(dx < 0 ? 1 : -1);
-      } else if (Math.hypot(dx, dy) <= gestures.tapSlop) {
+      } else if (Math.hypot(dx, dy) <= tapSlop) {
         const step = latest.current.edgeStep(s.target, s.x);
         if (step) latest.current.go(step);
       }

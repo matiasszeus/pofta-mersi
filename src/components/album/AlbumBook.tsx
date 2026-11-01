@@ -10,7 +10,7 @@ import { PartnerCredit } from "./PartnerCredit";
 import { PriceTag } from "./PriceTag";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
-const { hint } = theme.album.pages;
+const { hintCurl: hint } = theme.album;
 const text = content.album;
 
 // The hint's two lifts of the corner (see PageCurl): when each one is up

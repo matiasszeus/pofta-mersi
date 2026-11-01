@@ -614,6 +614,12 @@ export const theme = {
     // right; corner radii in u.
     coverParts: { over: 6, radiusSpine: 3, radiusEdge: 9 },
     pageRadius: 4, // u, on the outer corners of the pages
+    // u: the free space every page keeps along its outer edge (the left
+    // edge of a left page, the right edge of a right page); nothing on a
+    // page comes closer, except the pictures meant to run off it (the
+    // bracelets' bands). Kept by the places in theme.ts (photos,
+    // priceTag...), checked when they change.
+    pageMargin: 26,
     ribbon: { left: 206, width: 16, height: 46, below: 38 }, // u
     // The chapters' tabs on the edge (u): the first `top` from the page's
     // top, each next one `step` lower.
@@ -695,14 +701,16 @@ export const theme = {
     // shadow; a strip of washi tape on its top edge. places: one per photo,
     // in order (left, top, turn in degrees; the tape's color and turn).
     photos: {
-      width: 140,
-      height: 170,
+      // Size: like the left pages, nothing closer than ~26u to the page's
+      // outer edge (pageMargin); at 130u both fit side by side.
+      width: 130,
+      height: 158,
       padding: { side: 7, bottom: 30 },
       shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
       tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
       places: [
         { left: 22, top: 96, rotation: -4, tape: { color: palette.lilac, rotation: -6 }, labelRotation: -1.5 },
-        { left: 168, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 }, labelRotation: 1.5 },
+        { left: 158, top: 150, rotation: 3, tape: { color: palette.sage, rotation: 5 }, labelRotation: 1.5 },
       ],
       // The handwritten note under them (18u = ~19px on a phone), and its
       // arrow right under it (left: from the page's edge; gap: under the
@@ -799,7 +807,7 @@ export const theme = {
     // curving up-left. Its title big, centred, at the top; its unit small
     // in the bottom-right corner.
     priceTag: {
-      left: 200,
+      left: 197,
       top: 36,
       width: 90,
       height: 47,
@@ -884,22 +892,25 @@ export const theme = {
         maxTotal: 2.2,
         easing: "cubic-bezier(0.45, 0.05, 0.25, 1)",
       },
-      // Leafing by hand (MatAlbum):
-      //   swipe       px sideways (one finger) that turn the page...
-      //   swipeSpeed  ...or a shorter flick at least this fast (px per ms)
-      //   tapSlop     px a finger may move and still be a tap
-      //   edge        the outer part of a page (of its width) where a tap
-      //               turns: right page's right edge = next, left page's
-      //               left edge = back (phones: the one page's two edges)
-      gestures: { swipe: 40, swipeSpeed: 0.5, tapSlop: 10, edge: 0.25 },
-      // The first time the album opens (remembered in localStorage): the
-      // page's bottom-right corner lifts a little, twice, then lies down.
-      //   delay   seconds after the album is open
-      //   size    the lifted corner, of the page's width
-      //   lift    seconds for one lift (up and down)
-      //   pause   seconds between the two
-      hint: { delay: 0.8, size: 0.13, lift: 0.7, pause: 0.25, storageKey: "pm-album-hint" },
     },
+
+    // Leafing by hand (MatAlbum).
+    // A tap on a page's outer part (this much of its width) turns it:
+    // the right page's right edge = next, the left page's left edge = back
+    // (phones: the one page's two edges). The middle does nothing.
+    edgeTapZone: 0.25,
+    // A swipe (one finger, sideways): `distance` px turn the page, or a
+    // shorter flick at least `speed` px per ms; a finger moving at most
+    // `tapSlop` px is still a tap.
+    swipeThreshold: { distance: 40, speed: 0.5, tapSlop: 10 },
+    // The first time the album opens (remembered in localStorage under
+    // storageKey): the page's bottom-right corner lifts a little, twice,
+    // then lies down.
+    //   delay   seconds after the album is open
+    //   size    the lifted corner, of the page's width
+    //   lift    seconds for one lift (up and down)
+    //   pause   seconds between the two
+    hintCurl: { delay: 0.8, size: 0.13, lift: 0.7, pause: 0.25, storageKey: "pm-album-hint" },
   },
 
   // The small © line at the bottom of the pages after the landing.
