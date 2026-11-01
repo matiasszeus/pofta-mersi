@@ -7,7 +7,7 @@ const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening, ta
 // stack of pages and the board, and the tabs further still; on the left
 // only the open cover's edge. So centring the pages alone leaves less room
 // on the right than on the left.
-const reachRight = Math.max(tabs.width, board.beyond + stack.max);
+const reachRight = Math.max(tabs.width, board.beyond + stack.base);
 const reachLeft = coverParts.over;
 // On the left, the board under the turned sheets' stack may reach further
 // (see stackLeft): u past a left page with `left` u of stack.
