@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { NoZoom } from "@/components/site/NoZoom";
 import { theme } from "@/config/theme";
 import { hankenGrotesk, whitenice } from "./fonts";
 import "./globals.css";
@@ -13,6 +14,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   // Tints the mobile browser's own bars.
   themeColor: theme.colors.background,
+  // No zooming the page (the owner's decision; see NoZoom for the browsers
+  // that ignore this).
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col" style={{ background: theme.colors.background }}>
         {children}
+        <NoZoom />
       </body>
     </html>
   );

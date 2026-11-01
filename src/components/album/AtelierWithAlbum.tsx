@@ -6,8 +6,6 @@ import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { resetZoom, useStableViewport } from "@/lib/stableViewport";
-import { useNoPinchOnMat } from "@/components/atelier/useNoPinchOnMat";
 import { MatAlbum, matAlbumObject } from "./MatAlbum";
 
 const album = matAlbumObject(theme.atelier.objects[0]);
@@ -29,14 +27,8 @@ const dimVars = {
 // /atelier and /lab/album; `lab` adds a button to replay the opening.
 export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   const reducedMotion = useReducedMotion();
-  // Pinch-zoomed in: the mat allows pinch-zoom again (see .atelier-main
-  // in globals.css), so it can be zoomed back out.
-  const zoomed = useStableViewport()?.zoomed ?? false;
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
-  // No pinch-zoom on the mat, except while the album is open (or the page
-  // is still zoomed in, to zoom back out).
-  useNoPinchOnMat(!open && !zoomed);
   // The vignette is in the page from the tap until it has faded out after
   // closing (then taken away, not left at opacity 0).
   const [vignette, setVignette] = useState(false);
@@ -59,7 +51,7 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   return (
     // display: contents = no box of its own, the stage is laid out exactly
     // as without it.
-    <div className={`contents ${open ? "album-open" : ""} ${zoomed ? "mat-zoomed" : ""}`} style={dimVars}>
+    <div className={`contents ${open ? "album-open" : ""}`} style={dimVars}>
       <AtelierStage
         onObjectActivate={onObjectActivate}
         objectArt={art}
@@ -71,11 +63,7 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
       {vignette && (
         <div
           className={`fixed inset-0 z-15 h-lvh ${open ? "album-vignette-in" : "album-vignette-out pointer-events-none"}`}
-          style={{
-            background: `radial-gradient(ellipse at center, ${dimCenter} 0%, ${dimEdge} 100%)`,
-            // Around the open album: moving and pinch-zoom allowed.
-            touchAction: "pan-x pan-y pinch-zoom",
-          }}
+          style={{ background: `radial-gradient(ellipse at center, ${dimCenter} 0%, ${dimEdge} 100%)` }}
           onAnimationEnd={() => {
             if (!open) setVignette(false);
           }}
@@ -92,8 +80,6 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
             type="button"
             className={pill}
             onClick={() => {
-              // Zoomed into the album: the mat comes back at zoom 1.
-              resetZoom();
               // A new run: reopened, it starts again from the contents.
               setOpen(false);
               setRun((n) => n + 1);

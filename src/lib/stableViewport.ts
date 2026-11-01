@@ -7,7 +7,8 @@ import { useSyncExternalStore } from "react";
 //
 // Why: a pinch-zoom changes visualViewport.width / height (and, on
 // Android Chrome, window.innerWidth / innerHeight too), and fires the same
-// "resize" events as turning the phone. Laying the mat out again for those
+// "resize" events as turning the phone. The site blocks zooming (NoZoom),
+// so this is a backstop for a browser that zooms anyway. Laying the mat out again for those
 // would shrink and move everything. So while zoomed (scale not 1) the last
 // size measured at scale 1 is kept; the layout only changes for real
 // changes: turning the phone, resizing the window, Safari's or Instagram's
@@ -94,20 +95,6 @@ function subscribe(listener: () => void) {
 export function stableViewport(): StableViewport {
   if (!current) current = measure(isZoomed());
   return current;
-}
-
-// Back to zoom 1 (e.g. closing the album while pinch-zoomed into it). A
-// page cannot set the browser's zoom directly; briefly adding
-// maximum-scale=1 to the viewport meta makes the browser zoom back out,
-// and the original is put back right after, so zooming stays allowed.
-export function resetZoom() {
-  const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-  if (!meta || !isZoomed()) return;
-  const original = meta.content;
-  meta.content = `${original}, maximum-scale=1`;
-  window.setTimeout(() => {
-    meta.content = original;
-  }, 300);
 }
 
 // The same, kept up to date in a component (null on the server).

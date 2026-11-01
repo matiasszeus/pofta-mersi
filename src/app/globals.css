@@ -208,22 +208,20 @@ body {
   overflow: clip;
 }
 
-/* touch-action: what a finger may do on an element by the browser's own
-   rules (scroll, pinch-zoom); the rest is left to the page. It applies to
-   the element and everything inside it, so the open album (inside this
-   box) can only get pinch-zoom back if this box allows it.
-   The mat (letters, calculator, note, the album lying on it): moves, no
-   pinch-zoom (nothing to zoom into; it used to move the layout around).
-   While the album is open: allowed (the album and the vignette say what
-   they allow, see MatAlbum and AtelierWithAlbum). Still zoomed in
-   (.mat-zoomed, e.g. the album was closed while zoomed): allowed too, or
-   there would be no way to zoom back out. */
-.atelier-main {
-  touch-action: pan-x pan-y;
-}
-.atelier-main:has(.album-open),
-.atelier-main:has(.mat-zoomed) {
-  touch-action: auto;
+/* No zooming anywhere (see NoZoom): touch-action says what a finger may do
+   by the browser's own rules; here moving (scrolling) only, no pinch-zoom
+   and no double-tap zoom. On every element: it only counts up to the
+   nearest scrolling box (like .atelier-main), so html alone is not enough.
+   Elements that need less (the album: pan-y, the photo: none, the
+   landing's letters: touch-none) say so themselves. In the "base" layer,
+   so Tailwind classes like touch-none (layer "utilities") still win: a
+   rule outside any layer would beat them all. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    touch-action: pan-x pan-y;
+  }
 }
 
 /* Pictures of the artwork (cover, stickers, bracelets, note, backgrounds):

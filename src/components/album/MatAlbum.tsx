@@ -76,9 +76,7 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // every resize, and when an in-app browser's bars change it; as it was
   // at zoom 1 while pinch-zoomed in (the book stays put). See
   // stableViewport.
-  const vp = useStableViewport();
-  const zoomed = vp?.zoomed ?? false;
-  const b = vp?.box;
+  const b = useStableViewport()?.box;
   const screen = useMemo<ViewBox | null>(
     () => (b ? { left: b.left, top: b.top, width: b.width, height: b.height } : null),
     // Only when a number changes (not when only `zoomed` does).
@@ -507,9 +505,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
             // around it shows one everywhere, for the tap that opens it).
             cursor: opened ? (overEdge ? "pointer" : "default") : undefined,
             // Open: a finger's sideways moves are ours (swipes); the
-            // browser keeps up-down and pinch-zoom. Zoomed in: all of it
-            // is the browser's (moving around the zoomed-in page).
-            touchAction: opened && !zoomed ? "pan-y pinch-zoom" : undefined,
+            // browser keeps only up-down (no zoom anywhere, see NoZoom).
+            touchAction: opened ? "pan-y" : undefined,
           }}
         >
           <AlbumBook
