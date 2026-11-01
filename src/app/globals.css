@@ -155,8 +155,8 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
-/* /lab/album: while open, the album is above the layer darkening the mat,
-   and no longer grows on hover / press. */
+/* The album, while open: above the layer darkening the mat, and no longer
+   growing on hover / press. */
 .album-open [data-object="album"] {
   z-index: 20;
 }
@@ -166,6 +166,6 @@ body {
 /* Open, the book reaches past the screen's edges (the cover on the left,
    the next page on the right). Cut off at the screen's edge only ("clip":
    the page cannot be scrolled sideways), on <main>, outside the book's 3D. */
-.lab-album-main:has(.album-open) {
+.atelier-main:has(.album-open) {
   overflow: clip;
 }

@@ -65,10 +65,10 @@ type MatObjectProps = {
   // Seconds from the start of the slam phase until this object starts falling.
   slamDelay?: number;
   // Optional: a tap calls this (with the link element) instead of going to
-  // the object's page. Used by /lab/album.
+  // the object's page. Used for the album (see AtelierWithAlbum).
   onActivate?: (link: HTMLAnchorElement) => void;
   // Optional: drawn instead of the picture and its shadow, filling the
-  // object's box (the album drawn in code on /lab/album).
+  // object's box (the album drawn in code).
   art?: ReactNode;
 };
 

@@ -5,8 +5,9 @@ Website for **Pofta Mersi**, an artist's brand (artwork, stickers, apparel, smal
 - **Landing page** (`/`): the highest-impact page, an interactive 3D hero. A tap dives
   into the atelier.
 - **Atelier** (`/atelier`): a cutting mat seen from above, with the 3D letters that landed
-  on it, the album (links to `/album`), a handwritten note and a pocket calculator: the
-  cart (links to `/cos`; its data in `src/lib/cart.ts`, localStorage).
+  on it, the album (drawn in code; a tap opens it right there to leaf through), a handwritten
+  note and a pocket calculator: the cart (links to `/cos`; its data in `src/lib/cart.ts`,
+  localStorage).
 - **Later**: gallery-style pages where the artist shows his work and the items for sale
   (`/album` is a placeholder for now).
 - **Lab** (`/lab`): sandbox for experiments (the landing + a debug switch). Never linked

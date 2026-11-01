@@ -42,6 +42,9 @@ export const content = {
   // The album.
   album: {
     coverTitle: "ALBUM",
+    // The buttons over the open album (replay: /lab/album only).
+    close: "închide",
+    replay: "reia animația",
     soon: "în curând",
     // The chapters, in the book's order: the only place it is written.
     // From this list come the pages and their numbers, the contents (each

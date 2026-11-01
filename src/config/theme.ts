@@ -562,7 +562,7 @@ export const theme = {
     },
   },
 
-  // The album (for now only on /lab/album, where it lies on the mat):
+  // The album lying on the atelier's mat (/atelier, /lab/album):
   // tapped, it rises, settles in the middle of the screen and opens. All
   // values come from the approved prototype (docs/album-deschidere-
   // referinta.html).

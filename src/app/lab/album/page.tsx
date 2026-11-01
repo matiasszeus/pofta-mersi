@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { MatBackground } from "@/components/atelier/MatBackground";
 import { theme } from "@/config/theme";
-import { LabAlbum } from "./LabAlbum";
+import { AtelierWithAlbum } from "@/components/album/AtelierWithAlbum";
 
 // Sandbox for the album: never linked from the site, kept out of search
 // engines (noindex).
@@ -14,15 +14,15 @@ export const viewport: Viewport = {
   themeColor: theme.atelier.background,
 };
 
-// The atelier as on /atelier, except that the album on the mat is the one
-// drawn in code, and a tap opens it right here (see LabAlbum).
+// The atelier as on /atelier, plus a button to replay the album's opening
+// (see AtelierWithAlbum). For trying out the album before it goes there.
 export default function LabAlbumPage() {
   return (
     // While the album is open it is only cut off at the screen's edges:
-    // see .lab-album-main in globals.css.
-    <main className="lab-album-main relative h-dvh overflow-hidden">
+    // see .atelier-main in globals.css.
+    <main className="atelier-main relative h-dvh overflow-hidden">
       <MatBackground />
-      <LabAlbum />
+      <AtelierWithAlbum lab />
     </main>
   );
 }

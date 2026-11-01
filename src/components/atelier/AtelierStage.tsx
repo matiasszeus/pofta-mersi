@@ -29,7 +29,7 @@ const slamDelay = (i: number) => i * slam.stagger;
 // and the letters only exist in the browser, where they start in the air.
 type StageProps = {
   // Optional: a tap on an object calls this instead of going to its page
-  // (see MatObject). Used by /lab/album.
+  // (see MatObject). Used for the album (see AtelierWithAlbum).
   onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
   // Optional, per object key: drawn instead of its picture (see MatObject;
   // given the object's settings and its place on this mat), and its own
