@@ -22,7 +22,13 @@ export const content = {
       { key: "tricouri", title: "TRICOURI", page: null },
       { key: "tote-bags", title: "TOTE BAGS", page: null },
     ] as { key: string; title: string; page: number | null }[],
-    // The stickers section: its divider page (2) and its first page (3).
-    stickers: { title: "STICKERE", blurb: "[o frază despre stickere]" },
+    // The book's parts you can leaf to, in order. id: stable, never
+    // changed (later each gets its address, /album/<id>, and the book can
+    // open right there); label: shown under the book. A chapter has a
+    // divider page (its title big, and the blurb) and then its first page.
+    pages: [
+      { id: "cuprins", label: "cuprins" },
+      { id: "stickere", label: "stickere", title: "STICKERE", blurb: "[o frază despre stickere]" },
+    ] as { id: string; label: string; title?: string; blurb?: string }[],
   },
 };

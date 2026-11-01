@@ -168,6 +168,9 @@ body {
 .album-open [data-object="album"] .obj-art {
   scale: none;
 }
+/* Open, the book reaches past the screen's edges (the cover on the left,
+   the next page on the right). Cut off at the screen's edge only ("clip":
+   the page cannot be scrolled sideways), on <main>, outside the book's 3D. */
 .lab-album-main:has(.album-open) {
-  overflow: visible;
+  overflow: clip;
 }

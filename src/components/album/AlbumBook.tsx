@@ -6,9 +6,9 @@ import { theme } from "@/config/theme";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors, sectionColors } = theme.album;
 const text = content.album;
-
-// "cuprins" (the contents) or a section's key ("stickere", "bratari"...).
-export type AlbumPageKey = string;
+// The chapter after the contents (its divider is the sheet's back, its
+// first page lies under the sheet).
+const chapter = text.pages[1];
 
 // A length in u (see theme.album), as CSS: --u is set on the book.
 const u = (n: number) => `calc(var(--u) * ${n}px)`;
@@ -81,7 +81,7 @@ const css = `
 .ab-dot { width: ${u(contents.dot)}; height: ${u(contents.dot)}; border-radius: 50%; flex: none; align-self: center; box-sizing: border-box; }
 .ab-lead { flex: 1; border-bottom: ${u(2)} dotted rgb(29 38 51 / 0.35); transform: translateY(${u(-4)}); }
 .ab-pnum { position: absolute; bottom: ${u(pageNumber.bottom)}; font-size: ${u(pageNumber.size)}; color: rgb(29 38 51 / 0.55); }
-/* The sheet: turns around the spine (later, for leafing through). */
+/* The sheet: turns around the spine when leafing (see leafTransform). */
 .ab-leaf { position: absolute; inset: 0; transform-origin: left center; transform: rotateY(0deg) translateZ(2px); }
 .ab-cover {
   position: absolute; top: ${u(-coverParts.over)}; bottom: ${u(-coverParts.over)}; left: 0; right: ${u(-coverParts.over)};
@@ -100,25 +100,25 @@ const css = `
 
 // The cover's turn: closed (0) or open, lying left of the pages (-180).
 export const coverTransform = (angle: number) => `rotateY(${angle}deg) translateZ(3px)`;
+// The sheet's: the contents on the right, or turned (its back, the
+// chapter's divider, on the left).
+export const leafTransform = (flipped: boolean) => `rotateY(${flipped ? -180 : 0}deg) translateZ(2px)`;
 
 type AlbumBookProps = {
   // px per u (see albumLayout).
   u: number;
-  // The page it opens on. Later every page gets its own address
-  // (/album/stickere...) and a direct link opens the book right there; for
-  // now there is only the contents page.
-  initialPage?: AlbumPageKey;
-  // true = drawn open (after the opening, a direct link, reduced motion);
-  // false = closed, until the opening turns the cover.
+  // true = drawn open, without the opening; false = closed, until the
+  // opening (MatAlbum) turns the cover.
   skipOpening?: boolean;
   // Wide screen: open, the book slides half a page to the right.
   spread: boolean;
   // The book's own transform (its flight, see MatAlbum).
   bookTransform: string;
-  // The parts the opening animates.
+  // The parts the opening and the leafing animate.
   bookRef?: Ref<HTMLDivElement>;
   slideRef?: Ref<HTMLDivElement>;
   coverRef?: Ref<HTMLDivElement>;
+  leafRef?: Ref<HTMLDivElement>;
   boardRef?: Ref<HTMLDivElement>;
 };
 
@@ -142,18 +142,16 @@ type AlbumBookProps = {
 // a clip-path or a mask: none of them does. The faces themselves may.
 export function AlbumBook({
   u: unit,
-  initialPage = "cuprins",
   skipOpening = false,
   spread,
   bookTransform,
   bookRef,
   slideRef,
   coverRef,
+  leafRef,
   boardRef,
 }: AlbumBookProps) {
   const open = skipOpening;
-  // Only the contents page exists so far (initialPage is for later).
-  void initialPage;
   const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
 
   return (
@@ -185,7 +183,7 @@ export function AlbumBook({
                 </div>
               ))}
           </div>
-          <div className="ab-leaf album-3d">
+          <div ref={leafRef} className="ab-leaf album-3d will-change-transform">
             <ContentsPage />
             <DividerPage />
           </div>
@@ -217,7 +215,8 @@ export function AlbumBook({
   );
 }
 
-// The page under the sheet: the stickers section's first page (3).
+// The page under the sheet: the chapter's first page (3); its stickers
+// come later.
 function StickersPage() {
   return (
     <div className="ab-page ab-right ab-paper" style={{ transform: "translateZ(0)" }}>
@@ -225,7 +224,7 @@ function StickersPage() {
         className={`absolute leading-none ${crazeRetro.className}`}
         style={{ left: u(26), top: u(24), fontSize: u(28) }}
       >
-        {text.stickers.title}
+        {chapter.title}
       </div>
       <div className="ab-pnum" style={{ right: u(pageNumber.side) }}>
         3
@@ -280,16 +279,16 @@ function ContentsPage() {
   );
 }
 
-// The back of the sheet: page 2, the stickers section's divider.
+// The back of the sheet: page 2, the chapter's divider (lilac).
 function DividerPage() {
   return (
     <div className="ab-face ab-back ab-page ab-left ab-divider">
       <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
         <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
-          {text.stickers.title}
+          {chapter.title}
         </div>
         <div className="opacity-75" style={{ fontSize: u(15) }}>
-          {text.stickers.blurb}
+          {chapter.blurb}
         </div>
       </div>
       <div className="ab-pnum" style={{ left: u(pageNumber.side) }}>

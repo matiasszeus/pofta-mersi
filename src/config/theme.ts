@@ -624,6 +624,26 @@ export const theme = {
       // and fades in open in the middle.
       reducedMotionFade: 0.4,
     },
+
+    // Leafing through, once open (buttons under the book).
+    pages: {
+      // A sheet turns around the spine (rotateY 0 -> -180deg). On phones
+      // the book slides one page width at the same time, so the page you
+      // go to is on the screen.
+      turn: { duration: 0.95, easing: "cubic-bezier(0.55, 0.05, 0.25, 1)" },
+      // prefers-reduced-motion: no turning, a crossfade (seconds, in all).
+      reducedMotionFade: 0.3,
+      // The buttons and the page's name between them, under the book. px.
+      controls: {
+        gap: 30, // from the bottom of the ribbon
+        button: 48,
+        spacing: 18, // between buttons and name
+        labelWidth: 120,
+        labelSize: 17,
+        margin: 12, // kept free under them, to the screen's edge
+        fadeIn: 0.4, // seconds, once the cover is open
+      },
+    },
   },
 
   // The header of every page after the landing: only the logo, top left.

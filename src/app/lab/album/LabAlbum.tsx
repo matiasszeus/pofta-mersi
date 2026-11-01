@@ -51,7 +51,11 @@ export function LabAlbum() {
           <button
             type="button"
             className="rounded-full bg-white/85 px-3 py-1.5 text-black shadow"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              // A new run: reopened, it starts again from the contents.
+              setOpen(false);
+              setRun((n) => n + 1);
+            }}
           >
             închide
           </button>
