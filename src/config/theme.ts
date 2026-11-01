@@ -896,6 +896,20 @@ export const theme = {
   },
 
   // The small © line at the bottom of the pages after the landing.
+  // A phone held sideways: the site asks to be held upright (see
+  // RotateNotice). Shown when the screen is wider than tall, at most
+  // maxHeight CSS px tall (phones; tablets are taller) and touch is the main
+  // input. iconSize in px; turn: seconds for the icon's turn, repeated.
+  rotateNotice: {
+    background: palette.green,
+    color: palette.white,
+    accent: palette.lilac,
+    maxHeight: 500,
+    iconSize: 64,
+    textSize: 22,
+    turn: 2.4,
+  },
+
   siteFooter: {
     color: palette.white,
     opacity: 0.7,

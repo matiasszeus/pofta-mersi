@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NoZoom } from "@/components/site/NoZoom";
+import { RotateNotice } from "@/components/site/RotateNotice";
 import { theme } from "@/config/theme";
 import { hankenGrotesk, whitenice } from "./fonts";
 import "./globals.css";
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" style={{ background: theme.colors.background }}>
         {children}
         <NoZoom />
+        <RotateNotice />
       </body>
     </html>
   );

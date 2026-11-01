@@ -57,6 +57,8 @@ export type AlbumChapter =
 export const content = {
   // The small line at the bottom of the pages after the landing.
   copyright: "© 2026 Pofta Mersi",
+  // A phone held sideways (see RotateNotice).
+  rotateNotice: "Întoarce telefonul",
 
   // The handwritten note on the atelier mat. Shown tiny (unreadable) on the
   // mat, and full size when tapped. Each string is one paragraph.
