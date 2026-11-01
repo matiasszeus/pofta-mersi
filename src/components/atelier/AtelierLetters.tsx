@@ -14,15 +14,19 @@ type AtelierLettersProps = {
   onLanded: () => void;
   // What lies on the mat: the letters keep clear of it.
   mat: MatLayout;
+  // Something covers them (the open album): no drawing meanwhile.
+  paused?: boolean;
 };
 
 // The letters lying on the atelier's mat, in a transparent layer between the
 // mat and the page's content.
-export function AtelierLetters({ animate, onLanded, mat }: AtelierLettersProps) {
+export function AtelierLetters({ animate, onLanded, mat, paused = false }: AtelierLettersProps) {
   return (
     // fixed + 100lvh, like the mat's drawings, so the two always line up.
-    <div className="pointer-events-none fixed inset-0 h-lvh">
-      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} />
+    // mat-dims: steps back while the album is open (globals.css): the
+    // whole canvas, not the letters' materials.
+    <div className="mat-dims pointer-events-none fixed inset-0 h-lvh">
+      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} paused={paused} />
     </div>
   );
 }

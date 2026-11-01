@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { MatObjectConfig, Placed } from "@/components/atelier/objectLayout";
 import { theme } from "@/config/theme";
@@ -10,7 +10,7 @@ import { albumLayout } from "./albumLayout";
 import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
 const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
-const { flight, cover: coverTurn, dim: dimming } = opening;
+const { flight, cover: coverTurn } = opening;
 const ms = (seconds: number) => seconds * 1000;
 
 // The album's settings for the mat: those of theme.ts, but with the
@@ -42,8 +42,6 @@ type MatAlbumProps = {
   // Changes to play the opening again.
   run: number;
   reducedMotion: boolean;
-  // The layer that darkens the mat (it lies between the mat and the book).
-  dimRef: RefObject<HTMLDivElement | null>;
   // Where it opens: "cuprins" (the contents) or a chapter's id
   // ("stickere"), see content.album.chapters. Later /album/stickere
   // passes it.
@@ -65,7 +63,7 @@ type Named = "book" | "slide" | "board";
 // holding the last frame ("fill"), for as long as the album is open:
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
-export function MatAlbum({ place, open, run, reducedMotion, dimRef, initialPage = "cuprins" }: MatAlbumProps) {
+export function MatAlbum({ place, open, run, reducedMotion, initialPage = "cuprins" }: MatAlbumProps) {
   const [screen, setScreen] = useState<{ w: number; h: number } | null>(null);
   // The opening (run) that has ended: the buttons show from then on.
   const [openedRun, setOpenedRun] = useState<number | null>(null);
@@ -121,8 +119,6 @@ export function MatAlbum({ place, open, run, reducedMotion, dimRef, initialPage 
     if (!p) return;
     const spread = p.spread;
     const start = albumViews(spread)[viewWithPage(firstPageOf(initialPage), spread)];
-    const dimIn = (duration: number) =>
-      animate(dimRef.current, [{ opacity: 0 }, { opacity: dimming.opacity }], { duration, easing: "ease" });
     const now = { duration: 0 };
     // The page it opens on: the sheets before it already turned.
     for (let s = 0; s < start.turned; s++) animate(leaves.current[s], [{ transform: leafTransform(s, true) }], now);
@@ -131,7 +127,7 @@ export function MatAlbum({ place, open, run, reducedMotion, dimRef, initialPage 
       if (reducedMotion) {
         // Fade out on the mat, then fade in open in the middle.
         const half = { duration: ms(opening.reducedMotionFade) / 2 };
-        await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half), dimIn(half.duration));
+        await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
         animate(book.current, [{ transform: p.settled }, { transform: p.settled }], now, "book");
         animate(cover.current, [{ transform: coverTransform(-180) }, { transform: coverTransform(-180) }], now);
         const s = slideFor(start, spread);
@@ -153,7 +149,6 @@ export function MatAlbum({ place, open, run, reducedMotion, dimRef, initialPage 
           { duration: ms(board.shadowDuration), easing: "ease" },
           "board",
         ),
-        dimIn(ms(dimming.duration)),
         // Meanwhile the cover turns open around the spine (from flat to
         // lying on the left, face down).
         animate(cover.current, [{ transform: coverTransform(0) }, { transform: coverTransform(-180) }], turn),

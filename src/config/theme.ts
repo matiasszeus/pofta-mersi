@@ -631,6 +631,16 @@ export const theme = {
       soonOpacity: 0.45,
     },
     pageNumber: { size: 12, bottom: 14, side: 20 }, // u
+    // While the album is open the mat behind it steps back (opacity only,
+    // never a blur: cheap for a phone): a vignette between the mat and the
+    // album, dimCenter in the middle to dimEdge at the edges; the things
+    // lying on the mat (3D letters, calculator, note) at objectsOpacity.
+    // Both fade in over dimFade seconds as the album lifts (with its
+    // flight's easing), and out as it is closed.
+    dimCenter: "rgb(16 24 33 / 0.3)",
+    dimEdge: "rgb(16 24 33 / 0.62)",
+    objectsOpacity: 0.35,
+    dimFade: 0.4,
     dividerBlurbSize: 21, // u: the line under a divider's title (~22px on a phone)
     // Pictures lying on a chapter's divider, under its title (per chapter
     // id; cut off at the page's edges). src: a transparent WebP of
@@ -772,8 +782,6 @@ export const theme = {
       // the tap. On wide screens the book slides half a page to the right
       // at the same time, so both pages end up centred.
       cover: { delay: 0.16, duration: 1.3, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
-      // The mat darkens.
-      dim: { color: palette.forest, opacity: 0.22, duration: 0.7 },
       // prefers-reduced-motion: no movement; the book fades out on the mat
       // and fades in open in the middle.
       reducedMotionFade: 0.4,

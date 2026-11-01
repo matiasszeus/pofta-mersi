@@ -333,9 +333,11 @@ type MatLettersCanvasProps = {
   onObjectsCue?: () => void;
   // What lies on the mat: the letters keep clear of it.
   mat: MatLayout;
+  // Covered (the open album): draw nothing meanwhile.
+  paused?: boolean;
 };
 
-export default function MatLettersCanvas({ animate, onObjectsCue, mat }: MatLettersCanvasProps) {
+export default function MatLettersCanvas({ animate, onObjectsCue, mat, paused = false }: MatLettersCanvasProps) {
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
@@ -352,7 +354,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue, mat }: MatLett
     // frameloop "demand" = draw a frame only when something changes (e.g. a
     // resize). While the letters land it runs every frame ("always"); once
     // they lie still, the page stops drawing altogether.
-    <Canvas dpr={[1, dprCap]} shadows="variance" frameloop={settled ? "demand" : "always"}>
+    <Canvas dpr={[1, dprCap]} shadows="variance" frameloop={settled || paused ? "demand" : "always"}>
       {/* Suspense: render nothing until the font has loaded. */}
       <Suspense fallback={null}>
         <Scene

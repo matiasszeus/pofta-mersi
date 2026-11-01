@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
@@ -13,6 +13,15 @@ const overrides = { [album.key]: album };
 
 const pill = "rounded-full bg-white/85 px-3 py-1.5 text-black shadow";
 
+// The mat stepping back while the album is open (see dimFade in theme.ts),
+// as CSS variables for .mat-dims and the vignette (globals.css).
+const { dimFade, dimCenter, dimEdge, objectsOpacity, opening } = theme.album;
+const dimVars = {
+  "--dim-fade": `${dimFade}s`,
+  "--dim-easing": opening.flight.easing,
+  "--objects-opacity": objectsOpacity,
+} as CSSProperties;
+
 // The atelier's stage with the album drawn in code lying on the mat: a tap
 // opens it right there (see MatAlbum), "închide" puts it back. Used by
 // /atelier and /lab/album; `lab` adds a button to replay the opening.
@@ -20,7 +29,10 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
-  const dim = useRef<HTMLDivElement>(null);
+  // The vignette is in the page from the tap until it has faded out after
+  // closing (then taken away, not left at opacity 0).
+  const [vignette, setVignette] = useState(false);
+  if (open && !vignette) setVignette(true);
 
   const onObjectActivate = useCallback((key: string) => {
     if (key === album.key) setOpen(true);
@@ -30,7 +42,7 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
     () => ({
       // Given where the album lies on the mat (see matLayout).
       [album.key]: (_: typeof album, place: Placed) => (
-        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} />
+        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} />
       ),
     }),
     [open, run, reducedMotion],
@@ -39,15 +51,24 @@ export function AtelierWithAlbum({ lab = false }: { lab?: boolean }) {
   return (
     // display: contents = no box of its own, the stage is laid out exactly
     // as without it.
-    <div className={`contents ${open ? "album-open" : ""}`}>
-      <AtelierStage onObjectActivate={onObjectActivate} objectArt={art} objectOverrides={overrides} />
-      {/* Darkens the mat (letters, note) under the open album; while open it
-          also takes the taps meant for them. */}
-      <div
-        ref={dim}
-        className={`fixed inset-0 z-15 h-lvh opacity-0 ${open ? "" : "pointer-events-none"}`}
-        style={{ background: theme.album.opening.dim.color }}
+    <div className={`contents ${open ? "album-open" : ""}`} style={dimVars}>
+      <AtelierStage
+        onObjectActivate={onObjectActivate}
+        objectArt={art}
+        objectOverrides={overrides}
+        albumOpen={open}
       />
+      {/* The vignette, between the mat (and what lies on it) and the album;
+          while open it also takes the taps meant for the things on the mat. */}
+      {vignette && (
+        <div
+          className={`fixed inset-0 z-15 h-lvh ${open ? "album-vignette-in" : "album-vignette-out pointer-events-none"}`}
+          style={{ background: `radial-gradient(ellipse at center, ${dimCenter} 0%, ${dimEdge} 100%)` }}
+          onAnimationEnd={() => {
+            if (!open) setVignette(false);
+          }}
+        />
+      )}
       {open && (
         <div className="fixed top-[max(env(safe-area-inset-top),12px)] right-3 z-50 flex gap-2 font-sans text-sm">
           {lab && (

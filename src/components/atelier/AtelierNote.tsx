@@ -507,7 +507,7 @@ export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
         aria-label="Citește notița"
         aria-haspopup="dialog"
         onClick={open}
-        className={`note-button note-appear absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) ${lifted || !place ? "invisible" : ""}`}
+        className={`note-button note-appear mat-dims absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) ${lifted || !place ? "invisible" : ""}`}
         style={matVars}
       >
         <span

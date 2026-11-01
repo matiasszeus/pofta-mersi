@@ -133,7 +133,7 @@ export function PocketCalculator({ place: rect }: { place: Placed }) {
       href="/cos"
       data-calc
       aria-label={content.cart.calcLabel(bucati, totalText)}
-      className="note-appear absolute z-10 block"
+      className="note-appear mat-dims absolute z-10 block"
       style={vars}
     >
       {/* The body */}

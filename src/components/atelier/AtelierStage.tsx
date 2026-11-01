@@ -36,9 +36,11 @@ type StageProps = {
   // settings instead of the ones in theme.ts.
   objectArt?: Record<string, (object: MatObjectConfig, place: Placed) => ReactNode>;
   objectOverrides?: Record<string, MatObjectConfig>;
+  // The album is open: the 3D letters stop drawing (see MatLettersCanvas).
+  albumOpen?: boolean;
 };
 
-function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
+function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false }: StageProps) {
   const reducedMotion = useReducedMotion();
   const animate = !reducedMotion;
   const [landed, setLanded] = useState(false);
@@ -87,7 +89,7 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
       <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} place={mat?.note ?? null} />
       {/* The cart (it fades in with the note). */}
       {mat && <PocketCalculator place={mat.calc} />}
-      {mat && <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} />}
+      {mat && <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} paused={albumOpen} />}
       <MatObject
         object={album}
         place={mat?.albumBox ?? null}

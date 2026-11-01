@@ -11,6 +11,12 @@ body {
   font-family: var(--font-whitenice), var(--font-hanken), sans-serif;
 }
 
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -155,8 +161,25 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
-/* The album, while open: above the layer darkening the mat, and no longer
-   growing on hover / press. */
+/* While the album is open the things on the mat step back (see dimFade in
+   theme.ts; variables set by AtelierWithAlbum), and the vignette fades in
+   between them and the album; on closing, both the other way. Opacity
+   only. */
+.mat-dims {
+  transition: opacity var(--dim-fade) var(--dim-easing);
+}
+.album-open .mat-dims {
+  opacity: var(--objects-opacity);
+}
+.album-vignette-in {
+  animation: fade-in var(--dim-fade) var(--dim-easing) both;
+}
+.album-vignette-out {
+  animation: fade-out var(--dim-fade) var(--dim-easing) both;
+}
+
+/* The album, while open: above the vignette, and no longer growing on
+   hover / press. */
 .album-open [data-object="album"] {
   z-index: 20;
 }
