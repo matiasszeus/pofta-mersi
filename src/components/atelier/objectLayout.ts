@@ -126,11 +126,14 @@ function overlaps(a: Rect, b: Rect) {
 }
 
 // Which letters lie on the mat on a screen of this size (see `keep` in
-// theme.ts). The corners always; the others while the screen is tall
-// enough and none of their group touches the album or the note.
+// theme.ts). The corners always; the others while none of their group
+// touches the album or the note, and (phones only) the screen is tall
+// enough.
 export function chooseLetters(screenWidth: number, screenHeight: number): Set<string> {
   const { corners, dropOrder, minHeight } = letters.keep;
   const spots = letterSpots(screenWidth, screenHeight);
+  const phone = screenWidth < letters.phone.maxWidth;
+  const tooShort = (char: string) => phone && screenHeight < (minHeight[char] ?? 0);
   const blockers = [...theme.atelier.objects.map((o) => objectRect(o, screenWidth, screenHeight)), noteRect(screenWidth, screenHeight)];
   const touches = (char: string) => {
     const spot = spots.find((s) => s.char === char);
@@ -148,7 +151,7 @@ export function chooseLetters(screenWidth: number, screenHeight: number): Set<st
   // Drop groups in order: every group up to the last one that cannot stay.
   let dropped = 0;
   groups.forEach((group, i) => {
-    if (group.some((c) => screenHeight < (minHeight[c] ?? 0) || touches(c))) dropped = i + 1;
+    if (group.some((c) => tooShort(c) || touches(c))) dropped = i + 1;
   });
   return new Set([...corners, ...groups.slice(dropped).flat()]);
 }

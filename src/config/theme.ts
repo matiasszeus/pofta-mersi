@@ -459,7 +459,9 @@ export const theme = {
       // any); the others are not even built.
       //   corners    always there
       //   dropOrder  the others, removed group by group, first group first
-      //   minHeight  screen height (CSS px) a letter needs to be there
+      //   minHeight  screen height (CSS px) a letter needs to be there, on
+      //              phones only (see `phone`); wider screens do not check
+      //              it (a laptop window is often only ~600px tall)
       // On top of that, a letter that would still touch the album or the
       // note takes its whole group (and all groups before it) away.
       keep: {
