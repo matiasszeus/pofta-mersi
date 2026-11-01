@@ -652,7 +652,7 @@ export const theme = {
       height: 170,
       padding: { side: 7, bottom: 30 },
       shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
-      captionSize: 13,
+      captionSize: 13, // the products' names, in capitals
       captionBottom: 6,
       tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
       places: [
@@ -672,7 +672,7 @@ export const theme = {
     // in the bottom-right corner.
     priceTag: {
       left: 200,
-      top: 28,
+      top: 36,
       width: 90,
       height: 47,
       tip: 0.18,
@@ -680,7 +680,8 @@ export const theme = {
       color: palette.mustar,
       shadow: "0 2u 3u rgb(29 38 51 / 0.3)",
       hole: { size: 5.6, color: palette.paper },
-      thread: { color: palette.ink, opacity: 0.55, width: 1 },
+      // reach: how far up and left (u) it goes from the hole.
+      thread: { color: palette.ink, opacity: 0.55, width: 1, reach: 40 },
       titleSize: 26, // ~28px on a phone
       titleTop: 4,
       unitSize: 10.3, // ~11px

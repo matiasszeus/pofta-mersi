@@ -117,7 +117,7 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
       </div>
       <div
         className="absolute inset-x-0 text-center"
-        style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize) }}
+        style={{ bottom: u(photos.captionBottom), fontSize: u(photos.captionSize), textTransform: "uppercase" }}
       >
         {produs(model.product).nume}
       </div>
@@ -143,9 +143,10 @@ function Photo({ model, place, live }: { model: AlbumModel; place: Place; live: 
 function PriceTag({ title, unit }: NonNullable<AlbumPageContent["priceTag"]>) {
   const tipX = tag.tip * tag.width;
   const hole = { x: tipX * 0.62, y: tag.height / 2 };
-  // The thread: from the hole, curving up and to the left (in the tag's
-  // own units, before its turn).
-  const thread = `M ${hole.x} ${hole.y} C ${hole.x - 10} ${hole.y - 4}, ${hole.x - 22} ${hole.y - 20}, ${hole.x - 34} ${hole.y - 34}`;
+  // The thread: from the hole, curving up and to the left, `reach` u (in
+  // the tag's own units, before its turn).
+  const r = tag.thread.reach;
+  const thread = `M ${hole.x} ${hole.y} C ${hole.x - r * 0.3} ${hole.y - r * 0.12}, ${hole.x - r * 0.65} ${hole.y - r * 0.6}, ${hole.x - r} ${hole.y - r}`;
   return (
     <div
       className="absolute"
