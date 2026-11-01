@@ -862,13 +862,16 @@ export const theme = {
       // `easing`) and overlapping, like a thumb gathering speed and then
       // slowing down: the first two and the last two start `staggerEdge`
       // seconds after the one before, those in the middle `staggerMid`.
-      // The last one (it uncovers the page) turns as normal, so it lands
-      // calmly. Never more than `maxTotal` seconds in all: sheets in the
-      // middle are skipped (they jump), never the first ones or the last.
+      // The last one (it uncovers the page) turns with the normal turn's
+      // easing, in `lastDuration` seconds, so it lands calmly. Never more
+      // than `maxTotal` seconds in all: sheets in the middle are skipped
+      // (they jump), never the first ones or the last. Smaller numbers =
+      // faster.
       flipFast: {
-        duration: 0.6,
-        staggerEdge: 0.22,
-        staggerMid: 0.14,
+        duration: 0.48,
+        staggerEdge: 0.16,
+        staggerMid: 0.1,
+        lastDuration: 0.75,
         maxTotal: 2.2,
         easing: "cubic-bezier(0.45, 0.05, 0.25, 1)",
       },

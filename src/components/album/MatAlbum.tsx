@@ -284,11 +284,11 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     // Seen turning: all of them, or, if that takes too long, without some
     // in the middle (they jump instead).
     const seen = [...moving];
-    while (seen.length > 4 && startsFor(seen.length)[seen.length - 1] + normal.duration > ff.maxTotal) {
+    while (seen.length > 4 && startsFor(seen.length)[seen.length - 1] + ff.lastDuration > ff.maxTotal) {
       seen.splice(Math.floor(seen.length / 2), 1);
     }
     const starts = startsFor(seen.length).map(ms);
-    const total = starts[seen.length - 1] + ms(normal.duration);
+    const total = starts[seen.length - 1] + ms(ff.lastDuration);
     // A skipped sheet jumps as the next one seen starts turning.
     const jumpAt = (s: number) => {
       const next = moving.slice(moving.indexOf(s)).find((x) => seen.includes(x))!;
@@ -314,10 +314,10 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
       const last = seen.length - 1;
       await done(
         // Each one waits for its turn showing where it was ("fill both");
-        // the last one turns as a normal page.
+        // the last one with the normal turn's easing (lastDuration).
         ...seen.map((s, i) =>
           animate(leaves.current[s], [sheet(s, from), sheet(s, target)], {
-            duration: ms(i === last ? normal.duration : ff.duration),
+            duration: ms(i === last ? ff.lastDuration : ff.duration),
             delay: starts[i],
             easing: i === last ? normal.easing : ff.easing,
           }),
