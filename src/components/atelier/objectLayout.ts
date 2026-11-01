@@ -42,12 +42,18 @@ export function visibleSize() {
   return { width: window.innerWidth, height };
 }
 
-// Phones held upright get their own layout (layout.phone in theme.ts);
-// tablets, desktops and phones held sideways the wide one.
-const phoneLayout = (screenWidth: number, screenHeight: number) =>
-  screenWidth < layout.phone.maxWidth && screenHeight >= screenWidth;
-// Phones, for the letters (see letters.phone).
-const isPhone = (screenWidth: number) => screenWidth < letters.phone.maxWidth;
+// Screens held upright (phones, tablets) get the phone layout
+// (layout.phone in theme.ts); those held sideways the wide one.
+const phoneLayout = (screenWidth: number, screenHeight: number) => screenHeight >= screenWidth;
+
+// Upright screens: the width the phone reference gets (all of it, or on
+// screens wider for their height than the reference, as much as its
+// height allows), and where that starts (centred).
+function phoneFrame(screenWidth: number, screenHeight: number) {
+  const ref = layout.phone.reference;
+  const width = Math.min(screenWidth, (screenHeight * ref.width) / ref.height);
+  return { width, left: (screenWidth - width) / 2 };
+}
 
 export function rectMiddle(r: Rect) {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -118,11 +124,18 @@ export function matLayout(screenWidth: number, screenHeight: number, album: MatO
   }
 
   const p = layout.phone;
-  const n = fromSpec(p.note, noteRatio, screenWidth, screenHeight);
+  // The reference's width on this screen (left and sizes are % of it), and
+  // where it starts.
+  const frame = phoneFrame(screenWidth, screenHeight);
+  const inFrame = (spec: Spec, ratio: number): Placed => {
+    const placed = fromSpec(spec, ratio, frame.width, screenHeight);
+    return { ...placed, left: placed.left + frame.left };
+  };
+  const n = inFrame(p.note, noteRatio);
   const noteShape = [noteOutline(n, 0)];
   // The album: smaller (around its middle) while it comes too close to the
   // note, down to albumMinScale.
-  const full = fromSpec(p.album, albumRatio, screenWidth, screenHeight);
+  const full = inFrame(p.album, albumRatio);
   let albumBox = full;
   for (let k = 1; k >= p.albumMinScale; k -= 0.01) {
     albumBox = shrunk(full, k);
@@ -138,14 +151,14 @@ export function matLayout(screenWidth: number, screenHeight: number, album: MatO
     // How far its lowest corner reaches below its middle, once turned.
     const reach = (width / 2) * Math.abs(Math.sin(turn)) + (height / 2) * Math.cos(turn);
     return {
-      left: (p.calc.left / 100) * screenWidth,
+      left: frame.left + (p.calc.left / 100) * frame.width,
       top: screenHeight - p.calc.bottom - reach - height / 2,
       width,
       height,
       rotation: p.calc.rotation,
     };
   };
-  let width = Math.max(p.calc.minWidth, (p.calc.width / 100) * screenWidth);
+  let width = Math.max(p.calc.minWidth, (p.calc.width / 100) * frame.width);
   while (width > p.calc.minWidth && distance([calcOutline(calcAt(width), 0)], others) < p.gap) {
     width = Math.max(p.calc.minWidth, width - 1);
   }
@@ -253,22 +266,23 @@ function distance(a: Point[][], b: Point[][]) {
 export type LetterSpot = (typeof letters.portrait)[number];
 
 // How much smaller the letters are drawn on upright screens (see
-// phoneScale in theme.ts), and on short phones (letters.short): 1 on wide
+// phoneScale in theme.ts), and on short ones (letters.short): 1 on wide
 // screens.
 export function letterScale(screenWidth: number, screenHeight: number) {
   if (orientationOf(screenWidth, screenHeight) !== "portrait") return 1;
-  const short = isPhone(screenWidth) && screenHeight < letters.short.height ? letters.short.scale : 1;
+  const short = phoneLayout(screenWidth, screenHeight) && screenHeight < letters.short.height ? letters.short.scale : 1;
   return letters.phoneScale * short;
 }
 
 // A letter's box on a screen of this size, in CSS px (see `letters` in
 // theme.ts): a square `size` wide, the letter centred in it. `size` is a
-// fraction of the screen's shorter side on phones; on wide screens of the
-// reference's height, made smaller as much as the album (wideScale), so
-// letters and album keep their proportions.
+// fraction of the phone reference's width on this screen (upright screens,
+// see phoneFrame), or of the desktop reference's height made smaller as
+// much as the album (sideways, see wideScale): letters and album keep
+// their proportions.
 export function letterRect(spot: LetterSpot, screenWidth: number, screenHeight: number): Rect {
   const side = phoneLayout(screenWidth, screenHeight)
-    ? Math.min(screenWidth, screenHeight)
+    ? phoneFrame(screenWidth, screenHeight).width
     : layout.wide.reference.height * wideScale(screenWidth, screenHeight);
   const size = spot.size * side;
   return { left: spot.x * screenWidth, top: spot.y * screenHeight, width: size, height: size };
@@ -297,7 +311,7 @@ export function letterBlocked(spot: LetterSpot, screenWidth: number, screenHeigh
 export function letterSpots(screenWidth: number, screenHeight: number, mat?: MatLayout): LetterSpot[] {
   let spots: LetterSpot[] = letters[orientationOf(screenWidth, screenHeight)];
   const { without, moved } = letters.phone;
-  if (isPhone(screenWidth)) {
+  if (phoneLayout(screenWidth, screenHeight)) {
     spots = spots.filter((s) => !without.includes(s.char)).map((s) => ({ ...s, ...moved[s.char] }));
   }
   if (!mat) return spots;

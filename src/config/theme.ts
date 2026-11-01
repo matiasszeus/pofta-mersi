@@ -251,9 +251,12 @@ export const theme = {
     // width), as % of the visible part of the screen: left and width of
     // its width, top of its height. Turns in degrees (clockwise, like CSS).
     layout: {
-      // Phones held upright (narrower than maxWidth px):
+      // Screens held upright (phones, tablets):
       // docs/atelier-calc-telefon-referinta.png, 393 x 633 (Safari on an
-      // iPhone, between its bars). Other heights keep these proportions.
+      // iPhone, between its bars). Taller screens keep these proportions
+      // (% of their width and height); screens wider for their height
+      // (tablets, short phones) get the reference made bigger / smaller
+      // by their height, in the middle of the width.
       //   album  76, 89, 221 px wide. On a screen too short for it, smaller
       //          (around its middle, never under albumMinScale times) until
       //          `gap` px clear of the note.
@@ -264,14 +267,14 @@ export const theme = {
       //          (never under minWidth px) where it would come closer than
       //          `gap` px to the album or the note.
       phone: {
-        maxWidth: 768,
+        reference: { width: 393, height: 633 },
         album: { left: 19.34, top: 14.06, width: 56.23, rotation: -10 },
         note: { left: 66.41, top: 67.61, width: 25.19, rotation: 6 },
         calc: { left: 8.91, width: 28.5, bottom: 12, minWidth: 96, rotation: -26 },
         albumMinScale: 0.8,
         gap: 8,
       },
-      // Tablets and desktops (and phones held sideways):
+      // Screens held sideways (desktops, tablets, phones):
       // docs/atelier-calc-desktop-referinta.png, 1916 x 967.
       //   album  699, 179, 470 px wide
       //   calc   334, 560, 196 px wide (~170 px left of the album)
@@ -457,9 +460,10 @@ export const theme = {
       // square, `size` wide) at (x * screen width, y * screen height), the
       // letter centred in it; negative or near 1 = partly cut off by the
       // edge. size: how big the letter shows (its height), as a fraction
-      // of the screen's shorter side on phones (0.17 = ~66px on a 390px
-      // wide phone); on wider screens of the desktop reference's height
-      // (layout.wide), made smaller with the album and the rest.
+      // of the width the phone reference gets on this screen (upright
+      // screens: 0.17 = ~66px on a 390px wide phone), or of the desktop
+      // reference's height (sideways): made bigger / smaller with the
+      // album and the rest (see layout).
       // rotation: degrees, clockwise (like CSS). They land in this order.
       // Only around the edges and in the corners, never over the album or
       // the note.
@@ -499,13 +503,12 @@ export const theme = {
         corners: ["P", "F", "M", "S"],
         dropOrder: [["I"], ["O", "T"]],
       },
-      // Phones (screens narrower than maxWidth CSS px, the same limit as
-      // the logo's phone / tablet size): only P, F (top) and S (bottom);
-      // the others are left out altogether (not even built). These are
-      // moved (x, y, rotation as above): F up, partly over the top edge on
-      // purpose (247, -17 px on docs/atelier-calc-telefon-referinta.png).
+      // Screens held upright (phones, tablets: the phone layout, see
+      // layout.phone): only P, F (top) and S (bottom); the others are left
+      // out altogether (not even built). These are moved (x, y, rotation
+      // as above): F up, partly over the top edge on purpose (247, -17 px
+      // on docs/atelier-calc-telefon-referinta.png).
       phone: {
-        maxWidth: 768,
         without: ["O", "T", "I", "M"],
         moved: { F: { x: 0.6285, y: -0.0269, rotation: 18 } } as Record<
           string,
@@ -516,8 +519,8 @@ export const theme = {
       // size (0.85 = 15% smaller), so the mat does not look crowded. Each
       // letter keeps its place (the middle of its box).
       phoneScale: 0.85,
-      // Phones less than `height` CSS px tall: the letters drawn `scale`
-      // times smaller still (0.94 = 6%), for a little more air.
+      // Upright screens less than `height` CSS px tall: the letters drawn
+      // `scale` times smaller still (0.94 = 6%), for a little more air.
       short: { height: 760, scale: 0.94 },
       // Free mat kept between a letter and the real outline (turned, with
       // all that sticks out) of the album, the note and the calculator, in
