@@ -139,9 +139,9 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
                 el.muted = true;
                 el.play().catch(() => {}); // AbortError: closed before it started
               }}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="zoom-video absolute inset-0 h-full w-full object-cover"
               src={product.videoMare}
-              poster={product.pozaBlur ?? product.poza}
+              poster={product.pozaBlur}
               autoPlay
               muted
               loop

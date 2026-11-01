@@ -178,6 +178,19 @@ body {
   animation: fade-out var(--dim-fade) var(--dim-easing) both;
 }
 
+/* The video of a photo shown big (PhotoZoom): never a native play button
+   or controls (iPhone shows one when it will not autoplay); taps go to the
+   view around it. */
+.zoom-video {
+  pointer-events: none;
+}
+.zoom-video::-webkit-media-controls,
+.zoom-video::-webkit-media-controls-start-playback-button,
+.zoom-video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
 /* The album, while open: above the vignette, and no longer growing on
    hover / press. */
 .album-open [data-object="album"] {

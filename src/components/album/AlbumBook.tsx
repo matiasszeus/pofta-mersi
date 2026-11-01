@@ -75,12 +75,6 @@ const css = `
 .ab-row { display: flex; align-items: baseline; gap: ${u(8)}; }
 .ab-dot { width: ${u(contents.dot)}; height: ${u(contents.dot)}; border-radius: 50%; flex: none; align-self: center; box-sizing: border-box; }
 .ab-lead { flex: 1; border-bottom: ${u(2)} dotted rgb(29 38 51 / 0.35); transform: translateY(${u(-4)}); }
-/* The videos on the pages: never a native play button or controls (iPhone
-   shows one when it will not autoplay); taps go to the page. */
-.ab-video { pointer-events: none; }
-.ab-video::-webkit-media-controls,
-.ab-video::-webkit-media-controls-start-playback-button,
-.ab-video::-webkit-media-controls-overlay-play-button { display: none !important; -webkit-appearance: none; }
 .ab-pnum { position: absolute; bottom: ${u(pageNumber.bottom)}; font-size: ${u(pageNumber.size)}; color: rgb(29 38 51 / 0.55); }
 /* A sheet: turns around the spine when leafing (see leafTransform). */
 .ab-leaf { position: absolute; inset: 0; transform-origin: left center; }

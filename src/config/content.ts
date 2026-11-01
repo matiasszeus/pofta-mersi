@@ -7,10 +7,11 @@ import { palette } from "./theme";
 //             divider facing it already shows it)
 //   subtitle  under the chapter's title, top left (without the title: a
 //             little bigger, in its place)
-//   models    photos stuck on the page: the product's picture, and its
-//             video on a tap (both from src/config/products.ts, like its
-//             name, under it on the white frame). product: its id there;
-//             alt: what the picture shows, for screen readers
+//   models    photos stuck on the page: the product's blurred picture,
+//             and on a tap its video, big (both from
+//             src/config/products.ts, like its name, under it on the white
+//             frame). product: its id there; alt: what the picture shows,
+//             for screen readers
 //   priceTag  a tag: `title` big, `unit` small in its bottom-right corner
 //   note      a handwritten note under the photos, with a small arrow
 export type AlbumModel = { product: string; alt: string };

@@ -128,15 +128,17 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
           if (frame.current) onOpen(frame.current, e.currentTarget);
         }}
       >
-        <Image
-          src={p.pozaBlur ?? p.poza}
-          alt={model.alt}
-          fill
-          unoptimized
-          loading="eager"
-          draggable={false}
-          className="object-cover select-none"
-        />
+        {p.pozaBlur && (
+          <Image
+            src={p.pozaBlur}
+            alt={model.alt}
+            fill
+            unoptimized
+            loading="eager"
+            draggable={false}
+            className="object-cover select-none"
+          />
+        )}
         {p.videoMare && (
           <span
             aria-hidden
