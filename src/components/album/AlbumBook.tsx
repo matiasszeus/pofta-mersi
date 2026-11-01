@@ -244,7 +244,9 @@ function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "
   return (
     <div className={`ab-page ${place} ${look}`} style={style}>
       {page.kind === "contents" && <ContentsList />}
-      {page.kind === "divider" && <DividerText title={page.title} blurb={page.blurb} accent={page.accent} />}
+      {page.kind === "divider" && (
+        <DividerText chapterId={page.chapterId} title={page.title} blurb={page.blurb} accent={page.accent} />
+      )}
       {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
       {page.kind !== "blank" && (
         <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
@@ -294,26 +296,51 @@ function ContentsList() {
 
 // A chapter's divider: its title big, and the blurb (its `accent` word in
 // color).
-function DividerText({ title, blurb, accent }: { title: string; blurb?: string; accent?: string }) {
+type DividerTextProps = { chapterId: string; title: string; blurb?: string; accent?: string };
+function DividerText({ chapterId, title, blurb, accent }: DividerTextProps) {
   const at = blurb && accent ? blurb.indexOf(accent) : -1;
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
-      <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
-        {drawnTitle(title)}
-      </div>
-      {blurb && (
-        <div className="opacity-75" style={{ fontSize: u(theme.album.dividerBlurbSize) }}>
-          {at < 0 ? (
-            blurb
-          ) : (
-            <>
-              {blurb.slice(0, at)}
-              <span style={{ color: colors.accent }}>{accent}</span>
-              {blurb.slice(at + accent!.length)}
-            </>
-          )}
+    <>
+      {/* The chapter's pictures, under the title (see dividerPictures). */}
+      {(theme.album.dividerPictures[chapterId] ?? []).map((p) => (
+        <Image
+          key={p.src}
+          src={p.src}
+          width={p.width}
+          height={p.height}
+          alt=""
+          aria-hidden
+          unoptimized
+          draggable={false}
+          className="pointer-events-none absolute select-none"
+          style={{
+            left: u(p.left),
+            top: u(p.top),
+            width: u(p.size),
+            maxWidth: "none",
+            height: "auto",
+            rotate: `${p.rotation}deg`,
+          }}
+        />
+      ))}
+      <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
+        <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
+          {drawnTitle(title)}
         </div>
-      )}
-    </div>
+        {blurb && (
+          <div className="opacity-75" style={{ fontSize: u(theme.album.dividerBlurbSize) }}>
+            {at < 0 ? (
+              blurb
+            ) : (
+              <>
+                {blurb.slice(0, at)}
+                <span style={{ color: colors.accent }}>{accent}</span>
+                {blurb.slice(at + accent!.length)}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

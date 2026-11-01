@@ -631,7 +631,36 @@ export const theme = {
       soonOpacity: 0.45,
     },
     pageNumber: { size: 12, bottom: 14, side: 20 }, // u
-    dividerBlurbSize: 19, // u: the line under a divider's title (~20px on a phone)
+    dividerBlurbSize: 21, // u: the line under a divider's title (~22px on a phone)
+    // Pictures lying on a chapter's divider, under its title (per chapter
+    // id; cut off at the page's edges). src: a transparent WebP of
+    // width x height px; left, top, size (its width): u, its top-left
+    // corner before its turn (degrees).
+    //   bratari: the two bands made wavy by scripts/bratara-ondulata.py
+    //   (from assets-src/bratari/): Synthesis across the top-left corner,
+    //   Basalt across the bottom, both reaching past the edge.
+    dividerPictures: {
+      bratari: [
+        {
+          src: "/images/bratari/synthesis-ondulat.webp",
+          width: 800,
+          height: 149,
+          left: -65.5,
+          top: 31.8,
+          size: 346,
+          rotation: -16,
+        },
+        {
+          src: "/images/bratari/basalt-ondulat.webp",
+          width: 800,
+          height: 140,
+          left: 37.4,
+          top: 301.2,
+          size: 346,
+          rotation: -12,
+        },
+      ],
+    } as Record<string, { src: string; width: number; height: number; left: number; top: number; size: number; rotation: number }[]>,
     // A chapter's page (u): its title top left, the subtitle under it. A
     // page without the title: the subtitle alone, a little bigger (16u =
     // ~17px on a phone), about halfway down where the title was.
