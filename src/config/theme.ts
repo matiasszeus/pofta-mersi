@@ -258,15 +258,16 @@ export const theme = {
       //          (around its middle, never under albumMinScale times) until
       //          `gap` px clear of the note.
       //   note   261, 428, 99 px wide
-      //   calc   35, (464), 112 px wide: its bottom `bottom` px above the
-      //          bottom of the visible part, whatever the height. Smaller
+      //   calc   35, (464), 112 px wide: its lowest corner (it is turned)
+      //          `bottom` px above the bottom of the visible part, whatever
+      //          the height, so a little mat shows under it. Smaller
       //          (never under minWidth px) where it would come closer than
       //          `gap` px to the album or the note.
       phone: {
         maxWidth: 768,
         album: { left: 19.34, top: 14.06, width: 56.23, rotation: -10 },
         note: { left: 66.41, top: 67.61, width: 25.19, rotation: 6 },
-        calc: { left: 8.91, width: 28.5, bottom: 14, minWidth: 96, rotation: -26 },
+        calc: { left: 8.91, width: 28.5, bottom: 12, minWidth: 96, rotation: -26 },
         albumMinScale: 0.8,
         gap: 8,
       },

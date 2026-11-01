@@ -105,15 +105,18 @@ export function matLayout(screenWidth: number, screenHeight: number, album: MatO
     albumBox = shrunk(full, k);
     if (distance(albumOutline(album, albumBox, 0), noteShape) >= p.gap) break;
   }
-  // The calculator: bottom-left, its bottom `bottom` px above the screen's;
-  // smaller (bottom and left staying) while it comes too close to the album
-  // or the note, down to minWidth.
+  // The calculator: bottom-left, its lowest corner (turned) `bottom` px
+  // above the screen's bottom; smaller (that corner and its left staying)
+  // while it comes too close to the album or the note, down to minWidth.
+  const turn = (p.calc.rotation * Math.PI) / 180;
   const others = [...albumOutline(album, albumBox, 0), ...noteShape];
   const calcAt = (width: number): Placed => {
     const height = width * calc.ratio;
+    // How far its lowest corner reaches below its middle, once turned.
+    const reach = (width / 2) * Math.abs(Math.sin(turn)) + (height / 2) * Math.cos(turn);
     return {
       left: (p.calc.left / 100) * screenWidth,
-      top: screenHeight - p.calc.bottom - height,
+      top: screenHeight - p.calc.bottom - reach - height / 2,
       width,
       height,
       rotation: p.calc.rotation,
