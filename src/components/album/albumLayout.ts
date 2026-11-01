@@ -1,4 +1,3 @@
-import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 
 const { page, spreadMinWidth, spreadWidth, offsetY, unitWidth, ribbon, opening, pages } = theme.album;
@@ -52,35 +51,4 @@ export function albumLayout(screenWidth: number, screenHeight: number): AlbumLay
     u: width / unitWidth,
     controlsTop: top + settledY + height + width * ribbonPerWidth + controls.gap,
   };
-}
-
-// What can be on the screen once the book is open, in order (the buttons go
-// from one to the next):
-//   flipped  the sheet with the contents is turned (lies on the left)
-//   side     phones show one page at a time: the left or the right one
-//            (the book slides one page width to show the left one)
-//   page     which part of the book it is (an id from content.album.pages)
-//   label    shown between the buttons
-// Phones: 1 contents, 2 the stickers' divider, 3 the stickers' first page.
-// Wide screens: 1 the cover's inside + contents, 2-3 divider + first page.
-export type AlbumView = { flipped: boolean; side: "left" | "right"; page: string; label: string };
-
-export function albumViews(spread: boolean): AlbumView[] {
-  const [contents, chapter] = content.album.pages;
-  if (spread) {
-    return [
-      { flipped: false, side: "right", page: contents.id, label: `1 · ${contents.label}` },
-      { flipped: true, side: "right", page: chapter.id, label: `2–3 · ${chapter.label}` },
-    ];
-  }
-  return [
-    { flipped: false, side: "right", page: contents.id, label: `1 · ${contents.label}` },
-    { flipped: true, side: "left", page: chapter.id, label: `2 · ${chapter.label}` },
-    { flipped: true, side: "right", page: chapter.id, label: `3 · ${chapter.label}` },
-  ];
-}
-
-// The first view showing this page (contents or a chapter's start).
-export function viewOf(pageId: string, spread: boolean) {
-  return Math.max(0, albumViews(spread).findIndex((v) => v.page === pageId));
 }

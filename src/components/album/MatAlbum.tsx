@@ -6,7 +6,8 @@ import { objectRect, type MatObjectConfig } from "@/components/atelier/objectLay
 import { theme } from "@/config/theme";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
-import { albumLayout, albumViews, viewOf, type AlbumView } from "./albumLayout";
+import { albumLayout } from "./albumLayout";
+import { albumViews, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
 
 const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn, dim: dimming } = opening;
@@ -27,7 +28,7 @@ export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
     height: 340 * page.ratio,
     outline: [
       { left: 0, top: -board.top * u, right: 1 + beyond, bottom: page.ratio + beyond },
-      { left: 1, top: tabs.tops[0] * u, right: 1 + tabs.width * u, bottom: (tabs.tops[tabs.tops.length - 1] + tabs.height) * u },
+      { left: 1, top: tabs.top * u, right: 1 + tabs.width * u, bottom: tabsBottom * u },
       { left: ribbonLeft, top: page.ratio, right: ribbonLeft + ribbon.width * u, bottom: page.ratio + ribbon.below * u },
     ],
   };
@@ -44,7 +45,8 @@ type MatAlbumProps = {
   // The layer that darkens the mat (it lies between the mat and the book).
   dimRef: RefObject<HTMLDivElement | null>;
   // Where it opens: "cuprins" (the contents) or a chapter's id
-  // ("stickere"), see content.album.pages. Later /album/stickere passes it.
+  // ("stickere"), see content.album.chapters. Later /album/stickere
+  // passes it.
   initialPage?: string;
 };
 
@@ -68,8 +70,10 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
   // The opening (run) that has ended: the buttons show from then on.
   const [openedRun, setOpenedRun] = useState<number | null>(null);
   const opened = open && openedRun === run;
-  // The view on the screen (index in albumViews), for this opening (run).
-  const [nav, setNav] = useState({ run: -1, index: 0 });
+  // The page on the screen (the first one, on wide screens), for this
+  // opening (run). Kept as a page, not a view: turning the phone changes
+  // the views (two pages each, or one).
+  const [nav, setNav] = useState({ run: -1, page: 1 });
   // The latest animation of the book, the slide and the board's shadow
   // (re-aimed on a resize), and every animation of this opening.
   const anims = useRef<Partial<Record<Named, Animation>>>({});
@@ -80,7 +84,8 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
   const book = useRef<HTMLDivElement>(null);
   const slide = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLDivElement>(null);
-  const leaf = useRef<HTMLDivElement>(null);
+  // The sheets, front to back (see sheets).
+  const leaves = useRef<(HTMLDivElement | null)[]>([]);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // The screen's size, known only in the browser; again on every resize.
@@ -93,9 +98,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
 
   const layout = screen && albumLayout(screen.w, screen.h);
   const views = albumViews(layout?.spread ?? false);
-  const startIndex = viewOf(initialPage, layout?.spread ?? false);
-  // Turning the phone can make the list shorter (wide: 2 views, phone: 3).
-  const index = Math.min(nav.run === run ? nav.index : startIndex, views.length - 1);
+  const index = viewWithPage(nav.run === run ? nav.page : firstPageOf(initialPage), layout?.spread ?? false);
 
   // Runs an animation that stays when over (see above) and returns it.
   const animate = (el: Element | null, keyframes: Keyframe[], options: KeyframeAnimationOptions, name?: Named) => {
@@ -115,12 +118,12 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
     const p = open ? flightPoses(object, window.innerWidth, window.innerHeight) : null;
     if (!p) return;
     const spread = p.spread;
-    const start = albumViews(spread)[viewOf(initialPage, spread)];
+    const start = albumViews(spread)[viewWithPage(firstPageOf(initialPage), spread)];
     const dimIn = (duration: number) =>
       animate(dimRef.current, [{ opacity: 0 }, { opacity: dimming.opacity }], { duration, easing: "ease" });
     const now = { duration: 0 };
-    // The page it opens on: the sheet already turned, if that page is past it.
-    if (start.flipped) animate(leaf.current, [{ transform: leafTransform(true) }], now);
+    // The page it opens on: the sheets before it already turned.
+    for (let s = 0; s < start.turned; s++) animate(leaves.current[s], [{ transform: leafTransform(s, true) }], now);
 
     async function play(p: Poses) {
       if (reducedMotion) {
@@ -181,15 +184,21 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
     const s = slideFor(albumViews(p.spread)[index], p.spread);
     set(anims.current.book, bookKeyframes(p));
     set(anims.current.slide, [{ transform: s }, { transform: s }]);
+    // Two pages a view or one: the same page, maybe another sheet turned.
+    const turned = albumViews(p.spread)[index].turned;
+    leaves.current.forEach((el, s) => {
+      const t = leafTransform(s, s < turned);
+      animate(el, [{ transform: t }, { transform: t }], { duration: 0 });
+    });
     set(anims.current.board, [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }]);
     // Only on a resize.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
   // Leafing: from the view on the screen to the next / previous one.
-  // Phones: turning the sheet also slides the book one page width, so the
-  // page you go to is on the screen; between a chapter's two pages the
-  // book only slides. Wide screens: only the sheet turns.
+  // Phones: turning a sheet also slides the book one page width, so the
+  // page you go to is on the screen; between the two sides of an open
+  // spread the book only slides. Wide screens: only the sheet turns.
   const go = (step: number) => {
     const to = index + step;
     if (!layout || !opened || turning.current || to < 0 || to >= views.length) return;
@@ -197,23 +206,25 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
     const target = views[to];
     const spread = layout.spread;
     turning.current = true;
-    setNav({ run, index: to });
+    setNav({ run, page: target.pages[0] });
 
-    const sheet = (v: AlbumView) => ({ transform: leafTransform(v.flipped) });
+    const sheet = (s: number, v: AlbumView) => ({ transform: leafTransform(s, s < v.turned) });
+    // The sheets that turn (one, going to the next view).
+    const moving = sheets.map((_, s) => s).filter((s) => s < from.turned !== s < target.turned);
     const pane = (v: AlbumView) => ({ transform: slideFor(v, spread) });
     async function turn() {
       if (reducedMotion) {
         // No turning: a crossfade (out, the new page, in).
         const half = { duration: ms(pages.reducedMotionFade) / 2 };
         await done(animate(flyer.current, [{ opacity: 1 }, { opacity: 0 }], half));
-        animate(leaf.current, [sheet(target), sheet(target)], { duration: 0 });
+        for (const s of moving) animate(leaves.current[s], [sheet(s, target), sheet(s, target)], { duration: 0 });
         animate(slide.current, [pane(target), pane(target)], { duration: 0 }, "slide");
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         return;
       }
       const t = { duration: ms(pages.turn.duration), easing: pages.turn.easing };
       await done(
-        from.flipped !== target.flipped ? animate(leaf.current, [sheet(from), sheet(target)], t) : null,
+        ...moving.map((s) => animate(leaves.current[s], [sheet(s, from), sheet(s, target)], t)),
         animate(slide.current, [pane(from), pane(target)], t, "slide"),
       );
     }
@@ -245,7 +256,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
             bookRef={book}
             slideRef={slide}
             coverRef={cover}
-            leafRef={leaf}
+            leavesRef={leaves}
             boardRef={boardRef}
           />
         </div>

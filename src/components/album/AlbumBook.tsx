@@ -1,14 +1,12 @@
-import type { CSSProperties, Ref } from "react";
+import type { CSSProperties, MutableRefObject, Ref } from "react";
 import Image from "next/image";
 import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
+import { bookTabs, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
 
-const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors, sectionColors } = theme.album;
+const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
 const text = content.album;
-// The chapter after the contents (its divider is the sheet's back, its
-// first page lies under the sheet).
-const chapter = text.pages[1];
 
 // A length in u (see theme.album), as CSS: --u is set on the book.
 const u = (n: number) => `calc(var(--u) * ${n}px)`;
@@ -81,8 +79,8 @@ const css = `
 .ab-dot { width: ${u(contents.dot)}; height: ${u(contents.dot)}; border-radius: 50%; flex: none; align-self: center; box-sizing: border-box; }
 .ab-lead { flex: 1; border-bottom: ${u(2)} dotted rgb(29 38 51 / 0.35); transform: translateY(${u(-4)}); }
 .ab-pnum { position: absolute; bottom: ${u(pageNumber.bottom)}; font-size: ${u(pageNumber.size)}; color: rgb(29 38 51 / 0.55); }
-/* The sheet: turns around the spine when leafing (see leafTransform). */
-.ab-leaf { position: absolute; inset: 0; transform-origin: left center; transform: rotateY(0deg) translateZ(2px); }
+/* A sheet: turns around the spine when leafing (see leafTransform). */
+.ab-leaf { position: absolute; inset: 0; transform-origin: left center; }
 .ab-cover {
   position: absolute; top: ${u(-coverParts.over)}; bottom: ${u(-coverParts.over)}; left: 0; right: ${u(-coverParts.over)};
   transform-origin: left center;
@@ -100,9 +98,14 @@ const css = `
 
 // The cover's turn: closed (0) or open, lying left of the pages (-180).
 export const coverTransform = (angle: number) => `rotateY(${angle}deg) translateZ(3px)`;
-// The sheet's: the contents on the right, or turned (its back, the
-// chapter's divider, on the left).
-export const leafTransform = (flipped: boolean) => `rotateY(${flipped ? -180 : 0}deg) translateZ(2px)`;
+// Sheet s's (0 = the top one, page 1 on its front): lying on the right,
+// or turned (its back on the left). Unturned, the top sheet is nearest to
+// you (2px) and each next one a little deeper, all above the tabs (0.5px);
+// turned, the order flips by itself (rotateY turns its depth around too),
+// so the sheet turned last lies on top on the left.
+const sheetDepth = (s: number) => 2 - s / Math.max(1, sheets.length);
+export const leafTransform = (s: number, turned: boolean) =>
+  `rotateY(${turned ? -180 : 0}deg) translateZ(${sheetDepth(s)}px)`;
 
 type AlbumBookProps = {
   // px per u (see albumLayout).
@@ -118,7 +121,8 @@ type AlbumBookProps = {
   bookRef?: Ref<HTMLDivElement>;
   slideRef?: Ref<HTMLDivElement>;
   coverRef?: Ref<HTMLDivElement>;
-  leafRef?: Ref<HTMLDivElement>;
+  // The sheets, front to back (see sheets in albumPages).
+  leavesRef?: MutableRefObject<(HTMLDivElement | null)[]>;
   boardRef?: Ref<HTMLDivElement>;
 };
 
@@ -126,8 +130,9 @@ type AlbumBookProps = {
 // page; the board, the stack's edges, the cover and the tabs reach past it.
 //
 // Layers, back to front (their depth, translateZ, keeps this order in 3D):
-//   board (-1px), stack edges (-0.5px), the page underneath (0), ribbon and
-//   tabs (0.5px), the sheet with the contents (2px), the cover (3px).
+//   board (-1px), stack edges (-0.5px), the last page, lying under the
+//   sheets (0), ribbon and tabs (0.5px), the sheets (1-2px; the top one
+//   has the contents on its front), the cover (3px).
 //
 // The cover turns in real 3D (CSS 3D transforms):
 //   stage  `perspective`: how far the eye is, so near things look bigger
@@ -148,7 +153,7 @@ export function AlbumBook({
   bookRef,
   slideRef,
   coverRef,
-  leafRef,
+  leavesRef,
   boardRef,
 }: AlbumBookProps) {
   const open = skipOpening;
@@ -169,24 +174,27 @@ export function AlbumBook({
           <div className="ab-edge-r" />
           <div className="ab-edge-b" />
           <div className="ab-ribbon" />
-          <StickersPage />
+          <Page page={lastPage} side="under" />
           <div className="ab-tabs">
-            {text.sections
-              .filter((s) => s.page !== null)
-              .map((s, i) => (
-                <div
-                  key={s.key}
-                  className={`ab-tab ${crazeRetro.className}`}
-                  style={{ top: u(tabs.tops[i] ?? 0), background: sectionColors[s.key] }}
-                >
-                  <span>{s.title}</span>
-                </div>
-              ))}
+            {bookTabs.map((t) => (
+              <div key={t.id} className={`ab-tab ${crazeRetro.className}`} style={{ top: u(t.top), background: t.color }}>
+                <span>{t.title}</span>
+              </div>
+            ))}
           </div>
-          <div ref={leafRef} className="ab-leaf album-3d will-change-transform">
-            <ContentsPage />
-            <DividerPage />
-          </div>
+          {sheets.map((sheet, s) => (
+            <div
+              key={sheet.front.number}
+              ref={(el) => {
+                if (leavesRef) leavesRef.current[s] = el;
+              }}
+              className="ab-leaf album-3d will-change-transform"
+              style={{ transform: leafTransform(s, false) }}
+            >
+              <Page page={sheet.front} side="front" />
+              <Page page={sheet.back} side="back" />
+            </div>
+          ))}
           <div
             ref={coverRef}
             className="ab-cover album-3d will-change-transform"
@@ -215,85 +223,88 @@ export function AlbumBook({
   );
 }
 
-// The page under the sheet: the chapter's first page (3); its stickers
-// come later.
-function StickersPage() {
+// One page, from albumPages:
+//   front  a sheet's front, a right-hand page
+//   back   a sheet's back, a left-hand page (seen once the sheet is turned)
+//   under  the last page, lying under the sheets (right-hand)
+function Page({ page, side }: { page: BookPage; side: "front" | "back" | "under" }) {
+  const left = side === "back";
+  const place = side === "under" ? "ab-right" : left ? "ab-face ab-back ab-left" : "ab-face ab-right";
+  const look = page.kind === "divider" ? "ab-divider" : "ab-paper";
+  const style: CSSProperties = side === "under" ? { transform: "translateZ(0)" } : {};
+  if (page.kind === "divider") style.backgroundColor = page.color;
   return (
-    <div className="ab-page ab-right ab-paper" style={{ transform: "translateZ(0)" }}>
-      <div
-        className={`absolute leading-none ${crazeRetro.className}`}
-        style={{ left: u(26), top: u(24), fontSize: u(28) }}
-      >
-        {chapter.title}
-      </div>
-      <div className="ab-pnum" style={{ right: u(pageNumber.side) }}>
-        3
-      </div>
+    <div className={`ab-page ${place} ${look}`} style={style}>
+      {page.kind === "contents" && <ContentsList />}
+      {page.kind === "divider" && <DividerText title={page.title} blurb={page.blurb} />}
+      {page.kind === "page" && <ChapterPageText title={page.title} />}
+      {page.kind !== "blank" && (
+        <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
+          {page.number}
+        </div>
+      )}
     </div>
   );
 }
 
-// The front of the sheet: page 1, the contents.
-function ContentsPage() {
+// One of a chapter's pages: its title, small; its stickers come later.
+function ChapterPageText({ title }: { title: string }) {
+  return (
+    <div className={`absolute leading-none ${crazeRetro.className}`} style={{ left: u(26), top: u(24), fontSize: u(28) }}>
+      {drawnTitle(title)}
+    </div>
+  );
+}
+
+// The contents: every chapter with the page it starts on.
+function ContentsList() {
   const c = contents;
   const p = c.padding;
   return (
-    <div className="ab-face ab-page ab-right ab-paper">
-      <div
-        className="absolute inset-0 box-border"
-        style={{ padding: `${u(p.top)} ${u(p.right)} ${u(p.bottom)} ${u(p.left)}` }}
+    <div
+      className="absolute inset-0 box-border"
+      style={{ padding: `${u(p.top)} ${u(p.right)} ${u(p.bottom)} ${u(p.left)}` }}
+    >
+      <h2
+        className={`${crazeRetro.className} origin-left leading-none`}
+        style={{ fontSize: u(c.titleSize), rotate: `${c.titleTurn}deg` }}
       >
-        <h2
-          className={`${crazeRetro.className} origin-left leading-none`}
-          style={{ fontSize: u(c.titleSize), rotate: `${c.titleTurn}deg` }}
-        >
-          {text.contentsTitle}
-        </h2>
-        <ul className="flex flex-col" style={{ marginTop: u(c.listTop), gap: u(c.rowGap) }}>
-          {text.sections.map((s) => {
-            const soon = s.page === null;
-            return (
-              <li key={s.key} className="ab-row" style={soon ? { opacity: c.soonOpacity } : undefined}>
-                <span
-                  className="ab-dot"
-                  style={
-                    soon
-                      ? { border: `${u(1.5)} solid rgb(29 38 51 / 0.6)` }
-                      : { background: sectionColors[s.key] }
-                  }
-                />
-                <span className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(c.itemSize) }}>
-                  {s.title}
-                </span>
-                <span className="ab-lead" />
-                <span style={{ fontSize: u(c.numberSize) }}>{soon ? text.soon : s.page}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-      <div className="ab-pnum" style={{ right: u(pageNumber.side) }}>
-        1
-      </div>
+        {contentsTitle}
+      </h2>
+      <ul className="flex flex-col" style={{ marginTop: u(c.listTop), gap: u(c.rowGap) }}>
+        {contentsRows.map((r) => {
+          const soon = r.page === null;
+          return (
+            <li key={r.id} className="ab-row" style={soon ? { opacity: c.soonOpacity } : undefined}>
+              <span
+                className="ab-dot"
+                style={soon ? { border: `${u(1.5)} solid rgb(29 38 51 / 0.6)` } : { background: r.color }}
+              />
+              <span className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(c.itemSize) }}>
+                {r.title}
+              </span>
+              <span className="ab-lead" />
+              <span style={{ fontSize: u(c.numberSize) }}>{soon ? text.soon : r.page}</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
 
-// The back of the sheet: page 2, the chapter's divider (lilac).
-function DividerPage() {
+// A chapter's divider: its title big, and the blurb.
+function DividerText({ title, blurb }: { title: string; blurb?: string }) {
   return (
-    <div className="ab-face ab-back ab-page ab-left ab-divider">
-      <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
-        <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
-          {chapter.title}
-        </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
+      <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
+        {drawnTitle(title)}
+      </div>
+      {blurb && (
         <div className="opacity-75" style={{ fontSize: u(15) }}>
-          {chapter.blurb}
+          {blurb}
         </div>
-      </div>
-      <div className="ab-pnum" style={{ left: u(pageNumber.side) }}>
-        2
-      </div>
+      )}
     </div>
   );
 }

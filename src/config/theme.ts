@@ -593,7 +593,9 @@ export const theme = {
     coverParts: { over: 6, radiusSpine: 3, radiusEdge: 9 },
     pageRadius: 4, // u, on the outer corners of the pages
     ribbon: { left: 206, width: 16, height: 46, below: 38 }, // u
-    tabs: { width: 24, height: 74, radius: 7, textSize: 10, tops: [40, 120] }, // u
+    // The chapters' tabs on the edge (u): the first `top` from the page's
+    // top, each next one `step` lower.
+    tabs: { width: 24, height: 74, radius: 7, textSize: 10, top: 40, step: 80 },
     // The contents page (u).
     contents: {
       padding: { top: 34, right: 28, bottom: 30, left: 34 },
@@ -613,17 +615,13 @@ export const theme = {
       pageLine: palette.pageLine,
       ink: palette.ink,
       ribbon: palette.ribbon,
-      // The cover's inside: lilac with sage dots; the section dividers:
-      // lilac with fine dots.
+      // The cover's inside: lilac with sage dots. The chapters' dividers
+      // have fine dots, on the chapter's color (content.album.chapters);
+      // `divider` for a chapter that has none.
       lining: palette.lilac,
       liningDots: palette.sage,
       divider: palette.lilac,
     },
-    // Each section's color (the dot in the contents, its tab on the edge).
-    sectionColors: {
-      stickere: palette.lilac,
-      bratari: palette.sage,
-    } as Record<string, string>,
 
     // The opening: one movement from the tap. Seconds; easings as CSS.
     opening: {

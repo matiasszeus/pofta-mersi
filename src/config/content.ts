@@ -1,5 +1,12 @@
 // Texts shown on the site, in one place so they are easy to change.
 
+import { palette } from "./theme";
+
+// One chapter of the album (see album.chapters below).
+export type AlbumChapter =
+  | { id: string; title: string; contents: true }
+  | { id: string; title: string; contents?: false; color?: string; blurb?: string; pages: { id: string }[] };
+
 export const content = {
   // The handwritten note on the atelier mat. Shown tiny (unreadable) on the
   // mat, and full size when tapped. Each string is one paragraph.
@@ -9,26 +16,42 @@ export const content = {
   ],
 
 
-  // The album. Titles are in Craze Retro, which has only A–Z: no diacritics.
+  // The album.
   album: {
     coverTitle: "ALBUM",
-    contentsTitle: "CUPRINS",
     soon: "în curând",
-    // The sections, in the order of the contents page. page: the page number
-    // it starts on; null = not there yet ("în curând").
-    sections: [
-      { key: "stickere", title: "STICKERE", page: 2 },
-      { key: "bratari", title: "BRATARI", page: 4 },
-      { key: "tricouri", title: "TRICOURI", page: null },
-      { key: "tote-bags", title: "TOTE BAGS", page: null },
-    ] as { key: string; title: string; page: number | null }[],
-    // The book's parts you can leaf to, in order. id: stable, never
-    // changed (later each gets its address, /album/<id>, and the book can
-    // open right there); label: shown under the book. A chapter has a
-    // divider page (its title big, and the blurb) and then its first page.
-    pages: [
-      { id: "cuprins", label: "cuprins" },
-      { id: "stickere", label: "stickere", title: "STICKERE", blurb: "[o frază despre stickere]" },
-    ] as { id: string; label: string; title?: string; blurb?: string }[],
+    // The chapters, in the book's order: the only place it is written.
+    // From this list come the pages and their numbers, the contents (each
+    // chapter with the page it starts on), the tabs on the edge and the
+    // buttons' leafing. Moving an entry moves all of that.
+    //   id     stable, never changed (later each gets its address,
+    //          /album/<id>, and the book can open right there)
+    //   title  with diacritics; drawn in Craze Retro (A-Z only) without them
+    //          and in capitals, shown under the book in small letters
+    //   color  its divider page, its dot in the contents, its tab
+    //   blurb  under the title on its divider
+    //   pages  its pages after the divider (their stickers come later);
+    //          none = not there yet: "în curând" in the contents, not in
+    //          the book
+    // contents: true = the contents page itself (one page, no divider).
+    chapters: [
+      { id: "cuprins", title: "Cuprins", contents: true },
+      {
+        id: "stickere",
+        title: "Stickere",
+        color: palette.lilac,
+        blurb: "[o frază despre stickere]",
+        pages: [{ id: "stickere-1" }],
+      },
+      {
+        id: "bratari",
+        title: "Brățări",
+        color: palette.sage,
+        blurb: "[o frază despre brățări]",
+        pages: [{ id: "bratari-1" }],
+      },
+      { id: "tricouri", title: "Tricouri", pages: [] },
+      { id: "tote-bags", title: "Tote bags", pages: [] },
+    ] as AlbumChapter[],
   },
 };
