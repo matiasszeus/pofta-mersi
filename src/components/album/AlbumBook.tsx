@@ -244,7 +244,7 @@ function Page({ page, side, live }: { page: BookPage; side: "front" | "back" | "
   return (
     <div className={`ab-page ${place} ${look}`} style={style}>
       {page.kind === "contents" && <ContentsList />}
-      {page.kind === "divider" && <DividerText title={page.title} blurb={page.blurb} />}
+      {page.kind === "divider" && <DividerText title={page.title} blurb={page.blurb} accent={page.accent} />}
       {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
       {page.kind !== "blank" && (
         <div className="ab-pnum" style={left ? { left: u(pageNumber.side) } : { right: u(pageNumber.side) }}>
@@ -292,8 +292,10 @@ function ContentsList() {
   );
 }
 
-// A chapter's divider: its title big, and the blurb.
-function DividerText({ title, blurb }: { title: string; blurb?: string }) {
+// A chapter's divider: its title big, and the blurb (its `accent` word in
+// color).
+function DividerText({ title, blurb, accent }: { title: string; blurb?: string; accent?: string }) {
+  const at = blurb && accent ? blurb.indexOf(accent) : -1;
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ gap: u(10) }}>
       <div className={`${crazeRetro.className} leading-none`} style={{ fontSize: u(50), rotate: "-4deg" }}>
@@ -301,7 +303,15 @@ function DividerText({ title, blurb }: { title: string; blurb?: string }) {
       </div>
       {blurb && (
         <div className="opacity-75" style={{ fontSize: u(15) }}>
-          {blurb}
+          {at < 0 ? (
+            blurb
+          ) : (
+            <>
+              {blurb.slice(0, at)}
+              <span style={{ color: colors.accent }}>{accent}</span>
+              {blurb.slice(at + accent!.length)}
+            </>
+          )}
         </div>
       )}
     </div>

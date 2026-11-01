@@ -26,7 +26,15 @@ export type AlbumPageContent = {
 // One chapter of the album (see album.chapters below).
 export type AlbumChapter =
   | { id: string; title: string; contents: true }
-  | { id: string; title: string; contents?: false; color?: string; blurb?: string; pages: AlbumPageContent[] };
+  | {
+      id: string;
+      title: string;
+      contents?: false;
+      color?: string;
+      blurb?: string;
+      accent?: string;
+      pages: AlbumPageContent[];
+    };
 
 export const content = {
   // The handwritten note on the atelier mat. Shown tiny (unreadable) on the
@@ -73,6 +81,7 @@ export const content = {
     //          and in capitals, shown under the book in small letters
     //   color  its divider page, its dot in the contents, its tab
     //   blurb  under the title on its divider
+    //   accent optional: a word of the blurb, in color (theme.album.colors.accent)
     //   pages  its pages after the divider (see AlbumPageContent above);
     //          none = not there yet: "în curând" in the contents, not in
     //          the book
@@ -90,7 +99,8 @@ export const content = {
         id: "bratari",
         title: "Brățări",
         color: palette.sage,
-        blurb: "[o frază despre brățări]",
+        blurb: "din material textil",
+        accent: "textil",
         pages: [
           {
             id: "bratari-1",

@@ -721,6 +721,9 @@ export const theme = {
       lining: palette.lilac,
       liningDots: palette.sage,
       divider: palette.lilac,
+      // A word in color on a divider (see accent in content.ts): the
+      // atelier's green, readable on the light dividers.
+      accent: palette.green,
     },
 
     // The opening: one movement from the tap. Seconds; easings as CSS.
