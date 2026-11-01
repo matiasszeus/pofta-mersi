@@ -28,15 +28,18 @@ const css = `
 }
 .ab-board { background: ${colors.board}; box-shadow: ${board.shadowRest}; transform: translateZ(-1px); }
 .ab-board-lifted { box-shadow: ${board.shadowLifted}; opacity: 0; transform: translateZ(-1.5px); }
+/* The two edges meet on the diagonal in the bottom-right corner (clip-path). */
 .ab-edge-r, .ab-edge-b { position: absolute; transform: translateZ(-0.5px); }
 .ab-edge-r {
-  top: ${u(6)}; bottom: ${uMinusT(6)}; right: ${uMinusT(2)}; width: calc(var(--u) * var(--t) * 1px);
+  top: ${u(6)}; bottom: ${uMinusT(0)}; right: ${uMinusT(2)}; width: calc(var(--u) * var(--t) * 1px);
   border-radius: 0 ${u(3)} ${u(3)} 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--u) * var(--t) * 1px));
   background: repeating-linear-gradient(90deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
 }
 .ab-edge-b {
-  left: ${u(8)}; right: ${uMinusT(4)}; bottom: ${uMinusT(0)}; height: calc(var(--u) * var(--t) * 1px);
+  left: ${u(8)}; right: ${uMinusT(2)}; bottom: ${uMinusT(0)}; height: calc(var(--u) * var(--t) * 1px);
   border-radius: 0 0 ${u(3)} ${u(3)};
+  clip-path: polygon(0 0, calc(100% - var(--u) * var(--t) * 1px) 0, 100% 100%, 0 100%);
   background: repeating-linear-gradient(180deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
 }
 .ab-ribbon {
