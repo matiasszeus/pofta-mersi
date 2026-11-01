@@ -6,7 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
-import { chooseLetters, letterRect, objectRect, orientationOf, rectMiddle, type LetterSpot } from "./objectLayout";
+import { chooseLetters, letterRect, letterScale, objectRect, orientationOf, rectMiddle, type LetterSpot } from "./objectLayout";
 
 // The atelier's 3D letters, lying on the mat. The canvas is transparent: the
 // mat behind it is the page's own HTML/SVG background.
@@ -140,7 +140,10 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
   const { width, height } = useThree((state) => state.size);
   // Layout height: the visible part, from the top of the canvas.
   const visibleHeight = Math.min(useVisibleHeight(height), height);
-  const spots = cfg[orientationOf(width, visibleHeight)].filter((s) => chars.has(s.char));
+  const orientation = orientationOf(width, visibleHeight);
+  const spots = cfg[orientation].filter((s) => chars.has(s.char));
+  // Phones: more letters, smaller letters (see phoneScale in theme.ts).
+  const scale = letterScale(spots.length, orientation);
   // Camera height for which the mat fills the screen at 1 unit = 1 px.
   const distance = height / 2 / Math.tan(rad(cfg.fov / 2));
   const startHeight = distance * cfg.fall.startHeight;
@@ -174,10 +177,11 @@ function Scene({ animate, chars, onObjectsCue, onSettled }: SceneProps) {
 
   // From a spot in theme.ts to the letter's middle (world x/y), font size,
   // and turn (theme.ts turns clockwise like CSS; three.js counter-clockwise).
+  // A smaller letter (scale) stays centred on its box.
   const place = (spot: LetterSpot) => {
     const box = letterRect(spot, width, visibleHeight);
     const middle = rectMiddle(box);
-    const size = box.width / cfg.glyphHeight; // font size that shows the letter box.width tall
+    const size = (box.width * scale) / cfg.glyphHeight; // font size that shows the letter box.width * scale tall
     return { x: middle.x - width / 2, y: height / 2 - middle.y, size, rotation: -rad(spot.rotation) };
   };
   const placed = spots.map(place);

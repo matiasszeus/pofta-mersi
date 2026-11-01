@@ -466,6 +466,12 @@ export const theme = {
         dropOrder: [["I"], ["O", "T"], ["A"]],
         minHeight: { I: 650, O: 700, T: 700, A: 700 } as Record<string, number>,
       },
+      // Phones (portrait) only: the more letters fit, the smaller they are,
+      // so the mat does not look crowded. Up to `few` letters: full size;
+      // from `many` on: `factor` times that (0.85 = 15% smaller); in
+      // between, in proportion. Each letter keeps its place (the middle of
+      // its box); the album and the note do not change.
+      phoneScale: { few: 4, many: 7, factor: 0.85 },
       // For that check a letter counts as the middle part of its box: this
       // fraction is trimmed from each side (a turned letter's corners do not
       // reach the box's corners).

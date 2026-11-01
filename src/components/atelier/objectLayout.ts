@@ -102,6 +102,15 @@ export function letterRect(spot: LetterSpot, screenWidth: number, screenHeight: 
   return { left: spot.x * screenWidth, top: spot.y * screenHeight, width: size, height: size };
 }
 
+// How much smaller the letters are drawn when this many lie on the mat
+// (see phoneScale in theme.ts): 1 on wide screens.
+export function letterScale(count: number, orientation: Orientation) {
+  if (orientation !== "portrait") return 1;
+  const { few, many, factor } = letters.phoneScale;
+  const t = Math.min(1, Math.max(0, (count - few) / (many - few)));
+  return 1 + (factor - 1) * t;
+}
+
 function overlaps(a: Rect, b: Rect) {
   return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
 }
