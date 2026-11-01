@@ -650,6 +650,14 @@ export const theme = {
     color: palette.ink, // readable over the flowers
   },
 
+  // Devices can ask for less animation (prefers-reduced-motion: an
+  // accessibility setting in iOS, Android, Windows, macOS; on Windows it is
+  // on when "Animation effects" is off). false = ignore it: everyone gets
+  // the full animations (the owner's choice, Nov 2026). true = honour it:
+  // the calmer versions (fades, letters already lying still) come back;
+  // they are still in the code.
+  motion: { respectReducedMotion: false },
+
   // Settings that trade a little sharpness for speed.
   performance: {
     // Screens at least this wide (CSS pixels) count as large.

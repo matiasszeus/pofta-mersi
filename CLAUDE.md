@@ -69,7 +69,9 @@ Interactive 3D letters spelling **POFTA MERSI** in a full-screen canvas.
 - Canvas loaded client-side only (dynamic import, `ssr: false`), with a static
   placeholder while loading
 - `dpr={[1, 2]}`, minimal shadows, pause rendering when the tab/hero is not visible
-- Respect `prefers-reduced-motion`: show a static arrangement, no physics
+- `prefers-reduced-motion` is deliberately ignored (owner's decision): everyone gets the
+  full animations. The calmer versions stay in the code behind
+  `theme.motion.respectReducedMotion` (false); don't switch it back on unasked
 - If WebGL is unavailable, show a static image fallback
 
 ## Structure
