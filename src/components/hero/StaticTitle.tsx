@@ -1,5 +1,6 @@
 import { theme } from "@/config/theme";
 import { titleSnapshot } from "@/config/titleSnapshot";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 // The landing's title as a still picture of the 3D letters (made by
 // scripts/render-title.mjs), in exactly the place the 3D letters will be. It
@@ -75,7 +76,7 @@ export function StaticTitle({ hidden, leaving = false }: { hidden: boolean; leav
           width={landscape.pixelWidth}
           height={landscape.pixelHeight}
         />
-        <img
+        <img onError={hideOnError} ref={hideIfBroken}
           src={portrait.src}
           alt=""
           width={portrait.pixelWidth}

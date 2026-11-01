@@ -16,6 +16,7 @@ import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { NOTE_PIVOT, type Placed } from "./objectLayout";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 const note = theme.atelier.note;
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -61,7 +62,7 @@ const paperSizes = `(min-width: 768px) ${note.open.widthLarge}px, ${note.open.wi
 // One picture of the paper filling the sheet.
 function Paper({ src, className, style }: { src: string; className?: string; style?: CSSProperties }) {
   return (
-    <Image
+    <Image onError={hideOnError} ref={hideIfBroken}
       src={src}
       alt=""
       fill
@@ -159,7 +160,7 @@ function NoteSheet({ opened = false, restShadowRef, openShadowRef, inkRef, textR
         <Tape />
         {/* The scribbles: as wide as the text area, from its top-left. */}
         <div ref={inkRef} className="absolute" style={areaStyle}>
-          <Image
+          <Image onError={hideOnError} ref={hideIfBroken}
             src={note.scribbles.src}
             alt=""
             fill

@@ -206,6 +206,8 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
               debug={debug}
               onDiveEnd={arrive}
               onReady={onSceneReady}
+              // Lost later on: the still title, as when it fails.
+              onContextLost={onSceneFailed}
             />
           </SceneBoundary>
         </div>

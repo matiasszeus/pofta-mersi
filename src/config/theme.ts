@@ -969,6 +969,14 @@ export const theme = {
     turn: 2.4,
   },
 
+  // The error pages (404, an error): the atelier's mat with a note on it
+  // (the atelier note's paper), its text handwritten, and buttons under it.
+  //   width       the note, px (phones: at most 86% of the screen)
+  //   rotation    degrees, a little crooked
+  //   textSize    px
+  errorScreen: { width: 320, rotation: -3, textSize: 26, ink: palette.ink },
+
+  // The small © line at the bottom of the pages after the landing.
   siteFooter: {
     color: palette.white,
     opacity: 0.7,

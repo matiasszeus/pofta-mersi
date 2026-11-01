@@ -14,6 +14,7 @@ import {
   visibleSize,
   type MatLayout,
 } from "./objectLayout";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 // The atelier's letters without 3D (see shouldUse3D): pictures rendered
 // once from the 3D letters (scripts/letters-static.ts), placed exactly where
@@ -98,7 +99,7 @@ export function StaticMatLetters({ mat, onLanded }: Props) {
         return (
           <div key={spot.char} className="absolute" style={style}>
             {/* eslint-disable-next-line @next/next/no-img-element -- already the right size, see-through */}
-            <img
+            <img onError={hideOnError} ref={hideIfBroken}
               src={`${still.dir}/${spot.char}.webp`}
               alt=""
               draggable={false}

@@ -6,6 +6,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
 import * as THREE from "three";
 import { theme } from "@/config/theme";
+import { onContextLost } from "@/lib/contextLost";
 import { markLoad } from "@/lib/loadMarks";
 import { Bounds } from "./Bounds";
 import { diveDrop, type DiveState } from "./dive";
@@ -25,6 +26,8 @@ export type HeroCanvasProps = {
   onDiveEnd: () => void;
   // Called once the first frame with the 3D letters is on screen.
   onReady?: () => void;
+  // The browser took the WebGL context away (see onContextLost).
+  onContextLost?: () => void;
 };
 
 // Placed after the letters, inside the physics engine: it only mounts once
@@ -165,7 +168,14 @@ export default function HeroCanvas(props: HeroCanvasProps) {
     // cap (fewer pixels to draw on big screens).
     // shadows="variance": a shadow technique whose edges can be blurred
     // cheaply, which gives the soft shadow behind the letters.
-    <Canvas dpr={[1, dprCap]} shadows="variance" onCreated={() => markLoad("webgl")}>
+    <Canvas
+      dpr={[1, dprCap]}
+      shadows="variance"
+      onCreated={({ gl }) => {
+        markLoad("webgl");
+        onContextLost(gl.domElement, () => props.onContextLost?.());
+      }}
+    >
       {/* Suspense: render nothing until the fonts have loaded. */}
       <Suspense fallback={null}>
         <Scene {...props} />

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { theme } from "@/config/theme";
 import type { MatObjectConfig, Placed } from "./objectLayout";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 // none    = already lying on the mat (direct visit)
 // waiting = coming from the landing, the letters are still landing
@@ -116,7 +117,7 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
       <div className="obj-art relative w-full">
         {art ?? (
           <>
-            <Image
+            <Image onError={hideOnError} ref={hideIfBroken}
               src={object.src}
               width={object.width}
               height={object.height}
@@ -127,7 +128,7 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
               draggable={false}
               className="art obj-shadow absolute inset-0 h-auto w-full"
             />
-            <Image
+            <Image onError={hideOnError} ref={hideIfBroken}
               src={object.src}
               width={object.width}
               height={object.height}

@@ -10,6 +10,7 @@ import { u, uCss } from "./albumUnits";
 import { DymoLabel } from "./DymoLabel";
 import { PhotoZoom } from "./PhotoZoom";
 import { PriceTag } from "./PriceTag";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 const { chapterPage: cp, photos } = theme.album;
 
@@ -130,7 +131,7 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
         }}
       >
         {p.pozaBlur && (
-          <Image
+          <Image onError={hideOnError} ref={hideIfBroken}
             src={p.pozaBlur}
             alt={model.alt}
             fill

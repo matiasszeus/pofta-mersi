@@ -8,6 +8,7 @@ import { u, uMinusT } from "./albumUnits";
 import { ChapterPage } from "./ChapterPage";
 import { PartnerCredit } from "./PartnerCredit";
 import { PriceTag } from "./PriceTag";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
 const { hintCurl: hint } = theme.album;
@@ -317,7 +318,7 @@ export function AlbumBook({
             style={{ transform: coverTransform(open ? -180 : 0) }}
           >
             <div className="ab-face ab-cover-front">
-              <Image
+              <Image onError={hideOnError} ref={hideIfBroken}
                 src={cover.src}
                 width={cover.width}
                 height={cover.height}
@@ -497,7 +498,7 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
     <>
       {/* The chapter's pictures, under the title (see dividerPictures). */}
       {(theme.album.dividerPictures[chapterId] ?? []).map((p) => (
-        <Image
+        <Image onError={hideOnError} ref={hideIfBroken}
           key={p.src}
           src={p.src}
           width={p.width}

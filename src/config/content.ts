@@ -85,6 +85,15 @@ export const content = {
 
 
   // The cart: the calculator on the atelier's mat and the page /cos.
+  // The error pages (see ErrorScreen): a handwritten note on the mat.
+  errors: {
+    notFound: "pagina asta a căzut sub masă",
+    error: "ceva s-a stricat, încearcă din nou",
+    backToAtelier: "înapoi la atelier",
+    retry: "reîncearcă",
+    notFoundTitle: "Pagina nu există · Pofta Mersi",
+  },
+
   cart: {
     title: "coșul tău",
     back: "← înapoi în atelier",

@@ -24,11 +24,31 @@ function readRaw(): string | null {
   }
 }
 
+// Only well-formed items count (an id and a name, a price of 0 or more, a
+// whole number of pieces above 0): anything else in the stored text
+// (another site's data, an old or hand-edited cart) is dropped, never a
+// crash or "NaN lei". Not JSON at all: an empty cart.
+function isItem(x: unknown): x is CartItem {
+  if (typeof x !== "object" || x === null) return false;
+  const i = x as Record<string, unknown>;
+  return (
+    typeof i.id === "string" &&
+    typeof i.nume === "string" &&
+    typeof i.pret === "number" &&
+    Number.isFinite(i.pret) &&
+    i.pret >= 0 &&
+    typeof i.cantitate === "number" &&
+    Number.isInteger(i.cantitate) &&
+    i.cantitate > 0 &&
+    (i.categorie === undefined || typeof i.categorie === "string")
+  );
+}
+
 function parse(raw: string | null): CartItem[] {
   if (!raw) return [];
   try {
     const items: unknown = JSON.parse(raw);
-    return Array.isArray(items) ? (items as CartItem[]) : [];
+    return Array.isArray(items) ? items.filter(isItem) : [];
   } catch {
     return [];
   }

@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LetterGlyph } from "@/components/hero/LetterGlyph";
 import { theme } from "@/config/theme";
+import { onContextLost } from "@/lib/contextLost";
 import { useStableViewport } from "@/lib/stableViewport";
 import {
   blockerOutlines,
@@ -329,9 +330,11 @@ type MatLettersCanvasProps = {
   mat: MatLayout;
   // Covered (the open album): draw nothing meanwhile.
   paused?: boolean;
+  // The browser took the WebGL context away (see onContextLost).
+  onLost?: () => void;
 };
 
-export default function MatLettersCanvas({ animate, onObjectsCue, mat, paused = false }: MatLettersCanvasProps) {
+export default function MatLettersCanvas({ animate, onObjectsCue, mat, paused = false, onLost }: MatLettersCanvasProps) {
   const [settled, setSettled] = useState(!animate);
   const { largeScreen, maxDpr, maxDprLargeScreen } = theme.performance;
   const [dprCap] = useState(() => (window.innerWidth >= largeScreen ? maxDprLargeScreen : maxDpr));
@@ -355,6 +358,7 @@ export default function MatLettersCanvas({ animate, onObjectsCue, mat, paused = 
       // Its own size: measured again ~100 ms after a resize, never on a
       // scroll (moving around a pinch-zoomed page scrolls it).
       resize={{ debounce: 100, scroll: false }}
+      onCreated={({ gl }) => onContextLost(gl.domElement, () => onLost?.())}
     >
       {/* Suspense: render nothing until the font has loaded. */}
       <Suspense fallback={null}>

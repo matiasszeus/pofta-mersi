@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { AlbumCredit } from "@/config/content";
 import { theme } from "@/config/theme";
 import { u } from "./albumUnits";
+import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 const { credit: look } = theme.album.stickereDivider;
 
@@ -19,16 +20,21 @@ async function copy(text: string) {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
+    // The old way may refuse (or throw) as well: then simply not copied.
     const field = document.createElement("textarea");
-    field.value = text;
-    field.setAttribute("readonly", "");
-    field.style.position = "fixed";
-    field.style.opacity = "0";
-    document.body.appendChild(field);
-    field.select();
-    const ok = document.execCommand("copy");
-    field.remove();
-    return ok;
+    try {
+      field.value = text;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      field.remove();
+    }
   }
 }
 
@@ -54,7 +60,7 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
         onPointerDown={keep}
         onClick={keep}
       >
-        <Image
+        <Image onError={hideOnError} ref={hideIfBroken}
           src={logo.src}
           width={logo.width}
           height={logo.height}

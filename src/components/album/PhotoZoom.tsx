@@ -7,6 +7,7 @@ import type { Produs } from "@/config/products";
 import { theme } from "@/config/theme";
 import { u, uCss } from "./albumUnits";
 import { DymoLabel } from "./DymoLabel";
+import { hideOnError } from "@/lib/mediaError";
 
 const { photos, zoom } = theme.album;
 // The photo's picture area on the page, in u: the big one's square is as
@@ -131,7 +132,7 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
       >
         <div className="relative overflow-hidden bg-black" style={{ width: side, height: side }}>
           {product.videoMare && (
-            <video
+            <video onError={hideOnError}
               ref={(el) => {
                 video.current = el;
                 if (!el) return;
