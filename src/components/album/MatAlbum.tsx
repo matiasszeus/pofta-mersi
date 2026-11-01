@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { objectRect, type MatObjectConfig } from "@/components/atelier/objectLayout";
+import type { MatObjectConfig, Placed } from "@/components/atelier/objectLayout";
 import { theme } from "@/config/theme";
 import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
@@ -35,8 +35,8 @@ export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
 }
 
 type MatAlbumProps = {
-  // The album's settings for the mat (see matAlbumObject).
-  object: MatObjectConfig;
+  // Where it lies on the mat, and its turn (see matLayout).
+  place: Placed;
   // true = opened (tapped); false = lying on the mat.
   open: boolean;
   // Changes to play the opening again.
@@ -65,7 +65,7 @@ type Named = "book" | "slide" | "board";
 // holding the last frame ("fill"), for as long as the album is open:
 // nothing is swapped or re-rendered when one ends (on iPhone that made the
 // book flash for a frame).
-export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage = "cuprins" }: MatAlbumProps) {
+export function MatAlbum({ place, open, run, reducedMotion, dimRef, initialPage = "cuprins" }: MatAlbumProps) {
   const [screen, setScreen] = useState<{ w: number; h: number } | null>(null);
   // The opening (run) that has ended: the buttons show from then on.
   const [openedRun, setOpenedRun] = useState<number | null>(null);
@@ -117,7 +117,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
   // The opening (or, when `open` turns false, back on the mat). Runs on a
   // tap and on every replay; not when the screen is resized.
   useEffect(() => {
-    const p = open ? flightPoses(object, window.innerWidth, window.innerHeight) : null;
+    const p = open ? flightPoses(place, window.innerWidth, window.innerHeight) : null;
     if (!p) return;
     const spread = p.spread;
     const start = albumViews(spread)[viewWithPage(firstPageOf(initialPage), spread)];
@@ -179,7 +179,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
   // the new places (only their keyframes change, no element is swapped).
   useEffect(() => {
     if (!screen || !open) return;
-    const p = flightPoses(object, screen.w, screen.h);
+    const p = flightPoses(place, screen.w, screen.h);
     const set = (a: Animation | undefined, keyframes: Keyframe[]) => {
       if (a?.effect instanceof KeyframeEffect) a.effect.setKeyframes(keyframes);
     };
@@ -239,7 +239,7 @@ export function MatAlbum({ object, open, run, reducedMotion, dimRef, initialPage
       });
   };
 
-  const poses = screen && flightPoses(object, screen.w, screen.h);
+  const poses = screen && flightPoses(place, screen.w, screen.h);
   // The pages lying still on the screen: open, not turning. Their videos
   // play; prefers-reduced-motion (when honoured): only posters.
   const livePages = opened && turningRun !== run && !reducedMotion ? views[index].pages : [];
@@ -314,16 +314,15 @@ const bookKeyframes = (p: Poses): Keyframe[] => [
 // Each is first worked out on the screen (move from the box on the mat,
 // turn, scale); the box is turned by the object's rotation (on its parent),
 // so the move and the turn are then turned back by as much.
-function flightPoses(object: MatObjectConfig, screenWidth: number, screenHeight: number): Poses {
+function flightPoses(mat: Placed, screenWidth: number, screenHeight: number): Poses {
   const layout = albumLayout(screenWidth, screenHeight);
-  const mat = objectRect(object, screenWidth, screenHeight);
   // The flight's y values are for a page 340px wide.
   const scaleY = layout.width / 340;
   const toMiddle = {
     x: layout.left + layout.width / 2 - (mat.left + mat.width / 2),
     y: layout.top + layout.height / 2 - (mat.top + mat.height / 2),
   };
-  const r = object.rotation;
+  const r = mat.rotation;
   const a = (-r * Math.PI) / 180;
   const pose = (dx: number, dy: number, rotation: number, scale: number) => {
     const x = dx * Math.cos(a) - dy * Math.sin(a);

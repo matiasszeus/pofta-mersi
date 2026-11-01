@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { Mat } from "./objectLayout";
+import type { MatLayout } from "./objectLayout";
 
 // WebGL only exists in the browser, so the canvas is never rendered on the
 // server. Until it loads, the mat simply shows without letters.
@@ -13,18 +13,16 @@ type AtelierLettersProps = {
   // Called once, when the objects should start falling (see slam.delay).
   onLanded: () => void;
   // What lies on the mat: the letters keep clear of it.
-  mat: Mat;
-  // The mat that decides which letters lie on it (see fitMat).
-  lettersMat: Mat;
+  mat: MatLayout;
 };
 
 // The letters lying on the atelier's mat, in a transparent layer between the
 // mat and the page's content.
-export function AtelierLetters({ animate, onLanded, mat, lettersMat }: AtelierLettersProps) {
+export function AtelierLetters({ animate, onLanded, mat }: AtelierLettersProps) {
   return (
     // fixed + 100lvh, like the mat's drawings, so the two always line up.
     <div className="pointer-events-none fixed inset-0 h-lvh">
-      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} lettersMat={lettersMat} />
+      <MatLettersCanvas animate={animate} onObjectsCue={onLanded} mat={mat} />
     </div>
   );
 }

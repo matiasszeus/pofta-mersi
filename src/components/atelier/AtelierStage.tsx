@@ -8,7 +8,7 @@ import { preloadLanding, whenIdle } from "@/lib/preload";
 import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
-import { calcRect, fitMat, type Mat, type MatObjectConfig } from "./objectLayout";
+import { matLayout, visibleSize, type MatObjectConfig, type Placed } from "./objectLayout";
 import { PocketCalculator } from "./PocketCalculator";
 
 const { objects, object } = theme.atelier;
@@ -32,9 +32,9 @@ type StageProps = {
   // (see MatObject). Used by /lab/album.
   onObjectActivate?: (key: string, link: HTMLAnchorElement) => void;
   // Optional, per object key: drawn instead of its picture (see MatObject;
-  // given the object's settings as it lies on this mat), and its own
+  // given the object's settings and its place on this mat), and its own
   // settings instead of the ones in theme.ts.
-  objectArt?: Record<string, (object: MatObjectConfig) => ReactNode>;
+  objectArt?: Record<string, (object: MatObjectConfig, place: Placed) => ReactNode>;
   objectOverrides?: Record<string, MatObjectConfig>;
 };
 
@@ -72,44 +72,37 @@ function Stage({ onObjectActivate, objectArt, objectOverrides }: StageProps) {
   // times it on its own clock, from the same cue that starts the objects.)
 
   const entrance: Entrance = !animate ? "fade" : landed ? "slam" : "waiting";
-  // What lies on this mat (the objects, or their overrides), fitted to the
-  // screen: on short phones the album and the note get smaller (fitMat).
-  // Again on every resize (Instagram's browser changes its height after
-  // loading).
+  // Where the album (or its override), the note and the calculator lie for
+  // this screen (see layout in theme.ts). Again on every resize (Instagram's
+  // browser changes its height after loading). Only in the browser: until
+  // then (the HTML from the server) they wait, hidden.
   const screen = useScreenSize();
-  // lettersMat: the one that decides which letters lie on it (see fitMat).
-  const [mat, lettersMat]: Mat[] = useMemo(() => {
-    const base = { objects: objects.map((o) => objectOverrides?.[o.key] ?? o), notePlace: theme.atelier.note.place };
-    if (!screen) return [base, base];
-    return [fitMat(base, screen.w, screen.h), fitMat(base, screen.w, screen.h, true)];
-  }, [screen, objectOverrides]);
+  const album = objectOverrides?.[objects[0].key] ?? objects[0];
+  const mat = useMemo(() => (screen ? matLayout(screen.w, screen.h, album) : null), [screen, album]);
 
   return (
     <>
-      {/* The note is there from the start; its corner lifts when the first
-          object (the album) hits the mat. */}
-      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} mat={mat} />
-      {/* The cart, next to the note (it fades in with it). Its place is
-          worked out from the screen's size: only in the browser. */}
-      {screen && <PocketCalculator rect={calcRect(screen.w, screen.h, mat)} />}
-      <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} lettersMat={lettersMat} />
-      {mat.objects.map((o, i) => (
-        <MatObject
-          key={o.key}
-          object={o}
-          entrance={entrance}
-          slamDelay={slamDelay(i)}
-          onActivate={onObjectActivate && ((link) => onObjectActivate(o.key, link))}
-          art={objectArt?.[o.key]?.(o)}
-        />
-      ))}
+      {/* The note fades in with the mat; its corner lifts when the album
+          hits the mat. */}
+      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} place={mat?.note ?? null} />
+      {/* The cart (it fades in with the note). */}
+      {mat && <PocketCalculator place={mat.calc} />}
+      {mat && <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} />}
+      <MatObject
+        object={album}
+        place={mat?.albumBox ?? null}
+        entrance={entrance}
+        slamDelay={slamDelay(0)}
+        onActivate={onObjectActivate && ((link) => onObjectActivate(album.key, link))}
+        art={mat && objectArt?.[album.key]?.(album, mat.albumBox)}
+      />
     </>
   );
 }
 
-// The visible part of the screen (window.innerWidth / innerHeight), as
-// "393x740"; also when only the visual viewport reports a change (in-app
-// browsers). null on the server.
+// The visible part of the screen (see visibleSize), as "393x740"; also
+// when only the visual viewport reports a change (in-app browsers, Safari's
+// bars). null on the server.
 function subscribeScreen(onChange: () => void) {
   window.addEventListener("resize", onChange);
   window.visualViewport?.addEventListener("resize", onChange);
@@ -121,7 +114,10 @@ function subscribeScreen(onChange: () => void) {
 function useScreenSize() {
   const size = useSyncExternalStore(
     subscribeScreen,
-    () => `${window.innerWidth}x${window.innerHeight}`,
+    () => {
+      const { width, height } = visibleSize();
+      return `${width}x${height}`;
+    },
     () => "",
   );
   return useMemo(() => {

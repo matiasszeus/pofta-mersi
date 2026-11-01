@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { theme } from "@/config/theme";
-import { placeCss, type MatObjectConfig } from "./objectLayout";
+import type { MatObjectConfig, Placed } from "./objectLayout";
 
 // none    = already lying on the mat (direct visit)
 // waiting = coming from the landing, the letters are still landing
@@ -58,6 +58,9 @@ function slamKeyframes(name: string, rotation: number) {
 
 type MatObjectProps = {
   object: MatObjectConfig;
+  // Its place and turn on the mat (see matLayout); null = not known yet
+  // (on the server): hidden until then.
+  place: Placed | null;
   entrance: Entrance;
   // Seconds from the start of the slam phase until this object starts falling.
   slamDelay?: number;
@@ -77,13 +80,12 @@ type MatObjectProps = {
 // turned black and blurred, under it. Moving, scaling and fading that copy is
 // cheap for the browser; animating a CSS drop-shadow would make it re-blur
 // the whole image on every frame.
-export function MatObject({ object, entrance, slamDelay = 0, onActivate, art }: MatObjectProps) {
-  const portrait = placeCss(object, object.portrait);
-  const landscape = placeCss(object, object.landscape);
+export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, art }: MatObjectProps) {
   const animationName = `slam-${object.key}`;
+  const rotation = place?.rotation ?? 0;
 
   const vars = {
-    "--obj-rotation": `${object.rotation}deg`,
+    "--obj-rotation": `${rotation}deg`,
     "--obj-hover-scale": hoverScale,
     "--obj-hover-duration": `${hoverDuration}s`,
     "--obj-shadow-blur": `${shadow.blur}px`,
@@ -97,17 +99,14 @@ export function MatObject({ object, entrance, slamDelay = 0, onActivate, art }: 
     "--obj-pulse-duration": `${pulse.duration}s`,
     "--obj-fade-duration": `${reducedMotionFade}s`,
     // Place and size, read by the classes below.
-    "--obj-width": portrait.width,
-    "--obj-left": portrait.left,
-    "--obj-top": portrait.top,
-    "--obj-width-landscape": landscape.width,
-    "--obj-left-landscape": landscape.left,
-    "--obj-top-landscape": landscape.top,
+    "--obj-width": `${place?.width ?? 0}px`,
+    "--obj-left": `${place?.left ?? 0}px`,
+    "--obj-top": `${place?.top ?? 0}px`,
   } as CSSProperties;
 
   const state = { none: "", waiting: "obj-waiting", slam: "obj-slam", fade: "obj-fade" }[entrance];
   // Shown this wide, so the browser picks a suitably sized file.
-  const sizes = `(orientation: landscape) ${landscape.width}, ${portrait.width}`;
+  const sizes = place ? `${Math.ceil(place.width)}px` : "50vw";
 
   return (
     <Link
@@ -121,10 +120,10 @@ export function MatObject({ object, entrance, slamDelay = 0, onActivate, art }: 
           onActivate(e.currentTarget);
         })
       }
-      className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) landscape:w-(--obj-width-landscape) landscape:top-(--obj-top-landscape) landscape:left-(--obj-left-landscape) ${state}`}
+      className={`mat-object absolute z-10 block w-(--obj-width) top-(--obj-top) left-(--obj-left) ${place ? "" : "invisible"} ${state}`}
       style={vars}
     >
-      {entrance === "slam" && <style>{slamKeyframes(animationName, object.rotation)}</style>}
+      {entrance === "slam" && <style>{slamKeyframes(animationName, rotation)}</style>}
       <div className="obj-art relative w-full">
         {art ?? (
           <>

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { MatAlbum, matAlbumObject } from "@/components/album/MatAlbum";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
+import type { Placed } from "@/components/atelier/objectLayout";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 
@@ -24,9 +25,9 @@ export function LabAlbum() {
 
   const art = useMemo(
     () => ({
-      // Given the album as it lies on the mat (smaller on short phones).
-      [album.key]: (object: typeof album) => (
-        <MatAlbum object={object} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} />
+      // Given where the album lies on the mat (see matLayout).
+      [album.key]: (_: typeof album, place: Placed) => (
+        <MatAlbum place={place} open={open} run={run} reducedMotion={reducedMotion} dimRef={dim} />
       ),
     }),
     [open, run, reducedMotion],

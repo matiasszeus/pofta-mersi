@@ -6,7 +6,7 @@ import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { useCos } from "@/lib/cart";
-import type { Rect } from "./objectLayout";
+import type { Placed } from "./objectLayout";
 
 const calc = theme.atelier.calc;
 const colors = calc.colors;
@@ -109,9 +109,9 @@ const KEYS: [string, string][] = [
 // shows how many pieces are in it, the LCD their total in lei; the keys
 // are only drawn. All of it is one link to /cos.
 //
-// rect: its box on the mat, in CSS px (see calcRect), turned around its
-// middle by calc.rotate.
-export function PocketCalculator({ rect }: { rect: Rect }) {
+// place: its box on the mat, in CSS px, and its turn around the middle
+// (see matLayout).
+export function PocketCalculator({ place: rect }: { place: Placed }) {
   const { total, bucati } = useCos();
   const lcd = lcdCells(total);
   const totalText = total.toFixed(2).replace(".", ",");
@@ -124,7 +124,7 @@ export function PocketCalculator({ rect }: { rect: Rect }) {
     // Fades in with the note (see .note-appear).
     "--note-appear-duration": `${theme.atelier.mat.fadeIn}s`,
     "--note-appear-delay": `${theme.atelier.note.appearDelay}s`,
-    rotate: `${calc.rotate}deg`,
+    rotate: `${rect.rotation}deg`,
     filter: `drop-shadow(0 ${px(16.2)} ${px(14.4)} ${colors.shadow})`,
   } as CSSProperties;
 

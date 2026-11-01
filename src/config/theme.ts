@@ -246,16 +246,51 @@ export const theme = {
       fadeIn: 0.45, // seconds
     },
 
-    // The objects lying on the mat (the album): each is a
-    // picture (PNG with a transparent background) linking to its page.
-    //
-    // Place, per screen orientation (portrait = taller than wide, landscape
-    // = wider than tall): the point (anchorX * screen width + x, anchorY *
-    // screen height + y), in CSS px, is where the object's alignX / alignY
-    // point goes (0 = its left / top edge, 0.5 = its middle). An object
-    // anchored to the top (anchorY 0) is kept below the iPhone's status bar.
-    // Width: widthVw % of the screen width, but never more than maxWidth px
-    // nor taller than maxHeightVh % of the screen height.
+    // Where the album, the note and the calculator lie on the mat, measured
+    // on two references (each one's top-left corner before its turn, and
+    // width), as % of the visible part of the screen: left and width of
+    // its width, top of its height. Turns in degrees (clockwise, like CSS).
+    layout: {
+      // Phones held upright (narrower than maxWidth px):
+      // docs/atelier-calc-telefon-referinta.png, 393 x 633 (Safari on an
+      // iPhone, between its bars). Other heights keep these proportions.
+      //   album  76, 89, 221 px wide. On a screen too short for it, smaller
+      //          (around its middle, never under albumMinScale times) until
+      //          `gap` px clear of the note.
+      //   note   261, 428, 99 px wide
+      //   calc   35, (464), 112 px wide: its bottom `bottom` px above the
+      //          bottom of the visible part, whatever the height. Smaller
+      //          (never under minWidth px) where it would come closer than
+      //          `gap` px to the album or the note.
+      phone: {
+        maxWidth: 768,
+        album: { left: 19.34, top: 14.06, width: 56.23, rotation: -10 },
+        note: { left: 66.41, top: 67.61, width: 25.19, rotation: 6 },
+        calc: { left: 8.91, width: 28.5, bottom: 14, minWidth: 96, rotation: -26 },
+        albumMinScale: 0.8,
+        gap: 8,
+      },
+      // Tablets and desktops (and phones held sideways):
+      // docs/atelier-calc-desktop-referinta.png, 1916 x 967.
+      //   album  699, 179, 470 px wide
+      //   calc   334, 560, 196 px wide (~170 px left of the album)
+      //   note   1355, 327, 250 px wide (~160 px right of the album; its
+      //          top at about a quarter of the album's height)
+      // On screens wider for their height than the reference, all three
+      // are smaller (around their middles) by as much, so they still fit
+      // the height. The free mat between the album and the calculator /
+      // the note shrinks with the screen, but never under minGap px.
+      wide: {
+        reference: { width: 1916, height: 967 },
+        album: { left: 36.48, top: 18.51, width: 24.53, rotation: -4 },
+        calc: { left: 17.43, top: 57.91, width: 10.23, rotation: -8 },
+        note: { left: 70.72, top: 33.82, width: 13.05, rotation: 6 },
+        minGap: 40,
+      },
+    },
+
+    // The objects lying on the mat (the album): each is a picture (PNG
+    // with a transparent background) linking to its page. Where: `layout`.
     objects: [
       {
         key: "album",
@@ -265,21 +300,6 @@ export const theme = {
         alt: "Albumul cu stickerele Pofta Mersi",
         href: "/album",
         ariaLabel: "Album", // what screen readers announce for the link
-        // Portrait: big, centred, its top edge at 18% of the height; on short
-        // phones (under ~700px) at most 44% of the height, so the note and the
-        // bottom corner letters still fit under it without touching.
-        // Landscape: in the middle of the screen.
-        portrait: {
-          anchorX: 0.5, alignX: 0.5, x: 0,
-          anchorY: 0.18, alignY: 0, y: 0,
-          widthVw: 67, maxWidth: 380, maxHeightVh: 44,
-        },
-        landscape: {
-          anchorX: 0.5, alignX: 0.5, x: 0,
-          anchorY: 0.5, alignY: 0.5, y: 0,
-          widthVw: 26, maxWidth: 380, maxHeightVh: 62,
-        },
-        rotation: -4, // degrees
       },
     ],
 
@@ -309,27 +329,7 @@ export const theme = {
       ink: palette.ink,
       tape: palette.lilac, // the washi tape holding it at the top
       tapeOpacity: 0.65,
-      // On the mat, its own place on the screen (it does not follow the
-      // album), per orientation: its top-left corner at (left * screen width,
-      // top * screen height); width like the objects' (widthVw, maxWidth,
-      // maxHeightVh); the height follows the paper picture.
-      // Free mat always shows between it and the album: on screens too short
-      // for the place below, it moves down (clearOf "below") or right
-      // (clearOf "right") until it is `gap` px clear of the album's box.
-      place: {
-        portrait: {
-          left: 0.53, top: 0.66,
-          widthVw: 32, maxWidth: 170, maxHeightVh: 15,
-          clearOf: "below" as "below" | "right", gap: 24,
-        },
-        // Right of the album and lower, well apart from it.
-        landscape: {
-          left: 0.66, top: 0.6,
-          widthVw: 14, maxWidth: 200, maxHeightVh: 28,
-          clearOf: "right" as "below" | "right", gap: 40,
-        },
-      },
-      rotation: 6,
+      // Its place and turn on the mat: `layout`.
       // It fades in together with the mat's lines (same fade, same moment
       // they start), this many seconds after them.
       appearDelay: 0.1,
@@ -380,22 +380,8 @@ export const theme = {
     // lei (the LCD). Looks: docs/calculator-cos-referinta.html, where it is
     // 180px wide; every size scales with its width.
     calc: {
-      // Width in CSS px: phones (screens narrower than 768px), then
-      // tablets and desktops (there also never taller than maxHeightVh %
-      // of the screen height, for phones held sideways).
-      width: {
-        phone: { min: 92, vw: 26, max: 116 },
-        wide: { min: 120, vw: 9.5, max: 140, maxHeightVh: 34 },
-      },
+      // Its place, size and turn: `layout`.
       ratio: 248 / 180, // height / width
-      rotate: -8, // degrees
-      // Upright screens: left of the note, `gapToNote` px between them, its
-      // top `offsetY` px lower than the note's. Wide screens (no room left
-      // of the note, right next to the album): left of the album instead,
-      // `gapToAlbum` px from it, mirroring the note; same top.
-      gapToNote: 16,
-      gapToAlbum: 16,
-      offsetY: 8,
       // It fades in together with the note.
       colors: {
         body: ["#2B3442", palette.ink, "#141B25"], // gradient, top-left to bottom-right
@@ -499,52 +485,41 @@ export const theme = {
       // Which letters lie on the mat. Decided once, when the page opens
       // (turning the phone neither adds nor removes any); the others are
       // not even built.
-      //   corners    always there
+      //   corners    always there (those the screen has: see `phone`)
       //   dropOrder  tablets and desktops: the others, removed group by
       //              group, first group first, when a letter of a group
-      //              would touch the album or the note (it takes its whole
-      //              group, and all groups before it, away)
-      // A letter that would touch the calculator is moved instead (the
-      // nearest place where it touches nothing), never removed.
+      //              still touches something after being moved (see
+      //              clearance below; it takes its whole group, and all
+      //              groups before it, away)
+      // A letter that would touch the album, the note or the calculator is
+      // moved first: to the nearest place where it touches nothing.
       keep: {
         corners: ["P", "F", "M", "S"],
         dropOrder: [["I"], ["O", "T"]],
       },
       // Phones (screens narrower than maxWidth CSS px, the same limit as
-      // the logo's phone / tablet size): only the corners P, F (top) and
-      // M, S (bottom); the others are left out altogether (not even
-      // built). These are moved (x, y as above).
+      // the logo's phone / tablet size): only P, F (top) and S (bottom);
+      // the others are left out altogether (not even built). These are
+      // moved (x, y, rotation as above): F up, partly over the top edge on
+      // purpose (247, -17 px on docs/atelier-calc-telefon-referinta.png).
       phone: {
         maxWidth: 768,
-        without: ["O", "T", "I"],
-        moved: { F: { x: 0.68 } } as Record<string, { x?: number; y?: number }>,
+        without: ["O", "T", "I", "M"],
+        moved: { F: { x: 0.6285, y: -0.0269, rotation: 18 } } as Record<
+          string,
+          { x?: number; y?: number; rotation?: number }
+        >,
       },
       // Phones (portrait) only: the letters drawn this many times their
       // size (0.85 = 15% smaller), so the mat does not look crowded. Each
       // letter keeps its place (the middle of its box).
       phoneScale: 0.85,
-      // How the album and the note fit on the mat with the letters.
-      //   albumScale  the album lying on the mat, times its size in
-      //               `objects` (phones / tablets and desktops); the open
-      //               album keeps its own size (theme.album)
-      //   noteGap     phones: px from the album's lowest point (its turned
-      //               corner, ribbon, pages' edge) to the note's tape
-      // Phones, when that does not fit: first the album and the note move
-      // up together (as much free mat above the album as under the note);
-      // then the album gets smaller (never below minAlbumWidthVw % of the
-      // screen width) until P, F, M, S keep `clearance` px from it and the
-      // note still fits under it; the note shrinks with it. On screens
-      // less than shortHeight CSS px tall the letters are drawn
-      // `shortScale` times smaller (0.94 = 6%), for a little more air.
-      fit: {
-        albumScale: { phone: 0.92, wide: 0.96 },
-        noteGap: 28,
-        minAlbumWidthVw: 55,
-        shortHeight: 760,
-        shortScale: 0.94,
-      },
-      // Free mat kept between a letter and the album's / the note's real
-      // outline (turned, with all that sticks out), in CSS px.
+      // Phones less than `height` CSS px tall: the letters drawn `scale`
+      // times smaller still (0.94 = 6%), for a little more air.
+      short: { height: 760, scale: 0.94 },
+      // Free mat kept between a letter and the real outline (turned, with
+      // all that sticks out) of the album, the note and the calculator, in
+      // CSS px.
       clearance: 12,
       // For that check a letter counts as the middle part of its box: this
       // fraction is trimmed from each side (a turned letter's corners do not

@@ -91,7 +91,7 @@ src/components/hero/
   Bounds.tsx            # viewport-based walls
   StaticTitle.tsx       # still picture of the title until the 3D scene is ready
 src/components/atelier/ # mat, letters on the mat, album (MatObject), note, calculator
-  objectLayout.ts       # where album, note, calculator and letters go (CSS and px)
+  objectLayout.ts       # where album, note, calculator and letters go (px, from theme.atelier.layout)
   PocketCalculator.tsx  # the cart on the mat
 src/lib/cart.ts         # the cart's data (localStorage), useCos()
 src/components/site/    # header with the logo (pages after the atelier)

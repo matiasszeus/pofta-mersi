@@ -117,16 +117,6 @@ body {
 }
 
 /* No focus outline after a tap or click (nor the phone's tap highlight). */
-/* The note's width on the mat, per orientation. */
-.note-vars {
-  --note-w: var(--note-w-portrait);
-}
-@media (orientation: landscape) {
-  .note-vars {
-    --note-w: var(--note-w-landscape);
-  }
-}
-
 .note-button {
   outline: none;
   -webkit-tap-highlight-color: transparent;

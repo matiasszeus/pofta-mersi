@@ -15,7 +15,7 @@ import { textFonts } from "@/app/fonts";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import { NOTE_PIVOT, baseMat, noteCss, type Mat } from "./objectLayout";
+import { NOTE_PIVOT, type Placed } from "./objectLayout";
 
 const note = theme.atelier.note;
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -192,9 +192,9 @@ type AtelierNoteProps = {
   // Seconds from now until the album hits the mat, when the note's corner
   // lifts; null = no flutter (no slam, or reduced motion).
   flutterDelay: number | null;
-  // What lies on the mat (the note keeps clear of the album; on short
-  // phones both are smaller: see fitMat).
-  mat?: Mat;
+  // Its place and turn on the mat (see matLayout); null = not known yet
+  // (on the server): hidden until then.
+  place: Placed | null;
 };
 
 type Input = "keyboard" | "pointer";
@@ -207,11 +207,9 @@ type Input = "keyboard" | "pointer";
 // The dialog is our own (role="dialog"), not the browser's <dialog>: browsers
 // may close a native modal dialog on Esc or on Android's back button at once,
 // without letting the page animate it back.
-export function AtelierNote({ flutterDelay, mat = baseMat }: AtelierNoteProps) {
+export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
   const reducedMotion = useReducedMotion();
-  // The note on the mat, per orientation (see note.place in theme.ts).
-  const portrait = noteCss("portrait", mat);
-  const landscape = noteCss("landscape", mat);
+  const rotation = place?.rotation ?? 0;
   const button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -277,12 +275,15 @@ export function AtelierNote({ flutterDelay, mat = baseMat }: AtelierNoteProps) {
     const py = box.top + PIVOT.y * box.height;
     const cx = box.left + box.width / 2 - px;
     const cy = box.top + box.height / 2 - py;
-    const a = rad(note.rotation);
+    // Its turn on the mat, as set on the button (read there, so this is
+    // always the current one).
+    const turn = parseFloat(button.current!.style.getPropertyValue("--note-rotation")) || 0;
+    const a = rad(turn);
     const midX = px + cx * Math.cos(a) - cy * Math.sin(a);
     const midY = py + cx * Math.sin(a) + cy * Math.cos(a);
     const dx = midX - (area.left + area.width / 2);
     const dy = midY - (area.top + area.height / 2);
-    return `translate(${dx}px, ${dy}px) rotate(${note.rotation}deg) scale(${scale})`;
+    return `translate(${dx}px, ${dy}px) rotate(${turn}deg) scale(${scale})`;
   };
   const openTransform = `translate(0px, 0px) rotate(${note.open.rotation}deg) scale(1)`;
   const tiltTransform = (deg: number) => `perspective(900px) rotateX(${deg}deg)`;
@@ -484,15 +485,11 @@ export function AtelierNote({ flutterDelay, mat = baseMat }: AtelierNoteProps) {
 
   const matVars = {
     ...sheetVars,
-    "--note-w-portrait": portrait.width,
-    "--note-w-landscape": landscape.width,
-    "--note-left": portrait.left,
-    "--note-top": portrait.top,
-    "--note-h": portrait.height,
-    "--note-left-landscape": landscape.left,
-    "--note-top-landscape": landscape.top,
-    "--note-h-landscape": landscape.height,
-    "--note-rotation": `${note.rotation}deg`,
+    "--note-w": `${place?.width ?? 0}px`,
+    "--note-h": `${place?.height ?? 0}px`,
+    "--note-left": `${place?.left ?? 0}px`,
+    "--note-top": `${place?.top ?? 0}px`,
+    "--note-rotation": `${rotation}deg`,
     "--note-pivot": `${PIVOT.x * 100}% ${PIVOT.y * 100}%`,
     "--note-flutter-lift": `${note.flutter.lift}deg`,
     "--note-flutter-duration": `${note.flutter.duration}s`,
@@ -510,11 +507,11 @@ export function AtelierNote({ flutterDelay, mat = baseMat }: AtelierNoteProps) {
         aria-label="Citește notița"
         aria-haspopup="dialog"
         onClick={open}
-        className={`note-vars note-button note-appear absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) landscape:top-(--note-top-landscape) landscape:left-(--note-left-landscape) ${lifted ? "invisible" : ""}`}
+        className={`note-button note-appear absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) ${lifted || !place ? "invisible" : ""}`}
         style={matVars}
       >
         <span
-          className={`note-mat block h-(--note-h) w-(--note-w) landscape:h-(--note-h-landscape) ${
+          className={`note-mat block h-(--note-h) w-(--note-w) ${
             flutterDelay !== null ? "note-flutter" : ""
           }`}
         >
