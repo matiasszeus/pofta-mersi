@@ -25,8 +25,8 @@ const TAP_MAX_MS = 400;
 // The album's settings for the mat: those of theme.ts, but with the
 // proportions of the drawn book's page, and its real outline as it lies
 // closed (the letters keep clear of it): the stack with the cover around
-// it (right, top, bottom), the tabs on the right (pushed out by
-// closedTabsShift), the ribbon below. In fractions of the page's width
+// it (right, top, bottom; closed.stackDrop lower), the tabs on the right
+// (pushed out by tabs.closedShift), the ribbon below. In fractions of the page's width
 // (1u = 1 / unitWidth).
 export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
   const u = 1 / unitWidth;
@@ -37,7 +37,8 @@ export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
     width: 340,
     height: 340 * page.ratio,
     outline: [
-      { left: 0, top: -stackReachY * u, right: 1 + stackReachX * u, bottom: page.ratio + stackReachY * u },
+      // The stack sits closed.stackDrop lower while closed.
+      { left: 0, top: -stackReachY * u, right: 1 + stackReachX * u, bottom: page.ratio + (stackReachY + theme.album.closed.stackDrop) * u },
       { left: 1 + tabsOut, top: tabs.top * u, right: 1 + tabsOut + tabs.width * u, bottom: tabsBottom * u },
       { left: ribbonLeft, top: page.ratio, right: ribbonLeft + ribbon.width * u, bottom: page.ratio + ribbon.below * u },
     ],
@@ -134,15 +135,18 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   };
   const done = (...list: (Animation | null)[]) => Promise.all(list.map((a) => a?.finished));
 
-  // The tabs: pushed out by tabs.closedShift while the book is closed (so
-  // they show whole beside the cover), back at the page's edge once open:
-  // with the cover's turn (`timing`), or at once.
-  const tabsOpen = (timing: KeyframeAnimationOptions) =>
-    animate(
-      book.current?.querySelector(".ab-tabs") ?? null,
-      [{ transform: TABS_CLOSED }, { transform: TABS_OPEN }],
-      timing,
-    );
+  // From the closed book to the open one, with the cover's turn (`timing`)
+  // or at once: the tabs (pushed out by tabs.closedShift while closed, so
+  // they show whole beside the cover) back at the page's edge, and both
+  // stacks (closed.stackDrop lower while closed) back up.
+  const tabsOpen = (timing: KeyframeAnimationOptions) => {
+    const el = book.current;
+    return [
+      animate(el?.querySelector(".ab-tabs") ?? null, [{ transform: TABS_CLOSED }, { transform: TABS_OPEN }], timing),
+      animate(el?.querySelector(".ab-stack-right") ?? null, [{ transform: STACK_RIGHT_CLOSED }, { transform: STACK_RIGHT_OPEN }], timing),
+      animate(el?.querySelector(".ab-stack-left") ?? null, [{ transform: STACK_LEFT_CLOSED }, { transform: STACK_LEFT_OPEN }], timing),
+    ];
+  };
 
   // The opening (or, when `open` turns false, back on the mat). Runs on a
   // tap and on every replay; not when the screen is resized.
@@ -198,8 +202,9 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         // cover's turn (drawn by the see-through board: no extra layer
         // with an opacity in the 3D).
         animate(boardRef.current, [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }], turn, "board"),
-        // The tabs slide back to the page's edge, with the cover.
-        tabsOpen(turn),
+        // The tabs slide back to the page's edge and the stacks rise, with
+        // the cover.
+        ...tabsOpen(turn),
         // Meanwhile the cover turns open around the spine (from flat to
         // lying on the left, face down).
         animate(cover.current, [{ transform: coverTransform(0) }, { transform: coverTransform(-180) }], turn),
@@ -395,8 +400,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   // is on the screen, measured at the tap (never by the element under the
   // finger: on a phone the neighbouring page shows past the spine, and a
   // tap there used to count from that page's edges, the wrong way):
-  //   phone   the album's visible part (its board and cover, cut to the
-  //           screen): right 25% = next, left 25% = back, any page
+  //   phone   the album's visible part (its board, cover and tabs, cut to
+  //           the screen): right 25% = next, left 25% = back, any page
   //   wide    the right page's right 25% = next, the left page's left 25%
   //           = back (and past them, on the book)
   // The middle does nothing (no turning by mistake).
@@ -407,7 +412,9 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     const rectOf = (sel: string) => bookEl.querySelector(sel)?.getBoundingClientRect();
     let step = 0;
     if (!layout.spread) {
-      const parts = [rectOf(".ab-board"), rectOf(".ab-cover")].filter((r) => r && r.width > 0) as DOMRect[];
+      // The book as it shows: its board and cover, and the tabs sticking out.
+      const tabs = [...bookEl.querySelectorAll(".ab-tab")].map((t) => t.getBoundingClientRect());
+      const parts = [rectOf(".ab-board"), rectOf(".ab-cover"), ...tabs].filter((r) => r && r.width > 0) as DOMRect[];
       if (!parts.length) return 0;
       const left = Math.max(0, Math.min(...parts.map((r) => r.left)));
       const right = Math.min(window.innerWidth, Math.max(...parts.map((r) => r.right)));
@@ -627,6 +634,13 @@ const SLIDE_NONE = "translate3d(calc(0% + 0px), 0px, 0px)";
 // tabs.closedShift u; open, at the page's edge. Above the pages' plane.
 const TABS_CLOSED = `translateX(calc(var(--u) * ${tabs.closedShift}px)) translateZ(0.5px)`;
 const TABS_OPEN = "translateX(calc(var(--u) * 0px)) translateZ(0.5px)";
+// The stacks (see .ab-stack-right / -left): closed, closed.stackDrop u
+// lower; open, where they belong.
+const drop = theme.album.closed.stackDrop;
+const STACK_RIGHT_CLOSED = `translateY(calc(var(--u) * ${drop}px)) translateZ(-0.6px)`;
+const STACK_RIGHT_OPEN = "translateY(calc(var(--u) * 0px)) translateZ(-0.6px)";
+const STACK_LEFT_CLOSED = `translateY(calc(var(--u) * ${drop}px))`;
+const STACK_LEFT_OPEN = "translateY(calc(var(--u) * 0px))";
 
 // How far the book is slid for a view: wide screens half a page (cover and
 // page centred together), phones one page to show a left-hand page; plus

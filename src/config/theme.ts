@@ -633,6 +633,20 @@ export const theme = {
     //   cover          the cover showing around the stack (outer sides)
     //   coverRadius    the cover's outer corners
     openStack: { leaves: 6, stepX: 1.6, stepY: 1.4, taper: 0.5, radius: 5, cover: 5, coverRadius: 9 },
+    // The closed book:
+    //   stackDrop  both stacks sit this much lower (u), so a thin strip of
+    //              sheets shows under the cover (wider towards the outer
+    //              corner, thinner towards the spine); they rise back with
+    //              the cover's turn
+    //   heel       at the spine's bottom, on the cover's front: a small
+    //              black piece under the cover's bottom edge, so that
+    //              strip ends in black, not in the spine's corner (u;
+    //              slant: where its outer side ends at the bottom, of its
+    //              width; it turns with the cover, gone once open)
+    closed: {
+      stackDrop: 4,
+      heel: { width: 22, height: 9, radius: 3, slant: 0.78, color: palette.coverBlack, spineColor: "#141416" },
+    },
     // Phones: where a left page sits on the screen (see albumLayout), as
     // approved: as if the cover reached past it by board.beyond +
     // frameStep u for every sheet turned (never more than frameMax).

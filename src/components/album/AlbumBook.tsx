@@ -11,7 +11,7 @@ import { PartnerCredit } from "./PartnerCredit";
 import { PriceTag } from "./PriceTag";
 import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
-const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors, openStack } = theme.album;
+const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors, closed } = theme.album;
 const { hintCurl: hint } = theme.album;
 const text = content.album;
 
@@ -33,11 +33,12 @@ const css = `
 /* translateZ(1px): never exactly in the same plane as the front (Safari). */
 .ab-back { transform: rotateY(180deg) translateZ(1px); }
 /* The board: see-through, it only draws the book's shadow on the mat (from
-   the closed book's to the open one's, see MatAlbum), in the cover's
-   outline around the stack. */
+   the closed book's to the open one's, see MatAlbum): as far right and
+   down as the cover around the stack; at the top only board.top (6u),
+   rounded by board.radius, so the shadow never shows above the cover. */
 .ab-board {
-  position: absolute; top: ${u(stackBox.top)}; left: 0; right: ${u(-stackReachX)}; bottom: ${u(-stackReachY)};
-  border-radius: 0 ${u(openStack.coverRadius)} ${u(openStack.coverRadius)} 0;
+  position: absolute; top: ${u(-board.top)}; left: 0; right: ${u(-stackReachX)}; bottom: ${u(-stackReachY)};
+  border-radius: 0 ${u(board.radius)} ${u(board.radius)} 0;
   box-shadow: ${board.shadowRest}; transform: translateZ(-1px);
 }
 .ab-ribbon {
@@ -53,8 +54,9 @@ const css = `
    lining, turning with the cover (closed: under the cover's front, right
    over the right one). */
 .ab-stack-open { position: absolute; overflow: visible; pointer-events: none; }
-.ab-stack-right { left: 0; top: ${u(stackBox.top)}; transform: translateZ(-0.6px); }
-.ab-stack-left { left: ${u(coverParts.over - stackReachX)}; top: ${u(coverParts.over - stackReachY)}; }
+/* Closed: both stacks closed.stackDrop lower (see MatAlbum, STACK_*). */
+.ab-stack-right { left: 0; top: ${u(stackBox.top)}; transform: translateY(${u(closed.stackDrop)}) translateZ(-0.6px); }
+.ab-stack-left { left: ${u(coverParts.over - stackReachX)}; top: ${u(coverParts.over - stackReachY)}; transform: translateY(${u(closed.stackDrop)}); }
 .ab-page { position: absolute; inset: 0; box-sizing: border-box; overflow: hidden; color: ${colors.ink}; }
 .ab-paper {
   background-color: ${colors.paper};
@@ -139,6 +141,16 @@ const css = `
   background: radial-gradient(120% 80% at 70% 20%, #2a2a2d 0%, ${colors.board} 60%);
   border-radius: ${u(coverParts.radiusSpine)} ${u(coverParts.radiusEdge)} ${u(coverParts.radiusEdge)} ${u(coverParts.radiusSpine)};
   overflow: hidden;
+}
+/* The closed book's heel (theme.album.closed.heel): under the cover's
+   bottom edge, at the spine; a face of the cover, so it turns with it and
+   is never seen once open. */
+.ab-cover-heel {
+  position: absolute; left: 0; top: 100%; width: ${u(closed.heel.width)}; height: ${u(closed.heel.height)};
+  background: linear-gradient(to left, ${closed.heel.color}, ${closed.heel.spineColor});
+  border-radius: 0 0 ${u(closed.heel.radius)} ${u(closed.heel.radius)};
+  clip-path: polygon(0 0, 100% 0, ${closed.heel.slant * 100}% 100%, 0 100%);
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
 }
 .ab-cover-back {
   background: ${colors.board};
@@ -299,6 +311,7 @@ export function AlbumBook({
                 className="art absolute inset-0 block h-full w-full object-cover"
               />
             </div>
+            <div className="ab-cover-heel" />
             <div className="ab-face ab-back ab-cover-back">
               <StackSvg drawing={leftStack} className="ab-stack-left ab-stack-open" mirror />
               <div className="ab-page ab-left ab-lining" style={{ top: u(6), bottom: u(6), left: u(6), right: 0 }} />
