@@ -12,7 +12,6 @@ import {
 import Image from "next/image";
 import { createPortal, flushSync } from "react-dom";
 import { textFonts } from "@/app/fonts";
-import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { NOTE_PIVOT, type Placed } from "./objectLayout";
@@ -211,7 +210,6 @@ type Input = "keyboard" | "pointer";
 // may close a native modal dialog on Esc or on Android's back button at once,
 // without letting the page animate it back.
 export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
-  const reducedMotion = useReducedMotion();
   const rotation = place?.rotation ?? 0;
   const button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
@@ -349,14 +347,6 @@ export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
     const openOpacity = note.open.shadow.opacity;
     mover.current!.focus({ preventScroll: true });
     run(p.backdrop, [{ opacity: 0 }, { opacity: 1 }], d, easing);
-    if (reducedMotion) {
-      // Only a fade, straight to the opened sheet.
-      run(p.mover, [{ opacity: 0 }, { opacity: 1 }], d, easing);
-      for (const [el, to] of [[p.restShadow, 0], [p.openShadow, openOpacity], [p.ink, 0], [p.text, 1]] as const) {
-        run(el, [{ opacity: to }, { opacity: to }], 0, "linear");
-      }
-      return;
-    }
     // Lifted from where it lies: moves, turns and grows to the middle,
     // tilting in the hand on the way; the writing on the mat fades into the
     // clean sheet, the text appears halfway, the shadow grows softer.
@@ -389,44 +379,40 @@ export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
       const { closeDuration: d, easing } = note.open;
       const now = (el: HTMLElement, prop: "transform" | "opacity") => getComputedStyle(el)[prop];
       const out = run(p.backdrop, [{ opacity: now(p.backdrop, "opacity") }, { opacity: 0 }], d, easing);
-      if (reducedMotion) {
-        run(p.mover, [{ opacity: now(p.mover, "opacity") }, { opacity: 0 }], d, easing);
-      } else {
-        const restOpacity = note.shadow.opacity;
-        run(p.mover, [{ transform: now(p.mover, "transform") }, { transform: matTransform() }], d, easing);
-        // Tilts in the hand, then settles flat with a tiny tilt the other way.
-        run(
-          p.tilter,
-          [
-            { transform: now(p.tilter, "transform") },
-            { transform: tiltTransform(note.open.tilt), offset: 0.45 },
-            { transform: tiltTransform(note.open.settle), offset: 0.85 },
-            { transform: tiltTransform(0) },
-          ],
-          d,
-          "ease-in-out",
-        );
-        run(p.restShadow, [{ opacity: now(p.restShadow, "opacity") }, { opacity: restOpacity }], d, easing);
-        run(p.openShadow, [{ opacity: now(p.openShadow, "opacity") }, { opacity: 0 }], d, easing);
-        // The opening backwards: the text fades out, then the scribbles come
-        // back (from wherever they are, if the opening was interrupted).
-        const [inkStart, inkEnd] = note.open.inkOut;
-        const [textStart, textEnd] = note.open.textIn;
-        const textNow = now(p.text, "opacity");
-        const inkNow = now(p.ink, "opacity");
-        run(
-          p.text,
-          [{ opacity: textNow }, { opacity: textNow, offset: 1 - textEnd }, { opacity: 0, offset: 1 - textStart }, { opacity: 0 }],
-          d,
-          "linear",
-        );
-        run(
-          p.ink,
-          [{ opacity: inkNow }, { opacity: inkNow, offset: 1 - inkEnd }, { opacity: 1, offset: 1 - inkStart }, { opacity: 1 }],
-          d,
-          "linear",
-        );
-      }
+      const restOpacity = note.shadow.opacity;
+      run(p.mover, [{ transform: now(p.mover, "transform") }, { transform: matTransform() }], d, easing);
+      // Tilts in the hand, then settles flat with a tiny tilt the other way.
+      run(
+        p.tilter,
+        [
+          { transform: now(p.tilter, "transform") },
+          { transform: tiltTransform(note.open.tilt), offset: 0.45 },
+          { transform: tiltTransform(note.open.settle), offset: 0.85 },
+          { transform: tiltTransform(0) },
+        ],
+        d,
+        "ease-in-out",
+      );
+      run(p.restShadow, [{ opacity: now(p.restShadow, "opacity") }, { opacity: restOpacity }], d, easing);
+      run(p.openShadow, [{ opacity: now(p.openShadow, "opacity") }, { opacity: 0 }], d, easing);
+      // The opening backwards: the text fades out, then the scribbles come
+      // back (from wherever they are, if the opening was interrupted).
+      const [inkStart, inkEnd] = note.open.inkOut;
+      const [textStart, textEnd] = note.open.textIn;
+      const textNow = now(p.text, "opacity");
+      const inkNow = now(p.ink, "opacity");
+      run(
+        p.text,
+        [{ opacity: textNow }, { opacity: textNow, offset: 1 - textEnd }, { opacity: 0, offset: 1 - textStart }, { opacity: 0 }],
+        d,
+        "linear",
+      );
+      run(
+        p.ink,
+        [{ opacity: inkNow }, { opacity: inkNow, offset: 1 - inkEnd }, { opacity: 1, offset: 1 - inkStart }, { opacity: 1 }],
+        d,
+        "linear",
+      );
       out.finished.then(
         () => {
           // In this very frame: the sheet (now exactly where the note lies)
@@ -459,7 +445,7 @@ export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
         () => {},
       );
     },
-    [reducedMotion],
+    [],
   );
 
   // The back button while the note is open: close it, stay in the atelier.

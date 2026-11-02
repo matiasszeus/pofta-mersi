@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
-import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { albumPathOf, chapterOfPath, chapterOfSlug } from "./albumPages";
@@ -33,8 +32,7 @@ const dimVars = {
 // falling: it would be too much together with the album's opening); once
 // the album's cover and the fonts have loaded, after linkOpenDelay, the
 // album opens as after a tap, straight at that chapter (the contents if it
-// does not exist or is not in the book yet). prefers-reduced-motion: it is
-// simply there, open.
+// does not exist or is not in the book yet).
 //
 // The address follows the album (not on /lab/album), so the browser's back
 // button closes it:
@@ -61,15 +59,12 @@ function entry(ours: boolean) {
 }
 
 export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolean; initialChapter?: string }) {
-  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
-  // Where the next opening starts (a chapter id), and whether it is simply
-  // there without moving (link + prefers-reduced-motion).
+  // Where the next opening starts (a chapter id).
   const [openAt, setOpenAt] = useState(() =>
     initialChapter === undefined ? "inventar" : (chapterOfSlug(initialChapter) ?? "inventar"),
   );
-  const [instant, setInstant] = useState(false);
   const history = !lab;
   // The latest `open`, for the history listener.
   const openRef = useRef(open);
@@ -91,7 +86,7 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
   }, []);
 
   // Opens it as from a link: once the cover's picture and the fonts are
-  // there, after linkOpenDelay (prefers-reduced-motion: open at once).
+  // there, after linkOpenDelay.
   const openFromLink = useCallback((chapter: string) => {
     let cancelled = false;
     const cover = document.querySelector<HTMLImageElement>("[data-object] .ab-cover-front img");
@@ -100,7 +95,6 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
       window.setTimeout(() => {
         if (cancelled) return;
         setOpenAt(chapter);
-        setInstant(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
         setOpen(true);
       }, linkOpenDelay);
     });
@@ -127,7 +121,6 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
     setOpen(false);
     setRun((n) => n + 1);
     setOpenAt("inventar");
-    setInstant(false);
   }, []);
   // X / Escape: back to the entry before ours (its popstate shuts it),
   // or, without one, the address simply becomes /atelier.
@@ -181,8 +174,7 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
     (key: string) => {
       if (key !== album.key || openRef.current) return;
       setOpenAt("inventar");
-      setInstant(false);
-      setOpen(true);
+        setOpen(true);
       if (history) window.history.pushState(entry(true), "", "/album");
     },
     [history],
@@ -196,14 +188,12 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
           place={place}
           open={open}
           run={run}
-          reducedMotion={reducedMotion}
           initialPage={openAt}
-          instant={instant}
           onChapterChange={onChapterChange}
         />
       ),
     }),
-    [open, run, reducedMotion, openAt, instant, onChapterChange],
+    [open, run, openAt, onChapterChange],
   );
 
   return (

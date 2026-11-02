@@ -10,7 +10,6 @@ import { SceneBoundary } from "@/components/hero/SceneBoundary";
 import { shouldUse3D } from "@/lib/gpuTier";
 import { SlideBand } from "@/components/hero/SlideBand";
 import { StaticTitle } from "@/components/hero/StaticTitle";
-import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 import { markLoad } from "@/lib/loadMarks";
 import { preloadAtelier, whenIdle } from "@/lib/preload";
@@ -35,9 +34,8 @@ const HeroCanvas = dynamic(
 // diving  = a tap happened; letters fall and the camera dives after them
 // sliding = a tap happened but the 3D scene is not there (not ready yet, or
 //           it could not start): only the color change, as a rising band
-// fading  = reduced motion only: the screen fades to the next page's color
 // arrived = the screen shows the next page's color; navigate
-type Phase = "idle" | "waiting" | "diving" | "sliding" | "fading" | "arrived";
+type Phase = "idle" | "waiting" | "diving" | "sliding" | "arrived";
 
 // The 3D scene: still loading (the still picture of the title shows), ready
 // (its first frame is drawn), or failed (no WebGL, or an error: the picture
@@ -60,7 +58,6 @@ function useSnapshotMode() {
 export function LandingHero({ lab = false }: { lab?: boolean }) {
   const snapshot = useSnapshotMode();
   const router = useRouter();
-  const reducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("idle");
   const [sceneState, setScene] = useState<Scene>("loading");
   // No 3D on this device (no WebGL, or WebGL without a graphics card, see
@@ -70,24 +67,24 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
   const webgl = useSyncExternalStore(noSubscribe, () => snapshot || shouldUse3D(), () => true);
   const scene: Scene = webgl ? sceneState : "failed";
   // How the last tap set off: with the 3D dive, or without it.
-  const [mode, setMode] = useState<"dive" | "slide" | "fade">("dive");
+  const [mode, setMode] = useState<"dive" | "slide">("dive");
   const phaseRef = useRef(phase);
   useEffect(() => void (phaseRef.current = phase), [phase]);
   const [debug, setDebug] = useState(lab && theme.debug.enabled);
   // Changing this rebuilds the canvas from scratch (letters back in their outlines).
   const [run, setRun] = useState(0);
-  const { href, fadeDuration, color } = theme.transition;
+  const { href, color } = theme.transition;
 
   // One tap starts the sequence; taps while it is running do nothing.
-  // With reduced motion there is no fall, only the fade. While the 3D scene
-  // is still loading, wait for it (the still title looks the same, so the
-  // visitor cannot tell). Without the 3D scene, only the rising color.
+  // While the 3D scene is still loading, wait for it (the still title looks
+  // the same, so the visitor cannot tell). Without the 3D scene, only the
+  // rising color.
   const start = () => {
     if (phase !== "idle") return;
-    if (!reducedMotion && scene === "loading") return setPhase("waiting");
-    const next = reducedMotion ? "fade" : scene === "ready" ? "dive" : "slide";
+    if (scene === "loading") return setPhase("waiting");
+    const next = scene === "ready" ? "dive" : "slide";
     setMode(next);
-    setPhase(next === "dive" ? "diving" : next === "slide" ? "sliding" : "fading");
+    setPhase(next === "dive" ? "diving" : "sliding");
   };
 
   const slide = useCallback(() => {
@@ -152,13 +149,6 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
     const timer = setTimeout(arrive, theme.dive.duration * 1000);
     return () => clearTimeout(timer);
   }, [phase, arrive]);
-
-  // Reduced motion: arrive once the fade has covered the screen.
-  useEffect(() => {
-    if (phase !== "fading") return;
-    const timer = setTimeout(arrive, fadeDuration * 1000);
-    return () => clearTimeout(timer);
-  }, [phase, arrive, fadeDuration]);
 
   // The screen already shows the atelier's color: switch pages right away.
   useEffect(() => {
@@ -247,17 +237,6 @@ export function LandingHero({ lab = false }: { lab?: boolean }) {
           debug: {debug ? "on" : "off"}
         </button>
       )}
-
-      {/* Reduced motion only: a sheet in the next page's color fades in on top
-          of everything. (The dive changes the color inside the 3D scene.) */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: color,
-          opacity: phase === "fading" || (phase === "arrived" && reducedMotion) ? 1 : 0,
-          transition: `opacity ${fadeDuration}s ease`,
-        }}
-      />
     </main>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { theme } from "@/config/theme";
 import { preloadLanding, whenIdle } from "@/lib/preload";
 import { useStableViewport } from "@/lib/stableViewport";
@@ -50,8 +49,7 @@ type StageProps = {
 };
 
 function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown, calm = false }: StageProps) {
-  const reducedMotion = useReducedMotion();
-  const animate = !reducedMotion && !calm;
+  const animate = !calm;
   const [landed, setLanded] = useState(false);
   const onLanded = useCallback(() => setLanded(true), []);
 

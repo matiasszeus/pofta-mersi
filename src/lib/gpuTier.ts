@@ -11,8 +11,10 @@
 //   - the graphics "card" is software: its name (WEBGL_debug_renderer_info,
 //     where the browser tells it) has SwiftShader, llvmpipe, Software or
 //     Microsoft Basic Render in it
-//   - prefers-reduced-motion (nothing would move anyway)
 //   - ?no3d=1 in the address (to try the pictures out)
+//
+// prefers-reduced-motion is deliberately not looked at: everyone gets the
+// same animations (the owner's decision).
 //
 // Checked once, in the browser, the first time it is asked; the test's
 // WebGL context is let go of right after (WEBGL_lose_context).
@@ -24,7 +26,6 @@ const SOFTWARE = /swiftshader|llvmpipe|software|microsoft basic render/i;
 function check(): boolean {
   try {
     if (new URLSearchParams(window.location.search).get("no3d") === "1") return false;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
 
     const canvas = document.createElement("canvas");
     // Plain WebGL first: none at all = no 3D.
