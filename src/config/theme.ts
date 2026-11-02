@@ -621,17 +621,26 @@ export const theme = {
 
     // The layers, from the back: board, stack of pages (its edges), the
     // page underneath, the sheet (the contents on its front), the cover.
-    // The stacks of pages showing past the pages (u), "virtual": the book
-    // always looks thick, whatever the real number of sheets.
-    //   base     on the right (and below) of the closed book, and open at
-    //            the first page
-    //   perLeaf  for every sheet turned the right stack loses this much
-    //            (never below minRight) and the left one gains it (never
-    //            above maxLeft; at the first page there is none: only the
-    //            cover's inside)
-    //   change   seconds the change takes, as a sheet passes the middle of
-    //            its turn
-    stack: { base: 18, perLeaf: 3, minRight: 8, maxLeft: 10, change: 0.2 },
+    // The closed book (lying on the mat): the stack of pages showing right
+    // of and below the page, in u (with its lines, see .ab-edge-r / -b).
+    thickness: 18,
+    // The open book: a stack of `leaves` sheets on each side, always the
+    // same (docs/album-margini-referinta.html; drawn by openStack.ts), u:
+    //   stepX / stepY  each sheet pushed out from the one above it,
+    //                  sideways / at the top and bottom
+    //   taper          at the top and bottom the step thins out towards
+    //                  the spine, by this much at the spine (1 - taper*t^3)
+    //   radius         the sheets' outer corners
+    //   cover          the cover showing around the stack (outer sides)
+    //   coverRadius    the cover's outer corners
+    //   fade           the closed book's stack turns into this one as the
+    //                  cover opens (its turn's timing)
+    openStack: { leaves: 6, stepX: 1.6, stepY: 1.4, taper: 0.5, radius: 5, cover: 5, coverRadius: 9 },
+    // Phones: where a left page sits on the screen (see albumLayout), as
+    // approved: as if the cover reached past it by board.beyond +
+    // frameStep u for every sheet turned (never more than frameMax).
+    frameStep: 3,
+    frameMax: 10,
     board: {
       // u: how far it reaches past the page (top, and right / bottom
       // past the stack); corner radius on the right.
@@ -873,6 +882,12 @@ export const theme = {
       divider: palette.lilac,
       // The contents' tab on the edge (the chapters' tabs have their colors).
       contentsTab: palette.mustar,
+      // The open book's stacks of sheets (see openStack): two paper
+      // colors, alternating, and the thin line around each sheet.
+      stackSheet: "#F3EDDF",
+      stackSheetAlt: "#E4DBC8",
+      stackLine: "#A39985",
+      stackLineWidth: 0.7, // u
       // A word in color on a divider (see accent in content.ts): the
       // atelier's green, readable on the light dividers.
       accent: palette.green,

@@ -73,11 +73,6 @@ export const sheets = Array.from({ length: (bookPages.length - 1) / 2 }, (_, s) 
 }));
 export const lastPage = bookPages[bookPages.length - 1];
 
-// How thick the stacks of pages are (u, see theme.album.stack) with
-// `turned` sheets turned: not the real number of sheets, a thick book's.
-const { stack } = theme.album;
-export const stackRight = (turned: number) => Math.max(stack.minRight, stack.base - stack.perLeaf * turned);
-export const stackLeft = (turned: number) => Math.min(stack.maxLeft, stack.perLeaf * turned);
 
 // The contents: every chapter but the contents itself, with the page it
 // starts on (null = not in the book yet: "în curând").

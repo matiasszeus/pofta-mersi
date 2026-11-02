@@ -1,17 +1,20 @@
 import { theme } from "@/config/theme";
 import { stableViewport } from "@/lib/stableViewport";
 
-const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening, tabs, stack, coverParts } = theme.album;
+const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening, tabs, thickness, coverParts, frameStep, frameMax } = theme.album;
 
 // How far the book reaches past its pages sideways (u): on the right the
 // stack of pages and the board, and the tabs further still; on the left
 // only the open cover's edge. So centring the pages alone leaves less room
 // on the right than on the left.
-const reachRight = Math.max(tabs.width, board.beyond + stack.base);
+const reachRight = Math.max(tabs.width, board.beyond + thickness);
 const reachLeft = coverParts.over;
-// On the left, the board under the turned sheets' stack may reach further
-// (see stackLeft): u past a left page with `left` u of stack.
-export const reachLeftWith = (left: number) => Math.max(coverParts.over, left > 0 ? board.beyond + left : 0);
+// Phones: how far left of a left page (with `turned` sheets turned) the
+// book counts as reaching, for placing it (see frameStep in theme.ts).
+export const frameLeft = (turned: number) => {
+  const left = Math.min(frameMax, frameStep * turned);
+  return Math.max(coverParts.over, left > 0 ? board.beyond + left : 0);
+};
 
 // The part of the screen you can actually see, in CSS px. Usually the whole
 // window; in some in-app browsers (Instagram) the window is taller than
@@ -48,9 +51,8 @@ export type AlbumLayout = {
   u: number;
   shiftSpread: number;
   shiftRight: number;
-  // A left page, given its stack's thickness (u): its cover's edge or its
-  // stack, equally far from the screen's edge as a right page's tabs.
-  shiftLeft: (stackLeftU: number) => number;
+  // A left page, given how many sheets are turned (see frameLeft).
+  shiftLeft: (turned: number) => number;
 };
 
 export function albumLayout(view: ViewBox): AlbumLayout {
@@ -91,6 +93,6 @@ export function albumLayout(view: ViewBox): AlbumLayout {
     u,
     shiftSpread: (-(reachRight - reachLeft) / 2) * u,
     shiftRight: view.left + gap - left,
-    shiftLeft: (stackLeftU: number) => view.left + gap + reachLeftWith(stackLeftU) * u - left,
+    shiftLeft: (turned: number) => view.left + gap + frameLeft(turned) * u - left,
   };
 }
