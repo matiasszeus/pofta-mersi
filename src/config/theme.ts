@@ -621,11 +621,10 @@ export const theme = {
 
     // The layers, from the back: board, stack of pages (its edges), the
     // page underneath, the sheet (the contents on its front), the cover.
-    // The closed book (lying on the mat): the stack of pages showing right
-    // of and below the page, in u (with its lines, see .ab-edge-r / -b).
-    thickness: 18,
-    // The open book: a stack of `leaves` sheets on each side, always the
-    // same (docs/album-margini-referinta.html; drawn by openStack.ts), u:
+    // The book's stacks of pages, open or closed: `leaves` sheets on each
+    // side, always the same (docs/album-margini-referinta.html; drawn by
+    // openStack.ts), u. Closed, the right one shows around the cover; the
+    // left one lies on the cover's inside, turning with it.
     //   stepX / stepY  each sheet pushed out from the one above it,
     //                  sideways / at the top and bottom
     //   taper          at the top and bottom the step thins out towards
@@ -633,8 +632,6 @@ export const theme = {
     //   radius         the sheets' outer corners
     //   cover          the cover showing around the stack (outer sides)
     //   coverRadius    the cover's outer corners
-    //   fade           the closed book's stack turns into this one as the
-    //                  cover opens (its turn's timing)
     openStack: { leaves: 6, stepX: 1.6, stepY: 1.4, taper: 0.5, radius: 5, cover: 5, coverRadius: 9 },
     // Phones: where a left page sits on the screen (see albumLayout), as
     // approved: as if the cover reached past it by board.beyond +
@@ -651,7 +648,6 @@ export const theme = {
       // while the book lifts; sizes ending in "u" are in u).
       shadowRest: "0 6px 10px rgb(8 30 18 / 0.35)",
       shadowLifted: "0 24u 46u rgb(8 30 18 / 0.45), 0 4u 10u rgb(8 30 18 / 0.35)",
-      shadowDuration: 1.1, // seconds, ease
     },
     // The cover reaches past the page by `over` u at the top, bottom and
     // right; corner radii in u.
@@ -666,7 +662,10 @@ export const theme = {
     ribbon: { left: 206, width: 16, height: 46, below: 38 }, // u
     // The chapters' tabs on the edge (u): the first `top` from the page's
     // top, each next one `step` lower.
-    tabs: { width: 24, height: 74, radius: 7, textSize: 10, top: 40, step: 80 },
+    // closedShift: while the book is closed the tabs sit this much further
+    // out (u), whole beside the cover (6u over the page); they slide back
+    // to the page's edge with the cover's turn.
+    tabs: { width: 24, height: 74, radius: 7, textSize: 10, top: 40, step: 80, closedShift: 6 },
     // The contents page (u).
     contents: {
       padding: { top: 34, right: 28, bottom: 30, left: 34 },

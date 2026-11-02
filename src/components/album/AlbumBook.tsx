@@ -5,13 +5,13 @@ import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { bookTabs, contentsId, contentsRows, contentsTitle, drawnTitle, lastPage, sheets, type BookPage } from "./albumPages";
 import { leftStack, rightStack, stackBox, stackReachX, stackReachY, type StackDrawing } from "./openStack";
-import { u, uMinusT } from "./albumUnits";
+import { u } from "./albumUnits";
 import { ChapterPage } from "./ChapterPage";
 import { PartnerCredit } from "./PartnerCredit";
 import { PriceTag } from "./PriceTag";
 import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
-const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors } = theme.album;
+const { cover, board, coverParts, pageRadius, ribbon, tabs, contents, pageNumber, colors, openStack } = theme.album;
 const { hintCurl: hint } = theme.album;
 const text = content.album;
 
@@ -32,40 +32,28 @@ const css = `
 .ab-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 /* translateZ(1px): never exactly in the same plane as the front (Safari). */
 .ab-back { transform: rotateY(180deg) translateZ(1px); }
+/* The board: see-through, it only draws the book's shadow on the mat (from
+   the closed book's to the open one's, see MatAlbum), in the cover's
+   outline around the stack. */
 .ab-board {
-  position: absolute; top: ${u(-board.top)}; left: 0;
-  right: calc(var(--u) * (-${board.beyond}px - var(--t) * 1px)); bottom: calc(var(--u) * (-${board.beyond}px - var(--t) * 1px));
-  border-radius: 0 ${u(board.radius)} ${u(board.radius)} 0;
-}
-.ab-board { background: ${colors.board}; box-shadow: ${board.shadowRest}; transform: translateZ(-1px); }
-/* The two edges meet on the diagonal in the bottom-right corner (clip-path). */
-.ab-edge-r, .ab-edge-b { position: absolute; transform: translateZ(-0.5px); }
-.ab-edge-r {
-  top: ${u(6)}; bottom: ${uMinusT(0)}; right: ${uMinusT(2)}; width: calc(var(--u) * var(--t) * 1px);
-  border-radius: 0 ${u(3)} ${u(3)} 0;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--u) * var(--t) * 1px));
-  background: repeating-linear-gradient(90deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
-}
-.ab-edge-b {
-  left: ${u(8)}; right: ${uMinusT(2)}; bottom: ${uMinusT(0)}; height: calc(var(--u) * var(--t) * 1px);
-  border-radius: 0 0 ${u(3)} ${u(3)};
-  clip-path: polygon(0 0, calc(100% - var(--u) * var(--t) * 1px) 0, 100% 100%, 0 100%);
-  background: repeating-linear-gradient(180deg, ${colors.paper} 0 ${u(1.6)}, ${colors.pageLine} ${u(1.6)} ${u(2.4)});
+  position: absolute; top: ${u(stackBox.top)}; left: 0; right: ${u(-stackReachX)}; bottom: ${u(-stackReachY)};
+  border-radius: 0 ${u(openStack.coverRadius)} ${u(openStack.coverRadius)} 0;
+  box-shadow: ${board.shadowRest}; transform: translateZ(-1px);
 }
 .ab-ribbon {
   position: absolute; bottom: ${u(-ribbon.below)}; left: ${u(ribbon.left)}; width: ${u(ribbon.width)}; height: ${u(ribbon.height)};
-  background: ${colors.ribbon}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); transform: translateZ(0.5px);
+  background: ${colors.ribbon}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  /* Under the pages, over the right stack: as if it came out from between
+     the sheets (open and closed). */
+  transform: translateZ(-0.3px);
 }
-/* Open (see MatAlbum, showOpenStack) the ribbon goes down to translateZ(-0.3px): under
-   the pages, over the stack, as if it came out from between the sheets.
-   Closed it stays where it was (0.5px: the closed book unchanged). */
-/* The open book's stacks of sheets (openStack.ts): SVG drawn once, in u.
-   Right: in the slide, under the ribbon and the pages, over the closed
-   book's board and edges (they fade into it as the cover opens, see
-   MatAlbum: hidden until then). Left: on the cover's inside, under its
-   lining, turning with the cover. */
+/* The book's stacks of sheets (openStack.ts): SVG drawn once, in u, the
+   same open and closed. Right: in the slide, under the ribbon and the
+   pages (closed: around the cover). Left: on the cover's inside, under its
+   lining, turning with the cover (closed: under the cover's front, right
+   over the right one). */
 .ab-stack-open { position: absolute; overflow: visible; pointer-events: none; }
-.ab-stack-right { left: 0; top: ${u(stackBox.top)}; transform: translateZ(-0.6px); opacity: 0; }
+.ab-stack-right { left: 0; top: ${u(stackBox.top)}; transform: translateZ(-0.6px); }
 .ab-stack-left { left: ${u(coverParts.over - stackReachX)}; top: ${u(coverParts.over - stackReachY)}; }
 .ab-page { position: absolute; inset: 0; box-sizing: border-box; overflow: hidden; color: ${colors.ink}; }
 .ab-paper {
@@ -90,7 +78,9 @@ const css = `
 .ab-right::after, .ab-left::after { content: ""; position: absolute; top: 0; bottom: 0; width: 16%; pointer-events: none; }
 .ab-right::after { left: 0; background: linear-gradient(to right, rgb(29 38 51 / 0.2), rgb(29 38 51 / 0)); }
 .ab-left::after { right: 0; background: linear-gradient(to left, rgb(29 38 51 / 0.22), rgb(29 38 51 / 0)); }
-.ab-tabs { position: absolute; inset: 0; transform: translateZ(0.5px); pointer-events: none; }
+/* The tabs: closed, pushed out by tabs.closedShift (whole beside the
+   cover); open, at the page's edge (MatAlbum slides them back). */
+.ab-tabs { position: absolute; inset: 0; transform: translateX(${u(tabs.closedShift)}) translateZ(0.5px); pointer-events: none; }
 /* The tabs themselves can be tapped (they stick out past the pages). */
 .ab-tab { pointer-events: auto; border: 0; padding: 0; cursor: pointer; }
 .ab-tab {
@@ -237,8 +227,7 @@ export function AlbumBook({
   });
   const open = skipOpening;
   // The stacks as the book lies closed: every sheet on the right.
-  // --t: the closed book's stack (theme.album.thickness, u).
-  const vars = { "--u": unit, "--t": theme.album.thickness, perspective: `${theme.album.perspective}px` } as CSSProperties;
+  const vars = { "--u": unit, perspective: `${theme.album.perspective}px` } as CSSProperties;
 
   return (
     <div className="absolute inset-0" style={vars}>
@@ -251,12 +240,8 @@ export function AlbumBook({
           className="ab-slide album-3d absolute inset-0 will-change-transform"
           style={{ transform: `translate3d(${open && spread ? 50 : 0}%, 0px, 0px)` }}
         >
-          {/* The closed book's stack: the board (it also carries the
-              book's shadow) and the lined edges. Open, the stepped stack
-              below takes their place (see MatAlbum, showOpenStack). */}
+          {/* The board: only the book's shadow (see .ab-board). */}
           <div ref={boardRef} className="ab-board" />
-          <div className="ab-edge-r" />
-          <div className="ab-edge-b" />
           <StackSvg drawing={rightStack} className="ab-stack-open ab-stack-right" mirror={false} />
           <div className="ab-ribbon" />
           <Page {...pageProps(lastPage)} side="under" />

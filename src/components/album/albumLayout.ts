@@ -1,13 +1,14 @@
 import { theme } from "@/config/theme";
 import { stableViewport } from "@/lib/stableViewport";
+import { stackReachX } from "./openStack";
 
-const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening, tabs, thickness, coverParts, frameStep, frameMax } = theme.album;
+const { page, spreadMinWidth, spreadWidth, unitWidth, ribbon, board, opening, tabs, coverParts, frameStep, frameMax } = theme.album;
 
 // How far the book reaches past its pages sideways (u): on the right the
 // stack of pages and the board, and the tabs further still; on the left
 // only the open cover's edge. So centring the pages alone leaves less room
 // on the right than on the left.
-const reachRight = Math.max(tabs.width, board.beyond + thickness);
+const reachRight = Math.max(tabs.width, stackReachX);
 const reachLeft = coverParts.over;
 // Phones: how far left of a left page (with `turned` sheets turned) the
 // book counts as reaching, for placing it (see frameStep in theme.ts).
@@ -57,8 +58,9 @@ export type AlbumLayout = {
 
 export function albumLayout(view: ViewBox): AlbumLayout {
   const spread = view.width >= spreadMinWidth;
-  // Above the page the board shows, below it the ribbon hangs: per px of
-  // the page's width.
+  // Above the page 6u (board.top), below it the ribbon hangs: per px of
+  // the page's width (the framing as approved; the cover with the stack
+  // reaches a little higher, see openStack).
   const abovePerWidth = board.top / unitWidth;
   const belowPerWidth = ribbon.below / unitWidth;
   const width = Math.min(

@@ -9,10 +9,9 @@ import { AlbumBook, coverTransform, leafTransform } from "./AlbumBook";
 import { AlbumControls } from "./AlbumControls";
 import { albumLayout, visibleBox, type AlbumLayout, type ViewBox } from "./albumLayout";
 import { albumViews, chapterOfView, firstPageOf, sheets, tabsBottom, viewWithPage, type AlbumView } from "./albumPages";
-import { u } from "./albumUnits";
 import { stackReachX, stackReachY } from "./openStack";
 
-const { opening, page, board, pages, thickness, tabs, ribbon, unitWidth } = theme.album;
+const { opening, page, board, pages, tabs, ribbon, unitWidth } = theme.album;
 const { flight, cover: coverTurn } = opening;
 const { edgeTapZone, swipeThreshold, systemEdge, hintCurl: hint } = theme.album;
 const ms = (seconds: number) => seconds * 1000;
@@ -24,22 +23,22 @@ const OWN_TAP = "button, a, input, select, textarea, label, [role='button'], [ro
 const TAP_MAX_MS = 400;
 
 // The album's settings for the mat: those of theme.ts, but with the
-// proportions of the drawn book's page, and its real outline (the letters
-// keep clear of it): the board with the pages' edge (right and bottom),
-// the tabs on the right, the ribbon below. In fractions of the page's
-// width (1u = 1 / unitWidth).
+// proportions of the drawn book's page, and its real outline as it lies
+// closed (the letters keep clear of it): the stack with the cover around
+// it (right, top, bottom), the tabs on the right (pushed out by
+// closedTabsShift), the ribbon below. In fractions of the page's width
+// (1u = 1 / unitWidth).
 export function matAlbumObject(album: MatObjectConfig): MatObjectConfig {
   const u = 1 / unitWidth;
-  // Closed: every sheet on the right.
-  const beyond = (board.beyond + thickness) * u;
   const ribbonLeft = ribbon.left * u;
+  const tabsOut = tabs.closedShift * u;
   return {
     ...album,
     width: 340,
     height: 340 * page.ratio,
     outline: [
-      { left: 0, top: -board.top * u, right: 1 + beyond, bottom: page.ratio + beyond },
-      { left: 1, top: tabs.top * u, right: 1 + tabs.width * u, bottom: tabsBottom * u },
+      { left: 0, top: -stackReachY * u, right: 1 + stackReachX * u, bottom: page.ratio + stackReachY * u },
+      { left: 1 + tabsOut, top: tabs.top * u, right: 1 + tabsOut + tabs.width * u, bottom: tabsBottom * u },
       { left: ribbonLeft, top: page.ratio, right: ribbonLeft + ribbon.width * u, bottom: page.ratio + ribbon.below * u },
     ],
   };
@@ -135,29 +134,15 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
   };
   const done = (...list: (Animation | null)[]) => Promise.all(list.map((a) => a?.finished));
 
-  // The closed book's stack (its board and lined edges) and the open
-  // book's (the stepped sheets, see openStack): one turns into the other
-  // as the cover opens (`timing`), or at once. Only those parts' own
-  // background / opacity change (none of them holds anything 3D).
-  const showOpenStack = (timing: KeyframeAnimationOptions) => {
-    const el = book.current;
-    if (!el) return;
-    // The board keeps the book's shadow: it shrinks to the open cover's
-    // size (so the shadow starts at its edge) and lets the stack show.
-    const closedReach = u(-(board.beyond + thickness));
+  // The tabs: pushed out by tabs.closedShift while the book is closed (so
+  // they show whole beside the cover), back at the page's edge once open:
+  // with the cover's turn (`timing`), or at once.
+  const tabsOpen = (timing: KeyframeAnimationOptions) =>
     animate(
-      el.querySelector(".ab-board"),
-      [
-        { backgroundColor: theme.album.colors.board, right: closedReach, bottom: closedReach },
-        { backgroundColor: "transparent", right: u(-stackReachX), bottom: u(-stackReachY) },
-      ],
+      book.current?.querySelector(".ab-tabs") ?? null,
+      [{ transform: TABS_CLOSED }, { transform: TABS_OPEN }],
       timing,
     );
-    el.querySelectorAll(".ab-edge-r, .ab-edge-b").forEach((e) => animate(e, [{ opacity: 1 }, { opacity: 0 }], timing));
-    animate(el.querySelector(".ab-stack-open"), [{ opacity: 0 }, { opacity: 1 }], timing);
-    // The ribbon: under the pages once open (closed: over them, as before).
-    animate(el.querySelector(".ab-ribbon"), [{ transform: "translateZ(0.5px)" }, { transform: "translateZ(-0.3px)" }], timing);
-  };
 
   // The opening (or, when `open` turns false, back on the mat). Runs on a
   // tap and on every replay; not when the screen is resized.
@@ -179,11 +164,11 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         // Simply there, open (a link with prefers-reduced-motion).
         animate(book.current, [{ transform: p.settled }, { transform: p.settled }], now, "book");
         animate(boardRef.current, [{ boxShadow: p.shadowLifted }, { boxShadow: p.shadowLifted }], now, "board");
+        tabsOpen(now);
         animate(cover.current, [{ transform: coverTransform(-180) }, { transform: coverTransform(-180) }], now);
         for (const s of before) animate(leaves.current[s], [turnedPose(s), turnedPose(s)], now);
         const sl = slideFor(start, p.layout);
         animate(slide.current, [{ transform: sl }, { transform: sl }], now, "slide");
-        showOpenStack(now);
         setOpenedRun(run);
         return;
       }
@@ -196,28 +181,25 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
         animate(cover.current, [{ transform: coverTransform(-180) }, { transform: coverTransform(-180) }], now);
         const s = slideFor(start, p.layout);
         animate(slide.current, [{ transform: s }, { transform: s }], now, "slide");
-        showOpenStack(now);
+        animate(boardRef.current, [{ boxShadow: p.shadowLifted }, { boxShadow: p.shadowLifted }], now, "board");
+        tabsOpen(now);
         await done(animate(flyer.current, [{ opacity: 0 }, { opacity: 1 }], half));
         setOpenedRun(run);
         return;
       }
 
       const turn = { duration: ms(coverTurn.duration), delay: ms(coverTurn.delay), easing: coverTurn.easing };
-      // The closed book's stack becomes the open one's as the cover turns.
-      showOpenStack(turn);
       await done(
         // The sheets before the chapter, under the cover, with it.
         ...before.map((s) => animate(leaves.current[s], [flatPose(s), turnedPose(s)], turn)),
         // Off the mat, up towards you, down into the middle.
         animate(book.current, bookKeyframes(p), { duration: ms(flight.duration), easing: flight.easing }, "book"),
-        // The board's shadow grows wide and soft (the shadow is drawn by
-        // the board itself: no extra layer with an opacity in the 3D).
-        animate(
-          boardRef.current,
-          [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }],
-          { duration: ms(board.shadowDuration), easing: "ease" },
-          "board",
-        ),
+        // The book's shadow on the mat grows wide and soft, with the
+        // cover's turn (drawn by the see-through board: no extra layer
+        // with an opacity in the 3D).
+        animate(boardRef.current, [{ boxShadow: board.shadowRest }, { boxShadow: p.shadowLifted }], turn, "board"),
+        // The tabs slide back to the page's edge, with the cover.
+        tabsOpen(turn),
         // Meanwhile the cover turns open around the spine (from flat to
         // lying on the left, face down).
         animate(cover.current, [{ transform: coverTransform(0) }, { transform: coverTransform(-180) }], turn),
@@ -641,6 +623,10 @@ type Poses = { rest: string; lifted: string; settled: string; spread: boolean; s
 // 3D transforms everywhere (translate3d), so Safari never switches the book
 // between 3D and 2D drawing.
 const SLIDE_NONE = "translate3d(calc(0% + 0px), 0px, 0px)";
+// The tabs' box (see .ab-tabs in AlbumBook): closed, pushed out by
+// tabs.closedShift u; open, at the page's edge. Above the pages' plane.
+const TABS_CLOSED = `translateX(calc(var(--u) * ${tabs.closedShift}px)) translateZ(0.5px)`;
+const TABS_OPEN = "translateX(calc(var(--u) * 0px)) translateZ(0.5px)";
 
 // How far the book is slid for a view: wide screens half a page (cover and
 // page centred together), phones one page to show a left-hand page; plus
