@@ -54,8 +54,11 @@ const css = `
 }
 .ab-ribbon {
   position: absolute; bottom: ${u(-ribbon.below)}; left: ${u(ribbon.left)}; width: ${u(ribbon.width)}; height: ${u(ribbon.height)};
-  background: ${colors.ribbon}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); transform: translateZ(-0.3px);
+  background: ${colors.ribbon}; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); transform: translateZ(0.5px);
 }
+/* Open (see MatAlbum, showOpenStack) the ribbon goes down to translateZ(-0.3px): under
+   the pages, over the stack, as if it came out from between the sheets.
+   Closed it stays where it was (0.5px: the closed book unchanged). */
 /* The open book's stacks of sheets (openStack.ts): SVG drawn once, in u.
    Right: in the slide, under the ribbon and the pages, over the closed
    book's board and edges (they fade into it as the cover opens, see

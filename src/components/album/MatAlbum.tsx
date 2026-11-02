@@ -155,6 +155,8 @@ export function MatAlbum({ place, open, run, reducedMotion, initialPage = "inven
     );
     el.querySelectorAll(".ab-edge-r, .ab-edge-b").forEach((e) => animate(e, [{ opacity: 1 }, { opacity: 0 }], timing));
     animate(el.querySelector(".ab-stack-open"), [{ opacity: 0 }, { opacity: 1 }], timing);
+    // The ribbon: under the pages once open (closed: over them, as before).
+    animate(el.querySelector(".ab-ribbon"), [{ transform: "translateZ(0.5px)" }, { transform: "translateZ(-0.3px)" }], timing);
   };
 
   // The opening (or, when `open` turns false, back on the mat). Runs on a
