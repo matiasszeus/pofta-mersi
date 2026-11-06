@@ -953,6 +953,72 @@ export const theme = {
           { x: 113, y: 75, rotation: 8 },
         ],
       },
+      // A tap on a bag (as in the reference; seconds, easings as CSS):
+      //   pull     its zipper's slider slides right (shift, px)
+      //   pour     the bag tips over, pours (lift: px up, turn: degrees,
+      //            at 30% and 55% of it), and lands small in the corner
+      //            (park: from its place, px, its size and turn there)
+      //   other    the other bag fades out (and in again)
+      //   fly      the stickers come out of the bag's mouth (the middle of
+      //            its top), one after the other (stagger), turned and
+      //            small at first; they show at once (fade)
+      //   scatter  where they land: a grid of square cells as wide as this
+      //            part of the page (px), the group centred on the page's
+      //            middle (px from its top) but never out of the part; each
+      //            as big as its cell allows (up to maxSize: few stickers
+      //            are bigger), a little out of line (jitter: of a cell) and
+      //            turned (rotations, in turn); clear of the small bag and
+      //            the button below
+      //   collect  "strânge în pungă": back into the bag, last one first
+      //            (stagger); at least `after` s, then both bags go back
+      //            to their places (back)
+      //   button   the button, low in the middle of the page
+      open: {
+        pull: { shift: 126, duration: 0.45, easing: "cubic-bezier(0.5, 0, 0.3, 1)" },
+        insideFade: 0.3,
+        pour: {
+          duration: 1.1,
+          easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+          first: { lift: 36, turn: -26 }, // at 30% (globals.css, bag-pour)
+          second: { lift: 30, turn: -30 }, // at 55%
+          grow: 1.04,
+        },
+        park: {
+          normale: { x: 138, y: 278, scale: 0.36, rotation: -14 },
+          holografice: { x: 98, y: 68, scale: 0.36, rotation: 12 },
+        },
+        other: 0.4,
+        flyAfter: 0.38,
+        fly: {
+          duration: 0.75,
+          move: "cubic-bezier(0.25, 1.35, 0.45, 1)",
+          turn: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+          stagger: 0.07,
+          fade: 0.3,
+          startScale: 0.35,
+          startRotations: [-220, 200],
+        },
+        scatter: {
+          left: 24,
+          right: 316,
+          top: 22,
+          bottom: 356,
+          middle: 226.5,
+          maxSize: 96,
+          fill: 0.84,
+          jitter: 0.08,
+          rotations: [13, -4, 14, -5, 3, -14, 12, -6, -12, 8, -9, 5],
+        },
+        collect: { stagger: 0.04, after: 1.1 },
+        back: { duration: 0.7, easing: "cubic-bezier(0.3, 0.7, 0.3, 1)" },
+        button: {
+          bottom: 22,
+          padding: "9px 14px",
+          size: 13,
+          background: palette.ink,
+          color: palette.paper,
+        },
+      },
     },
     // A price tag (u), high in the free space above the second photo: a
     // mustard label pointed on the left (its tip `tip` of its width),

@@ -23,8 +23,10 @@ type StickerJson = {
 // As the site gets it: always with its price.
 export type Sticker = StickerJson & { pret: number };
 
-// A category's price per sticker, in lei (test values for now).
-export const pretCategorie: Record<CategorieSticker, number> = { normale: 10, holografice: 15 };
+// A category's price per sticker, in lei: the only place it is written
+// (the bags' labels take it from here; a sticker with its own `pret` in
+// the JSON costs that instead).
+export const pretCategorie: Record<CategorieSticker, number> = { normale: 5, holografice: 5 };
 
 // The stickers of a category, in the catalog's order, without the hidden
 // ones; each with its price (its own, or the category's).

@@ -134,6 +134,8 @@ export const content = {
       pret: (lei: number) => `${lei} LEI / BUC`,
       inCurand: "în curând",
       deschide: (categorie: string) => `Deschide punga cu stickere ${categorie}`,
+      // Under the stickers spread on the page: back into the bag.
+      strange: "strânge în pungă",
     },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",

@@ -32,6 +32,10 @@ const css = `
 .ab-face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 /* translateZ(1px): never exactly in the same plane as the front (Safari). */
 .ab-back { transform: rotateY(180deg) translateZ(1px); }
+/* The front too gets a transform (one that changes nothing): without one,
+   Chrome's hit test misses anything turned (rotate / transform) on the
+   page, which then cannot be tapped (the stickers' bags on page 3). */
+.ab-face.ab-right { transform: translateZ(0); }
 /* The board: see-through, it only draws the book's shadow on the mat (from
    the closed book's to the open one's, see MatAlbum): as far right and
    down as the cover around the stack; at the top only board.top (6u),

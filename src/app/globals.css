@@ -248,3 +248,13 @@ body {
   90% { transform: var(--base) rotate(3deg); }
   94% { transform: var(--base) rotate(-1.5deg); }
 }
+
+/* A bag poured out (StickerBags): it tips over (its --pour-a, --pour-b,
+   set from theme.ts) and lands small in the corner (--park). The easing
+   applies to each step, as in the reference. */
+@keyframes bag-pour {
+  0% { transform: var(--base); }
+  30% { transform: var(--pour-a); }
+  55% { transform: var(--pour-b); }
+  100% { transform: var(--park); }
+}
