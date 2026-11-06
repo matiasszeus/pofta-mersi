@@ -1,0 +1,152 @@
+[
+  {
+    "id": "doamna-laptareasa",
+    "fisier": "DOAMNA LAPTAREASA STICKER 7X7 2.png",
+    "nume": "Doamna Lăptăreasa",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/doamna-laptareasa.webp",
+    "latime": 480,
+    "inaltime": 687
+  },
+  {
+    "id": "mil-bagi",
+    "fisier": "MIL BAGI STICKER 7X7 X2.png",
+    "nume": "Mil bagi",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/mil-bagi.webp",
+    "latime": 480,
+    "inaltime": 466
+  },
+  {
+    "id": "mil-moi",
+    "fisier": "MIL MOI STICKER 7X7.png",
+    "nume": "Mil moi",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/mil-moi.webp",
+    "latime": 480,
+    "inaltime": 493
+  },
+  {
+    "id": "muncesti-de-luni",
+    "fisier": "muncesti de luni sticker.png",
+    "nume": "Muncesti de luni",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/muncesti-de-luni.webp",
+    "latime": 480,
+    "inaltime": 475
+  },
+  {
+    "id": "pink-devil-pofta",
+    "fisier": "PINK DEVIL POFTA.png",
+    "nume": "Pink devil pofta",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/pink-devil-pofta.webp",
+    "latime": 480,
+    "inaltime": 427
+  },
+  {
+    "id": "pofta-boy",
+    "fisier": "POFTA BOY.png",
+    "nume": "Pofta boy",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/pofta-boy.webp",
+    "latime": 480,
+    "inaltime": 357
+  },
+  {
+    "id": "pofta-sugaci",
+    "fisier": "POFTA SUGACI STICKER 7X7.png",
+    "nume": "Pofta sugaci",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/pofta-sugaci.webp",
+    "latime": 480,
+    "inaltime": 371
+  },
+  {
+    "id": "pokemon-pofta",
+    "fisier": "POKEMON_POFTA_STICKER.png",
+    "nume": "Pokemon pofta",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/pokemon-pofta.webp",
+    "latime": 480,
+    "inaltime": 436
+  },
+  {
+    "id": "spongebob-pofta-sayan",
+    "fisier": "SPONGEBOB_POFTA_SAYAN.png",
+    "nume": "Spongebob pofta sayan",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/spongebob-pofta-sayan.webp",
+    "latime": 480,
+    "inaltime": 427
+  },
+  {
+    "id": "vezi-ca-suna-mata",
+    "fisier": "VEZI CA SUNA MATA POFTA STICKER 7X7.png",
+    "nume": "Vezi că sună mata",
+    "categorie": "normale",
+    "stoc": "da",
+    "imagine": "/images/stickere/vezi-ca-suna-mata.webp",
+    "latime": 480,
+    "inaltime": 492
+  },
+  {
+    "id": "de-fumat-holo",
+    "fisier": "DE FUMAT 1.png",
+    "nume": "De fumat",
+    "categorie": "holografice",
+    "stoc": "da",
+    "imagine": "/images/stickere/de-fumat-holo.webp",
+    "latime": 480,
+    "inaltime": 371
+  },
+  {
+    "id": "dream-work-holo",
+    "fisier": "dream work.png",
+    "nume": "Dream work",
+    "categorie": "holografice",
+    "stoc": "da",
+    "imagine": "/images/stickere/dream-work-holo.webp",
+    "latime": 480,
+    "inaltime": 489
+  },
+  {
+    "id": "dvd-pofta-holo",
+    "fisier": "DVD POFTA STICKER 7X7 VL2.png",
+    "nume": "DVD Pofta",
+    "categorie": "holografice",
+    "stoc": "da",
+    "imagine": "/images/stickere/dvd-pofta-holo.webp",
+    "latime": 480,
+    "inaltime": 394
+  },
+  {
+    "id": "practice-makes-perfect-holo",
+    "fisier": "PRACTICE MAKES PERFECT.png",
+    "nume": "Practice makes perfect",
+    "categorie": "holografice",
+    "stoc": "da",
+    "imagine": "/images/stickere/practice-makes-perfect-holo.webp",
+    "latime": 480,
+    "inaltime": 326
+  },
+  {
+    "id": "emblema-pofta-holo",
+    "fisier": "sticker pofta emblema 7x7.png",
+    "nume": "Emblemă Pofta",
+    "categorie": "holografice",
+    "stoc": "da",
+    "imagine": "/images/stickere/emblema-pofta-holo.webp",
+    "latime": 480,
+    "inaltime": 378
+  }
+]
