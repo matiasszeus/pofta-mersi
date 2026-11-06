@@ -12,6 +12,7 @@ import { PhotoZoom } from "./PhotoZoom";
 import { PlayButton } from "./PlayButton";
 import { WashiTape } from "./WashiTape";
 import { PriceTag } from "./PriceTag";
+import { StickerBags } from "./StickerBags";
 import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
 const { chapterPage: cp, photos } = theme.album;
@@ -64,6 +65,7 @@ export function ChapterPage({ title, content: page, live }: ChapterPageProps) {
       ))}
       {page.priceTag && <PriceTag big={page.priceTag.title} small={page.priceTag.unit} />}
       {page.note && <Note text={page.note} />}
+      {page.pungi && <StickerBags live={live} />}
       {zoomed && page.models && (
         <PhotoZoom
           product={produs(page.models[zoomed.index].product)}

@@ -41,6 +41,8 @@ export const palette = {
   // Warm accent, only for small objects: the album's bookmark ribbon and
   // the price tags.
   mustar: "#F2C14E",
+  // The stickers' ziploc bags: the zipper's stripe and its slider.
+  coral: "#E9867A",
   forest: "#081E12", // very dark green: the layer that darkens the mat
   pageLine: "#C9C2B2", // the lines on the edge of the stack of pages
 };
@@ -874,6 +876,82 @@ export const theme = {
           codeLetterSpacing: "0.04em",
           copiedFor: 1.5, // seconds "copiat!" shows
         },
+      },
+    },
+    // The stickers' page (page 3): two closed ziploc bags one above the
+    // other, as in docs/pungi-stickere-referinta.html (variant E): normale
+    // at the top, holografice under it, a little to the right and turned
+    // the other way. Every length below is in the
+    // reference's px: its page is a phone's, 340px wide; refScale makes them
+    // u (the page is 318u), so the numbers stay those of the reference.
+    //   bags      each bag's top-left corner (before its turn) and turn
+    //   size      a bag's width and height
+    //   wiggle    now and then a small shake (transform only): its period
+    //             (s) and the second bag's delay (s)
+    //   slots     where the first stickers show through the plastic: the
+    //             middle of each, in the bag's lower part (inside.top);
+    //             each fits in a `sticker` px square, a little turned
+    //   label     the white label: category (Whitenice) and price (Hanken);
+    //             the holographic one on an iridescent ground (a gradient
+    //             only: its shine comes later)
+    stickerBags: {
+      refScale: 318 / 340,
+      bags: {
+        normale: { left: 75, top: 32, rotation: -5 },
+        holografice: { left: 115, top: 242, rotation: 4 },
+      },
+      size: { width: 150, height: 184 },
+      wiggle: { period: 3.6, delay: 1.8 },
+      body: {
+        radius: "6px 6px 10px 10px",
+        // Semi-transparent plastic, lighter at the top left.
+        background: "linear-gradient(160deg, rgb(255 255 255 / 0.58), rgb(255 255 255 / 0.22) 45%, rgb(255 255 255 / 0.42))",
+        shadow: "inset 0 0 0 1.5u rgb(255 255 255 / 0.8), 0 6u 12u rgb(29 38 51 / 0.18)",
+        // The light's streak across the plastic (a gradient, no filter).
+        reflex: {
+          left: "14%",
+          top: "12%",
+          width: "16%",
+          height: "80%",
+          skew: -8,
+          background: "linear-gradient(to right, rgb(255 255 255 / 0), rgb(255 255 255 / 0.6), rgb(255 255 255 / 0))",
+        },
+      },
+      zip: {
+        top: 12,
+        height: 7,
+        background: "linear-gradient(#FFFFFF, #E9E9E9)",
+        shadow: "0 1u 0 rgb(29 38 51 / 0.12)",
+        stripe: { top: 9, height: 3, color: palette.coral },
+      },
+      pull: { left: 4, top: 8, width: 12, height: 16, radius: 3, color: palette.coral, shadow: "0 1u 2u rgb(29 38 51 / 0.3)" },
+      label: {
+        side: 12,
+        top: 30,
+        height: 40,
+        radius: 3,
+        background: palette.white,
+        holoBackground: "linear-gradient(115deg, #FFD6F5, #D6F2FF, #FFF5C4, #E4D6FF)",
+        color: palette.ink,
+        shadow: "0 1u 2u rgb(29 38 51 / 0.15)",
+        titleSize: 21,
+        priceSize: 9,
+        priceSpacing: "0.06em",
+        priceOpacity: 0.7,
+        priceGap: 2,
+      },
+      inside: {
+        top: 76,
+        sticker: 42,
+        opacity: 0.9,
+        slots: [
+          { x: 41.5, y: 29.5, rotation: -8 },
+          { x: 83.5, y: 24.5, rotation: 6 },
+          { x: 114.5, y: 28.5, rotation: -4 },
+          { x: 43.5, y: 73, rotation: 5 },
+          { x: 75.5, y: 71.5, rotation: -6 },
+          { x: 113, y: 75, rotation: 8 },
+        ],
       },
     },
     // A price tag (u), high in the free space above the second photo: a

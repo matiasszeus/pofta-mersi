@@ -22,6 +22,8 @@ export type AlbumPageContent = {
   models?: AlbumModel[];
   priceTag?: { title: string; unit: string };
   note?: string;
+  // The stickers' page: their two bags (see StickerBags).
+  pungi?: boolean;
 };
 
 // The credit for a partner on a chapter's divider (the stickers' printer):
@@ -124,6 +126,15 @@ export const content = {
       open: (name: string) => `Pornește video ${name}`,
       dialog: (name: string) => `Video ${name}`,
     },
+    // The stickers' bags (page 3): the label (its category, the price of
+    // one), what screen readers say, and a bag with no stickers yet.
+    pungi: {
+      normale: "normale",
+      holografice: "holografice",
+      pret: (lei: number) => `${lei} LEI / BUC`,
+      inCurand: "în curând",
+      deschide: (categorie: string) => `Deschide punga cu stickere ${categorie}`,
+    },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",
     // The X in the top-right corner of the open album (screen readers).
@@ -171,7 +182,7 @@ export const content = {
           copyLabel: "Copiază codul de reducere poftamersi10",
           copied: "copiat!",
         },
-        pages: [{ id: "stickere-1" }],
+        pages: [{ id: "stickere-1", title: false, pungi: true }],
       },
       {
         id: "bratari",

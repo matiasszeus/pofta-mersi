@@ -239,3 +239,12 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* The stickers' bags (StickerBags): now and then a small shake around
+   their own turn (--base), still most of the time. Transform only. */
+@keyframes bag-wiggle {
+  0%, 82%, 100% { transform: var(--base); }
+  86% { transform: var(--base) rotate(-3deg); }
+  90% { transform: var(--base) rotate(3deg); }
+  94% { transform: var(--base) rotate(-1.5deg); }
+}
