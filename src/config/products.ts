@@ -5,11 +5,15 @@
 //   nume       as shown
 //   pret       in lei
 //   categorie  which chapter of the album it belongs to
-//   pozaBlur   optional: a blurred frame of its video, small (made by
-//              scripts/prepare-videos.mjs --blur): on the album's page,
-//              under a play button
-//   videoMare  optional: its looping video (720px, same script): in the
-//              big view, after a tap on the photo
+//   pozaBlur   optional: a blurred frame of its video, small: on the
+//              album's page, under a play button
+//   videoMare  optional: its looping video (720px): in the big view,
+//              after a tap on the photo
+//   poster     optional: the video's first frame, sharp: shown in the big
+//              view until the video plays (else pozaBlur)
+// The bracelets' three files come from scripts/bratara-studio.py (their
+// turntable on a grey-white studio background). A new name when they
+// change: browsers keep pictures and videos for a week (next.config.ts).
 
 export type Categorie = "bratari" | "stickere";
 export type Produs = {
@@ -19,6 +23,7 @@ export type Produs = {
   categorie: Categorie;
   pozaBlur?: string;
   videoMare?: string;
+  poster?: string;
 };
 
 export const produse: Produs[] = [
@@ -27,16 +32,18 @@ export const produse: Produs[] = [
     nume: "Basalt",
     pret: 30,
     categorie: "bratari",
-    pozaBlur: "/images/bratari/basalt-blur.webp",
-    videoMare: "/videos/bratari/basalt-720.mp4",
+    pozaBlur: "/images/bratari/basalt-studio-blur.webp",
+    videoMare: "/videos/bratari/basalt-studio-720.mp4",
+    poster: "/images/bratari/basalt-studio-poster.webp",
   },
   {
     id: "bratara-synthesis",
     nume: "Synthesis",
     pret: 30,
     categorie: "bratari",
-    pozaBlur: "/images/bratari/synthesis-blur.webp",
-    videoMare: "/videos/bratari/synthesis-720.mp4",
+    pozaBlur: "/images/bratari/synthesis-studio-blur.webp",
+    videoMare: "/videos/bratari/synthesis-studio-720.mp4",
+    poster: "/images/bratari/synthesis-studio-poster.webp",
   },
 ];
 

@@ -52,6 +52,9 @@ export type AlbumChapter =
       description?: string;
       contents?: false;
       color?: string;
+      // optional: its divider page only, if lighter than `color` (the tab
+      // and the dot in the contents keep `color`)
+      pageColor?: string;
       blurb?: string;
       accent?: string;
       oferta?: AlbumOffer;
@@ -136,6 +139,7 @@ export const content = {
     //   title  with diacritics; drawn in Craze Retro (A-Z only) without them
     //          and in capitals, shown under the book in small letters
     //   color  its divider page, its dot in the contents, its tab
+    //   pageColor optional: the divider page alone in another color
     //   blurb  under the title on its divider
     //   accent optional: a word of the blurb, in color (theme.album.colors.accent)
     //   oferta optional: an offer on a tag on its divider (the discount
@@ -156,13 +160,14 @@ export const content = {
         title: "Stickere",
         description: "Stickere Pofta Mersi, din album. −20% la 10+ stickere.",
         color: palette.lilac,
+        pageColor: palette.lilacLight,
         oferta: { mare: "−20%", mic: "la 10+ stickere" },
         credit: {
           text: ["eu le creez,", "ei le printează ↗"],
           url: "https://etichetecreative.ro/",
           ariaLabel: "Etichete Creative, site",
           cod: "poftamersi10",
-          codLabel: "cod de reducere la ei",
+          codLabel: "cod de reducere",
           copyLabel: "Copiază codul de reducere poftamersi10",
           copied: "copiat!",
         },

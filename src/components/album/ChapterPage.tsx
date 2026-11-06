@@ -9,6 +9,8 @@ import { drawnTitle } from "./albumPages";
 import { u, uCss } from "./albumUnits";
 import { DymoLabel } from "./DymoLabel";
 import { PhotoZoom } from "./PhotoZoom";
+import { PlayButton } from "./PlayButton";
+import { WashiTape } from "./WashiTape";
 import { PriceTag } from "./PriceTag";
 import { hideIfBroken, hideOnError } from "@/lib/mediaError";
 
@@ -68,6 +70,7 @@ export function ChapterPage({ title, content: page, live }: ChapterPageProps) {
           from={zoomed.frame}
           fromRotation={placeOf(zoomed.index).rotation}
           labelRotation={placeOf(zoomed.index).labelRotation}
+          tape={placeOf(zoomed.index).tape}
           onClosed={() => {
             // Shown again first (a hidden button cannot take the focus).
             flushSync(() => setZoomed(null));
@@ -99,8 +102,7 @@ type PhotoProps = {
 function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
   const p = produs(model.product);
   const frame = useRef<HTMLDivElement>(null);
-  const { padding, tape } = photos;
-  const pb = theme.album.playButton;
+  const { padding } = photos;
   const canOpen = live && !!p.videoMare;
   return (
     <div
@@ -121,7 +123,8 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
         type="button"
         aria-label={content.album.video.open(p.nume)}
         disabled={!canOpen}
-        className="relative block h-full w-full cursor-pointer overflow-hidden bg-black p-0"
+        className="relative block h-full w-full cursor-pointer overflow-hidden p-0"
+        style={{ background: photos.backing }}
         // Only this photo: never the page or the album around it.
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
@@ -141,24 +144,7 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
             className="art object-cover"
           />
         )}
-        {p.videoMare && (
-          <span
-            aria-hidden
-            className="absolute top-1/2 left-1/2 flex items-center justify-center rounded-full"
-            style={{
-              width: u(pb.size),
-              height: u(pb.size),
-              marginLeft: u(-pb.size / 2),
-              marginTop: u(-pb.size / 2),
-              background: pb.background,
-              boxShadow: pb.shadow,
-            }}
-          >
-            <svg viewBox="0 0 10 10" style={{ width: "40%", height: "40%", marginLeft: "8%" }}>
-              <path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill={pb.color} />
-            </svg>
-          </span>
-        )}
+        {p.videoMare && <PlayButton />}
       </button>
       {/* In the middle of the frame's white under the picture. */}
       <div
@@ -167,18 +153,7 @@ function Photo({ model, place, live, hidden, onOpen }: PhotoProps) {
       >
         <DymoLabel rotation={place.labelRotation}>{produs(model.product).nume}</DymoLabel>
       </div>
-      <div
-        className="absolute"
-        style={{
-          left: u(tape.left),
-          top: u(tape.top),
-          width: u(tape.width),
-          height: u(tape.height),
-          opacity: tape.opacity,
-          background: place.tape.color,
-          rotate: `${place.tape.rotation}deg`,
-        }}
-      />
+      <WashiTape color={place.tape.color} rotation={place.tape.rotation} />
     </div>
   );
 }

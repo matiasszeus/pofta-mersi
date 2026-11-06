@@ -52,7 +52,7 @@ function buildPages(): BookPage[] {
         accent: c.accent,
         oferta: c.oferta,
         credit: c.credit,
-        color: colorOf(c),
+        color: c.pageColor ?? colorOf(c),
       });
       for (const p of c.pages) list.push({ kind: "page", number: next(), chapterId: c.id, title: c.title, content: p });
     }

@@ -30,6 +30,7 @@ const fonts = {
 export const palette = {
   sage: "#BFDDBA", // landing background
   lilac: "#C58BEA", // main accent (the glow of the flowers)
+  lilacLight: "#E2C9F4", // the stickers' divider page (its tab stays lilac)
   green: "#2F8A5C", // atelier background (the cutting mat)
   ink: "#1D2633", // near-black: text and letters on light backgrounds
   neon: "#4CF23C", // only small accents on dark backgrounds, never text on light
@@ -762,6 +763,10 @@ export const theme = {
       width: 130,
       height: 158,
       padding: { side: 7, bottom: 30 },
+      // Under the picture / video: the grey at the edge of the bracelets'
+      // studio background (scripts/bratara-studio.py), so no dark line
+      // shows along a turned frame's edge.
+      backing: "#D6D9DD",
       shadow: "0 3u 6u rgb(29 38 51 / 0.25)",
       tape: { left: 44, top: -8, width: 52, height: 16, opacity: 0.85 },
       places: [
@@ -790,6 +795,10 @@ export const theme = {
     //   duration  seconds to grow / shrink, with `easing` (as the album's
     //             lift)
     //   swipe     px down that close it on a phone
+    //   blurBy    closing: the blurred picture fades in over the video in
+    //             this part of the flight back (0.7 = by 70% of it), so it
+    //             lands on the page already blurred
+    //   playFade  seconds: then the ▶ fades in, once it has landed
     zoom: {
       side: { vw: 86, vh: 70, max: 520 },
       backdrop: "rgb(16 24 33 / 0.7)",
@@ -797,6 +806,8 @@ export const theme = {
       duration: 0.45,
       easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
       swipe: 70,
+      blurBy: 0.7,
+      playFade: 0.15,
     },
     // A Dymo label (a photo's name, stuck on the white of its frame
     // below the picture, centred; labelRotation in photos.places). Sizes
@@ -832,27 +843,35 @@ export const theme = {
       },
       credit: {
         logo: {
-          src: "/images/parteneri/etichete-creative.webp",
-          width: 424,
-          height: 209,
-          left: 10,
-          top: 262,
-          size: 141, // the logo itself ~142px wide (the picture has a margin for its shadow)
-          rotation: -7,
+          // The octopus (scripts/sticker-outline.py, no white outline): taller
+          // than wide. A new name when it changes (-v3...): browsers keep
+          // pictures for a week (next.config.ts).
+          src: "/images/parteneri/etichete-creative-v2.webp",
+          width: 700,
+          height: 799,
+          // Its top-left corner before the rotation; its bottom stays 20u+
+          // above the page number.
+          left: 11,
+          top: 221,
+          size: 131, // the picture's width (the logo itself ~125u: a margin for its shadow)
+          rotation: -6,
         },
-        text: { left: 164, top: 280, size: 15.9, lineHeight: 1.25, rotation: -3 }, // ~17px
+        text: { left: 168, top: 268, size: 16, lineHeight: 1.25, rotation: -3 }, // ~17px
         washi: {
-          left: 152,
-          top: 337,
-          width: 137,
+          left: 165,
+          top: 327,
+          // Its right end at ~267u: clear of the shade along the spine (the
+          // last 16% of the page, see AlbumBook's .ab-left::after).
+          width: 100,
           height: 46,
           rotation: -4,
           color: palette.sage,
           opacity: 0.92,
           clipPath: "polygon(2% 6%, 0 30%, 3% 52%, 1% 78%, 3% 100%, 97% 96%, 100% 72%, 98% 48%, 100% 22%, 98% 0)",
           gap: 4,
-          labelSize: 9.4, // ~10px
-          codeSize: 13.1, // ~14px
+          labelSize: 10, // ~11px
+          codeSize: 14, // ~15px
+          codeLetterSpacing: "0.04em",
           copiedFor: 1.5, // seconds "copiat!" shows
         },
       },

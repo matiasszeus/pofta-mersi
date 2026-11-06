@@ -114,7 +114,7 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
             fontFamily: "var(--font-hanken), sans-serif",
             fontWeight: 700,
             fontSize: u(washi.codeSize),
-            letterSpacing: "0.08em",
+            letterSpacing: washi.codeLetterSpacing,
           }}
         >
           {copied ? credit.copied : credit.cod}

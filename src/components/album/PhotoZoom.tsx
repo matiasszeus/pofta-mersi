@@ -7,6 +7,8 @@ import type { Produs } from "@/config/products";
 import { theme } from "@/config/theme";
 import { u, uCss } from "./albumUnits";
 import { DymoLabel } from "./DymoLabel";
+import { PlayButton } from "./PlayButton";
+import { WashiTape } from "./WashiTape";
 import { hideOnError } from "@/lib/mediaError";
 
 const { photos, zoom } = theme.album;
@@ -29,6 +31,9 @@ type PhotoZoomProps = {
   from: HTMLElement;
   fromRotation: number;
   labelRotation: number;
+  // Its washi tape (as on the page): stuck on the big frame too, so it
+  // grows and lands with it.
+  tape: { color: string; rotation: number };
   // Called once it is back on the page (then this is taken away).
   onClosed: () => void;
 };
@@ -40,7 +45,7 @@ type PhotoZoomProps = {
 // laid out at its big size in the middle, then started with a transform
 // that puts it exactly over the small one; only transform and opacity
 // move). Closes with a tap outside it, "închide", Escape, or a swipe down.
-export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed }: PhotoZoomProps) {
+export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, onClosed }: PhotoZoomProps) {
   const [screen] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   const side = sideFor(screen.w, screen.h);
   const k = side / AREA; // px per u at this size
@@ -51,6 +56,8 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
   const frame = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const video = useRef<HTMLVideoElement>(null);
+  const blurred = useRef<HTMLImageElement>(null);
+  const play = useRef<HTMLSpanElement>(null);
   const closing = useRef(false);
   const swipeFrom = useRef<number | null>(null);
 
@@ -73,15 +80,33 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Closing: the video stops, back onto the page, the backdrop out.
+  // Closing: the video stops (paused, not reloaded), back onto the page,
+  // the backdrop out. On the way the blurred picture fades in over the
+  // video, then the ▶ once it has landed: it looks exactly like the photo
+  // on the page, which is shown again only then (onClosed), so the sharp
+  // picture never shows on the page.
   const shut = () => {
     if (closing.current) return;
     closing.current = true;
     video.current?.pause();
-    const back = frame.current?.animate([{ transform: inMiddle }, { transform: onPage() }], timing);
-    backdrop.current?.animate([{ opacity: 1 }, { opacity: 0 }], timing);
+    const el = frame.current;
+    // From where it is now (closed while still opening: no jump to the
+    // middle first).
+    const now = el ? getComputedStyle(el).transform : inMiddle;
+    el?.getAnimations().forEach((a) => a.cancel());
+    const back = el?.animate([{ transform: now === "none" ? inMiddle : now }, { transform: onPage() }], timing);
+    const fromOpacity = backdrop.current ? Number(getComputedStyle(backdrop.current).opacity) : 1;
+    backdrop.current?.getAnimations().forEach((a) => a.cancel());
+    backdrop.current?.animate([{ opacity: fromOpacity }, { opacity: 0 }], timing);
+    blurred.current?.animate([{ opacity: 0 }, { opacity: 1, offset: zoom.blurBy }, { opacity: 1 }], timing);
+    const shown = play.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: zoom.playFade * 1000,
+      delay: zoom.duration * 1000, // after the landing
+      fill: "both",
+    });
     const done = () => onClosed();
-    if (back) back.finished.then(done, done);
+    const last = shown ?? back;
+    if (last) last.finished.then(done, done);
     else done();
   };
 
@@ -130,7 +155,7 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
           transform: onPage(),
         }}
       >
-        <div className="relative overflow-hidden bg-black" style={{ width: side, height: side }}>
+        <div className="relative overflow-hidden" style={{ width: side, height: side, background: photos.backing }}>
           {product.videoMare && (
             <video onError={hideOnError}
               ref={(el) => {
@@ -143,7 +168,7 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
               draggable={false}
               className="art zoom-video absolute inset-0 h-full w-full object-cover"
               src={product.videoMare}
-              poster={product.pozaBlur}
+              poster={product.poster ?? product.pozaBlur}
               autoPlay
               muted
               loop
@@ -154,6 +179,19 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
               aria-hidden
             />
           )}
+          {/* For the way back (see shut): hidden until then. */}
+          {product.pozaBlur && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={blurred}
+              src={product.pozaBlur}
+              alt=""
+              draggable={false}
+              className="art absolute inset-0 h-full w-full object-cover"
+              style={{ opacity: 0 }}
+            />
+          )}
+          {product.videoMare && <PlayButton ref={play} opacity={0} />}
         </div>
         <div
           className="absolute inset-x-0 bottom-0 flex items-center justify-center"
@@ -161,6 +199,7 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, onClosed
         >
           <DymoLabel rotation={labelRotation}>{name}</DymoLabel>
         </div>
+        <WashiTape color={tape.color} rotation={tape.rotation} />
       </div>
       <button
         ref={close}
