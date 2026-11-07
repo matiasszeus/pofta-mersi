@@ -283,6 +283,16 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* Its peeling corner: bigger while the sticker is hovered. */
-.sticker-peel { width: var(--peel); height: var(--peel); transition: width var(--peel-time), height var(--peel-time); }
-.sticker-big:hover .sticker-peel { width: var(--peel-hover); height: var(--peel-hover); }
+
+/* The cart receipt's coins (CartReceipt): a whole turn, round and round. */
+@keyframes coin-spin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+
+/* A part of the cart's receipt unfolding (CartReceipt's Fold): its height
+   from 0 to its own (a grid row, 0fr to 1fr) while it fades in. */
+@keyframes fold-open {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}

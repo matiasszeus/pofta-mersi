@@ -9,7 +9,7 @@ import { AtelierLetters } from "./AtelierLetters";
 import { AtelierNote } from "./AtelierNote";
 import { MatObject, type Entrance } from "./MatObject";
 import { matLayout, type MatObjectConfig, type Placed } from "./objectLayout";
-import { PocketCalculator } from "./PocketCalculator";
+import { PocketCalculator, type CartLink } from "./PocketCalculator";
 
 const { objects, object } = theme.atelier;
 const { slam } = object;
@@ -46,9 +46,13 @@ type StageProps = {
   // the objects fade in), as with reduced motion. For links that open the
   // album at once (see AtelierWithAlbum).
   calm?: boolean;
+  // Optional: the cart opens over the mat from the calculator (see
+  // PocketCalculator, AtelierWithAlbum); while it is up, the 3D letters
+  // stop drawing too.
+  cart?: CartLink;
 };
 
-function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown, calm = false }: StageProps) {
+function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false, onAlbumDown, calm = false, cart }: StageProps) {
   const animate = !calm;
   const [landed, setLanded] = useState(false);
   const onLanded = useCallback(() => setLanded(true), []);
@@ -81,6 +85,14 @@ function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false
   // times it on its own clock, from the same cue that starts the objects.)
 
   const entrance: Entrance = !animate ? "fade" : landed ? "slam" : "waiting";
+
+  // The calculator and the note answer taps only once the album lies on
+  // the mat: at the end of its slam (its own animationend, see MatObject),
+  // or at once when it is not slammed (calm: it fades in). Before, they
+  // are there and look the same, but taps and Tab go past them (nothing is
+  // kept for later).
+  const [albumDown, setAlbumDown] = useState(!animate);
+  const onAlbumSlammed = useCallback(() => setAlbumDown(true), []);
   // Where the album (or its override), the note and the calculator lie for
   // this screen (see layout in theme.ts). Again on every resize (Instagram's
   // browser changes its height after loading). Only in the browser: until
@@ -104,15 +116,16 @@ function Stage({ onObjectActivate, objectArt, objectOverrides, albumOpen = false
     <>
       {/* The note fades in with the mat; its corner lifts when the album
           hits the mat. */}
-      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} place={mat?.note ?? null} />
+      <AtelierNote flutterDelay={animate && landed ? slamDelay(0) + slam.fall : null} place={mat?.note ?? null} active={albumDown} />
       {/* The cart (it fades in with the note). */}
-      {mat && <PocketCalculator place={mat.calc} />}
-      {mat && <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} paused={albumOpen} />}
+      {mat && <PocketCalculator place={mat.calc} cart={cart} active={albumDown} />}
+      {mat && <AtelierLetters animate={animate} onLanded={onLanded} mat={mat} paused={albumOpen || !!cart?.raised} />}
       <MatObject
         object={album}
         place={mat?.albumBox ?? null}
         entrance={entrance}
         slamDelay={slamDelay(0)}
+        onSlammed={onAlbumSlammed}
         onActivate={onObjectActivate && ((link) => onObjectActivate(album.key, link))}
         art={mat && objectArt?.[album.key]?.(album, mat.albumBox)}
       />

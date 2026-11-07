@@ -1,5 +1,6 @@
 "use client";
 
+import { useTapGate } from "@/lib/useTapGate";
 import {
   useCallback,
   useEffect,
@@ -197,6 +198,9 @@ type AtelierNoteProps = {
   // Its place and turn on the mat (see matLayout); null = not known yet
   // (on the server): hidden until then.
   place: Placed | null;
+  // Answers taps and Tab (false while the album is still falling, see
+  // AtelierStage; nothing changes to the eye).
+  active?: boolean;
 };
 
 type Input = "keyboard" | "pointer";
@@ -209,7 +213,8 @@ type Input = "keyboard" | "pointer";
 // The dialog is our own (role="dialog"), not the browser's <dialog>: browsers
 // may close a native modal dialog on Esc or on Android's back button at once,
 // without letting the page animate it back.
-export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
+export function AtelierNote({ flutterDelay, place, active = true }: AtelierNoteProps) {
+  const accepts = useTapGate(active);
   const rotation = place?.rotation ?? 0;
   const button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
@@ -495,9 +500,14 @@ export function AtelierNote({ flutterDelay, place }: AtelierNoteProps) {
         type="button"
         aria-label="Citește notița"
         aria-haspopup="dialog"
-        onClick={open}
+        tabIndex={active ? undefined : -1}
+        onClick={(e) => {
+          // Before the album has landed (or a press that began before): nothing.
+          if (accepts(e)) open();
+          else e.preventDefault();
+        }}
         className={`note-button note-appear mat-dims absolute [--note-k:1] z-10 block top-(--note-top) left-(--note-left) ${lifted || !place ? "invisible" : ""}`}
-        style={matVars}
+        style={{ ...matVars, pointerEvents: active ? undefined : "none" }}
       >
         <span
           className={`note-mat block h-(--note-h) w-(--note-w) ${

@@ -28,7 +28,7 @@ export type Produs = {
 
 export const produse: Produs[] = [
   {
-    id: "bratara-basalt",
+    id: "basalt",
     nume: "Basalt",
     pret: 30,
     categorie: "bratari",
@@ -37,7 +37,7 @@ export const produse: Produs[] = [
     poster: "/images/bratari/basalt-studio-poster.webp",
   },
   {
-    id: "bratara-synthesis",
+    id: "synthesis",
     nume: "Synthesis",
     pret: 30,
     categorie: "bratari",
@@ -46,12 +46,6 @@ export const produse: Produs[] = [
     poster: "/images/bratari/synthesis-studio-poster.webp",
   },
 ];
-
-// The stickers' discount (the offer on their divider in the album): with
-// at least `minim` stickers in the cart (their quantities added up),
-// `procent` % off the stickers' subtotal only; everything else at full
-// price. Never more than that (20 stickers: still 20 %). See cart.ts.
-export const reducereStickere = { categorie: "stickere" as Categorie, minim: 10, procent: 20 };
 
 // The product with this id (an unknown id is a mistake in content.ts:
 // it stops the build rather than showing a product without a price).

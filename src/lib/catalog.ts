@@ -34,6 +34,14 @@ export type Sticker = StickerJson & { pret: number; dimensiune: string; imagineM
 // the JSON costs that instead).
 export const pretCategorie: Record<CategorieSticker, number> = { normale: 5, holografice: 5 };
 
+// The stickers' discount (the offer on their divider in the album): with
+// at least `minim` stickers in the cart (all of them, normal and
+// holographic, their quantities added up), `procent` % off the stickers'
+// subtotal only (never the bracelets); never more than that (20 stickers:
+// still 20 %). From `indemnDeLa` stickers on, the receipt says how many
+// more there are to go. See cart.ts, CartReceipt.
+export const reducereStickere = { minim: 10, procent: 20, indemnDeLa: 7 };
+
 // A category's sticker size, as shown on the card's back (a sticker with
 // its own `dimensiune` in the JSON shows that instead).
 export const dimensiuneCategorie: Record<CategorieSticker, string> = { normale: "7×7 cm", holografice: "7×7 cm" };

@@ -74,6 +74,7 @@ export const content = {
     description: "Pofta Mersi: stickere, brățări și obiecte făcute de mână.",
     atelier: "Atelierul Pofta Mersi: albumul, notițele și coșul, pe planșa de tăiat.",
     album: "Albumul Pofta Mersi: stickere, brățări și ce mai urmează.",
+    cos: "Coșul tău Pofta Mersi: bonul scos din calculatorul din atelier.",
   },
 
   // The small line at the bottom of the pages after the landing.
@@ -100,8 +101,6 @@ export const content = {
   },
 
   cart: {
-    title: "coșul tău",
-    back: "← înapoi în atelier",
     // What screen readers say for the calculator (a link to /cos).
     // "1 produs", "2 produse", "20 de produse" (Romanian: "de" from 20 on,
     // except 101-119, 201-219...).
@@ -109,6 +108,41 @@ export const content = {
       const rest = pieces % 100;
       const word = pieces === 1 ? "produs" : rest >= 20 || (rest === 0 && pieces > 0) ? "de produse" : "produse";
       return `Coșul tău: ${pieces} ${word}, total ${total} lei`;
+    },
+    // The receipt printed out of the calculator (/cos). Craze Retro has no
+    // ă, ș, ț: its words are without them, in capitals.
+    receipt: {
+      dialog: "Coșul tău",
+      close: "Închide coșul",
+      mersi: "MERSI",
+      petic: "PETIC", // the stickers
+      fir: "FIR", // the bracelets
+      holo: "holo",
+      nuMaiE: "nu mai e",
+      minus: (nume: string) => `Unul mai puțin: ${nume}`,
+      plus: (nume: string) => `Încă unul: ${nume}`,
+      total: (lei: string) => `Total: ${lei} lei`,
+      tePup: "TE PUP",
+      // The stickers' discount under PETIC (see reducereStickere in
+      // catalog.ts): its tag and the sum taken off; a few stickers short of
+      // it, how many more.
+      reducere: (procent: number) => `−${procent}%`,
+      scazut: (lei: string) => `−${lei}`,
+      indemn: (cate: number, procent: number) => `inca ${cate} ${cate === 1 ? "petic" : "petice"} si ai −${procent}%`,
+      // The texts shown on the receipt, on the stickers' card and bags and
+      // on the bracelets' big view are written without diacritics, like the
+      // rest of the site's handwriting (what screen readers say keeps them).
+      // The date alone, handwritten (07.11.2026).
+      data: (zi: string) => zi,
+      gol: "inca n-ai pofta de nimic",
+      // Under the date: empty the cart, after a "sure?"; then, for a few
+      // seconds, a way back.
+      goleste: "goleste cosul",
+      sigur: "sigur?",
+      da: "da",
+      nu: "nu",
+      golit: "cos golit",
+      anuleaza: "anuleaza",
     },
   },
 
@@ -125,6 +159,9 @@ export const content = {
     video: {
       open: (name: string) => `Pornește video ${name}`,
       dialog: (name: string) => `Video ${name}`,
+      // Under the bracelet, big: its add-to-cart button (the rest as on
+      // the stickers' card: adaugat ✓, ai 2 in cos).
+      vreau: "o vreau",
     },
     // The stickers' bags (page 3): the label (its category, the price of
     // one), what screen readers say, and a bag with no stickers yet.
@@ -132,7 +169,7 @@ export const content = {
       normale: "normale",
       holografice: "holografice",
       pret: (lei: number) => `${lei} LEI / BUC`,
-      inCurand: "în curând",
+      inCurand: "in curand",
       deschide: (categorie: string) => `Deschide punga cu stickere ${categorie}`,
       // The small bag in the corner, its stickers spread on the page: a tap
       // puts them back (what screen readers say for it).
@@ -142,23 +179,30 @@ export const content = {
       card: {
         detalii: "vezi detalii",
         sticker: "vezi stickerul",
-        inchide: "închide",
+        // The X (screen readers).
+        inchide: "Închide stickerul",
         // Its name on the card's back, between Romanian quotes.
         nume: (nume: string) => `„${nume}”`,
-        vreau: "îl vreau",
+        vreau: "il vreau",
         cantitate: "Câte bucăți",
-        // After "îl vreau": on the button for a moment, and under it.
-        adaugat: "adăugat ✓",
-        inCos: (n: number) => `ai ${n} în coș`,
+        // After "il vreau": on the button for a moment, and under it.
+        adaugat: "adaugat ✓",
+        inCos: (n: number) => `ai ${n} in cos`,
         // At the most per sticker (see card.quantityMax).
-        maxim: (n: number) => `ai ${n} în coș (maximum)`,
+        maxim: (n: number) => `ai ${n} in cos (maximum)`,
         // A sticker with "stoc": "epuizat" (it cannot be added).
         epuizat: "epuizat",
         pret: (lei: number) => `${lei} lei`,
+        // Under the card: which sticker of the bag (no diacritics); the
+        // arrows beside it (screen readers).
+        pozitie: (cate: number, din: number) => `${cate} / ${din}`,
+        anterior: "Stickerul anterior",
+        urmator: "Stickerul următor",
       },
     },
-    // The buttons over the open album (replay: /lab/album only).
-    close: "închide",
+    // The buttons over the open album (replay: /lab/album only); the X of
+    // a photo's big view (screen readers).
+    closeView: "Închide vizualizarea",
     // The X in the top-right corner of the open album (screen readers).
     closeAlbum: "Închide albumul",
     replay: "reia animația",
@@ -220,8 +264,8 @@ export const content = {
             id: "bratari-1",
             title: false,
             models: [
-              { product: "bratara-basalt", alt: "Brățara Basalt" },
-              { product: "bratara-synthesis", alt: "Brățara Synthesis" },
+              { product: "basalt", alt: "Brățara Basalt" },
+              { product: "synthesis", alt: "Brățara Synthesis" },
             ],
             priceTag: { title: "3 foi", unit: "/ buc" },
             note: "mai ieftin decât un pachet de țigări",

@@ -202,7 +202,9 @@ export function StickerBags({ live }: { live: boolean }) {
       </div>
       {opened && focus && (
         <StickerCard
-          sticker={stickere[opened].find((s) => s.id === focus) ?? stickere[opened][0]}
+          stickers={stickere[opened]}
+          index={Math.max(0, stickere[opened].findIndex((s) => s.id === focus))}
+          onIndex={(i) => setFocus(stickere[opened][i].id)}
           onClose={closeCard}
         />
       )}

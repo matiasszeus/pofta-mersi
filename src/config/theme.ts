@@ -610,7 +610,7 @@ export const theme = {
     // in page widths).
     // Open, the book is centred in the visible part of the screen
     // (visualViewport), with the same free space above and below: at least
-    // marginY px (room for "închide" in the top-right corner).
+    // marginY px (room for the X in the top-right corner).
     // Phones (one page at a time): the book's outer edge (the cover's on a
     // left page; the stack of pages and the tabs on a right page) keeps the
     // same distance from the screen's edge on both, at least outerMargin
@@ -808,6 +808,16 @@ export const theme = {
       swipe: 70,
       blurBy: 0.7,
       playFade: 0.15,
+      // Under the photo, big, with no ground of its own: "o vreau" and the
+      // quantity, exactly as on the stickers' card (BuyControls). `reserve`
+      // px of the screen's height are kept for them (the photo moves up by
+      // half), `gap` px under the frame; they fade in once the photo has
+      // grown, out at once when it closes.
+      buy: {
+        reserve: 110,
+        gap: 22,
+        fade: 0.25,
+      },
     },
     // A Dymo label (a photo's name, stuck on the white of its frame
     // below the picture, centred; labelRotation in photos.places). Sizes
@@ -1040,8 +1050,7 @@ export const theme = {
       },
       // A sticker's card, big over the album (px: outside the album, in
       // <body>, like the bracelets' big view). The front: the sticker,
-      // straight and still, popping in (popIn), its bottom-right corner
-      // peeling (bigger when hovered), cut to the sticker's shape. The back
+      // straight and still, popping in (popIn), plain (no effect). The back
       // (flip): its name, size and price, "îl vreau" with the quantity.
       // Its size (the sticker's shape; the page has no zoom, so it shows the
       // design clearly): as big as fits in a room of, on a phone (narrower
@@ -1058,13 +1067,26 @@ export const theme = {
         perspective: 900,
         flip: { duration: 0.7, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
         popIn: { duration: 0.5, easing: "cubic-bezier(0.3, 1.5, 0.5, 1)", scale: 0.4, turn: -20 },
-        peel: {
-          size: 44,
-          hover: 60,
+        // From one sticker of the bag to the next (StickerCard): the card
+        // slides out with a `turn` (degrees), the next comes in from the
+        // other side, in `duration` s. A swipe moves it with the finger
+        // once past `slop` px; let go before `threshold` of its width and it
+        // goes back (`back` s). Past the first / last (edge): held back
+        // (it follows the finger at `resistance`, at most `max` px),
+        // stretched up to `stretch` (0.05 = 5%), springing back in
+        // `duration` s. The arrows beside it on wide screens (like the X;
+        // `faded` at the first / last); "3 / 10" under it (`gap` px from
+        // the card and from "vezi detalii").
+        swipe: {
           duration: 0.3,
-          background: "linear-gradient(135deg, rgb(0 0 0 / 0) 50%, #E9E4D8 50%, #FFFFFF 75%)",
-          shadow: "-3px -3px 6px rgb(0 0 0 / 0.18)",
-          radius: 6,
+          easing: "cubic-bezier(0.25, 0.8, 0.3, 1)",
+          turn: 4,
+          slop: 10,
+          threshold: 0.25,
+          back: 0.25,
+          edge: { resistance: 0.3, max: 36, stretch: 0.05, duration: 0.45, easing: "cubic-bezier(0.3, 1.6, 0.5, 1)" },
+          arrows: { size: 44, gap: 20, iconSize: 20, lineWidth: 2.4, faded: 0.3 },
+          counter: { size: 13, color: palette.paper, opacity: 0.75, gap: 12 },
         },
         // The back: its name on top (handwritten: Whitenice, Hanken for the
         // letters it lacks, like ă ș ț), then its size and price (Hanken),
@@ -1096,6 +1118,23 @@ export const theme = {
         added: 1.5,
         inCart: { size: 13, opacity: 0.75, gap: 8 },
         soldOut: { size: 15, color: palette.ink, controlsOpacity: 0.4 },
+        // "il vreau" / "o vreau" with its quantity (BuyControls), in two
+        // tones, the same shape, size and font: on a light ground (the
+        // card's back) an ink button and the quantity outlined in ink; on a
+        // dark one (the bracelets' big view) a cream button and the
+        // quantity on cream. The line under them ("ai 2 in cos") in `line`.
+        tones: {
+          light: {
+            button: { background: palette.ink, color: palette.paper },
+            select: { background: "transparent", border: palette.ink, color: palette.ink },
+            line: palette.ink,
+          },
+          dark: {
+            button: { background: palette.paper, color: palette.ink },
+            select: { background: palette.paper, border: palette.paper, color: palette.ink },
+            line: palette.paper,
+          },
+        },
         button: {
           padding: "9px 14px",
           size: 13,
@@ -1256,6 +1295,95 @@ export const theme = {
     iconSize: 64,
     textSize: 22,
     turn: 2.4,
+  },
+
+  // The cart (/cos): a receipt printed out of the atelier's calculator, as
+  // in docs/cos-bon-referinta.html. A tap on the calculator: the mat
+  // darkens, the calculator slides down to the middle and straightens, then
+  // the receipt comes out of its slot. Lengths in the reference's px (a
+  // receipt 286px wide), times its scale: on a phone `scale.phone` (a
+  // narrow one makes it smaller, so it fits with `side` px each side); on
+  // wider screens up to `scale.desktop`, as much as lets it fit in its room
+  // (never less than 1). Taller than its room: it scrolls inside itself.
+  cos: {
+    phoneBelow: 768,
+    scale: { phone: 1, desktop: 1.2 },
+    side: 14,
+    dim: { color: "rgb(16 24 33 / 0.55)", fade: 0.4 },
+    // From a link to /cos: it opens this long (s) after the calculator has
+    // faded in on the mat.
+    linkDelay: 0.3,
+    // The calculator, moved: this wide (px), straight, down to the middle:
+    // only its top part (`visible` of its height: the LED, the LCD, the
+    // first keys) above the screen's bottom, so the receipt has room; in
+    // `move` s (and back, after the receipt is in).
+    calc: {
+      width: { phone: 150, desktop: 190 },
+      visible: { phone: 0.55, desktop: 0.5 },
+      move: 0.6,
+      easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+      // Its slot (reference px of the calculator, 180 wide): the receipt
+      // comes out of it. Shown only while the cart is open.
+      slot: { side: 25, top: -3, height: 9, color: "#0B0F15" },
+    },
+    // The receipt: out of the slot in `print` s (starts fast, slows down
+    // gently); back in, `back` s. `top`: px kept free above it (on a phone
+    // the X is right over it).
+    print: { duration: 2.2, easing: "cubic-bezier(0.22, 0.75, 0.25, 1)" },
+    back: { duration: 0.9, easing: "cubic-bezier(0.55, 0, 0.75, 0.2)" },
+    top: { phone: 64, desktop: 24 },
+    slotInto: 4, // px of the receipt still inside the slot
+    // The receipt's own look (reference px).
+    width: 286,
+    outline: palette.ink,
+    outlineWidth: 2.5,
+    zigzag: 14, // the jagged edges' teeth
+    paper: "#E9E9E9",
+    // Light streaks across the paper, then its shading.
+    paperImage:
+      "linear-gradient(105deg, transparent 0 18%, rgb(255 255 255 / 0.7) 18% 21%, transparent 21% 55%, rgb(255 255 255 / 0.55) 55% 57%, transparent 57%), linear-gradient(35deg, transparent 0 40%, rgb(0 0 0 / 0.05) 40% 43%, transparent 43%), linear-gradient(#F3F3F3, #DADADA)",
+    shadow: "drop-shadow(0 8px 14px rgb(8 30 18 / 0.4))",
+    padding: "18px 18px 20px",
+    ink: palette.ink,
+    green: palette.green,
+    lilac: palette.lilac,
+    lilacLight: palette.lilacLight,
+    holo: "linear-gradient(115deg, #FFD6F5, #D6F2FF, #FFF5C4, #E4D6FF)",
+    // Sizes, reference px.
+    title: 44, // MERSI
+    group: 34, // PETIC / FIR
+    groupCount: 32,
+    name: 16, // a product's name
+    count: 20,
+    button: 22, // − / +
+    tag: 9,
+    total: 32,
+    hand: 20, // "data:", the empty cart's line
+    go: { size: 20, padding: "12px 26px", shadow: "0 4px 0 #1F5F3F", color: palette.paper },
+    tagText: palette.paper, // "nu mai e" (on ink)
+    splash: { height: 92, color: "#FFFFFF" },
+    // The two coins beside the total: the picture front and back, its edge
+    // `layers` copies of it (alternating colors) between, spinning.
+    coin: { width: 48, height: 46, src: "/images/cos/moneda.png", layers: 23, step: 0.5, colors: ["#B98914", "#A47812"], spin: 2.6 },
+    // A line not counted: faded, struck through, with a small tag.
+    off: 0.38,
+    // Taking things out (− at 1, or emptying the cart): each part (a group's
+    // name, a line, the lilac strokes, the total, the splash) folds away,
+    // its height going to 0 while it fades, in `duration` s; one after the
+    // other, `stagger` s apart, all of it at most `total` s (more parts:
+    // closer together). The receipt stays in the slot: its top comes down
+    // smoothly. Then the empty cart's line (or a cart put back) unfolds in
+    // `appear` s. "cos golit · anuleaza" stays `undo` s.
+    fold: { duration: 0.3, stagger: 0.08, total: 1, appear: 0.3, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
+    undo: 4,
+    // The discount's line under PETIC: a small lilac tag, the sum taken off
+    // (like a line's count); a few stickers short of it, a handwritten
+    // line. Both fold in and out like the lines.
+    discount: { tag: 11, tagBackground: palette.lilac, tagColor: palette.ink, sum: 20, hint: 16, hintOpacity: 0.7 },
+    // "goleste cosul" and its "sigur? da · nu", "cos golit · anuleaza":
+    // small, handwritten, faded ink; each button at least `tap` px high.
+    clear: { size: 16, opacity: 0.6, tap: 44 },
+    max: 10, // − / + : 0 to this
   },
 
   // The error pages (404, an error): the atelier's mat with a note on it

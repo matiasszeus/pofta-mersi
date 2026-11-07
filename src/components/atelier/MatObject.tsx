@@ -65,6 +65,9 @@ type MatObjectProps = {
   entrance: Entrance;
   // Seconds from the start of the slam phase until this object starts falling.
   slamDelay?: number;
+  // Optional: called when its slam is over, the little settle included
+  // (the browser's animationend for it: never a guessed timer).
+  onSlammed?: () => void;
   // Optional: a tap calls this (with the object's element) instead of
   // going to the object's page; the object is then no link. Used for the
   // album, which opens right on the mat (see AtelierWithAlbum).
@@ -82,8 +85,13 @@ type MatObjectProps = {
 // turned black and blurred, under it. Moving, scaling and fading that copy is
 // cheap for the browser; animating a CSS drop-shadow would make it re-blur
 // the whole image on every frame.
-export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, art }: MatObjectProps) {
+export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, art, onSlammed }: MatObjectProps) {
   const animationName = `slam-${object.key}`;
+  // Its slam's end (animationend bubbles up from its picture; its shadow's
+  // and the pulse's are other animations, left out).
+  const onAnimationEnd = (e: React.AnimationEvent) => {
+    if (e.animationName === animationName) onSlammed?.();
+  };
   const rotation = place?.rotation ?? 0;
 
   const vars = {
@@ -153,6 +161,7 @@ export function MatObject({ object, place, entrance, slamDelay = 0, onActivate, 
       <div
         data-object={object.key}
         onClick={(e) => onActivate(e.currentTarget)}
+        onAnimationEnd={onAnimationEnd}
         className={`${classes} cursor-pointer`}
         style={vars}
       >

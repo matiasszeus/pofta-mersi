@@ -9,6 +9,8 @@ import { theme } from "@/config/theme";
 //   /album              ...and opens by itself at the contents (INVENTAR)
 //   /album/<chapter>    ...at that chapter's first page
 //   /lab/album          as /atelier, plus a button to replay the opening
+//   /cos                the cart's receipt comes out of the calculator by
+//                       itself (see AtelierWithAlbum)
 // (see AtelierWithAlbum for initialChapter.)
 //
 // The cutting mat, the letters that landed on it, the album, the note and
@@ -16,7 +18,15 @@ import { theme } from "@/config/theme";
 // atelier itself). The green page background is there from the very first
 // frame, in exactly the color the landing's dive ended on, so the switch
 // cannot be seen.
-export function AtelierScreen({ lab = false, initialChapter }: { lab?: boolean; initialChapter?: string }) {
+export function AtelierScreen({
+  lab = false,
+  initialChapter,
+  initialCart = false,
+}: {
+  lab?: boolean;
+  initialChapter?: string;
+  initialCart?: boolean;
+}) {
   return (
     // Exactly one screen, never scrolling: anything reaching past an edge
     // (the album while it is slammed down, from bigger than its size) is
@@ -26,7 +36,7 @@ export function AtelierScreen({ lab = false, initialChapter }: { lab?: boolean; 
     <main className="atelier-main relative h-dvh overflow-hidden">
       <MatBackground />
       {!lab && <SiteFooter />}
-      <AtelierWithAlbum lab={lab} initialChapter={initialChapter} />
+      <AtelierWithAlbum lab={lab} initialChapter={initialChapter} initialCart={initialCart} />
     </main>
   );
 }

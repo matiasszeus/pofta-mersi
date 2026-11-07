@@ -53,17 +53,19 @@ test("a broken cart in localStorage: an empty cart, no crash", async ({ page }) 
   expect(errors).toEqual([]);
 });
 
+// The cart keeps only {id, cantitate}; prices come from the catalog (a
+// sticker: 5 lei), so an id no catalog knows is never counted.
 test("a good item in the cart still counts next to broken ones", async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem(
       "pofta-cos",
-      JSON.stringify([null, { id: "x", nume: "Test", pret: 10, cantitate: 2 }, { id: "y", pret: -1 }]),
+      JSON.stringify([null, { id: "mil-moi", cantitate: 2 }, { id: "y", pret: -1 }, { id: "not-in-any-catalog", cantitate: 3 }]),
     ),
   );
   await page.goto("/atelier");
   const calc = page.locator('a[href="/cos"]').first();
   await calc.waitFor({ timeout: 10000 });
-  await expect(calc).toHaveAttribute("aria-label", /2 produse, total 20,00 lei/);
+  await expect(calc).toHaveAttribute("aria-label", /2 produse, total 10,00 lei/);
 });
 
 test("WebGL taken away on the atelier: the letters' pictures instead", async ({ page }) => {

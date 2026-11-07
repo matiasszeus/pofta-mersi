@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AtelierStage } from "@/components/atelier/AtelierStage";
 import type { Placed } from "@/components/atelier/objectLayout";
+import { CartReceipt } from "@/components/cart/CartReceipt";
+import { CloseButton, closeCorner } from "@/components/site/CloseButton";
+import { useCartGeometry } from "@/components/cart/cartGeometry";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { albumPathOf, chapterOfPath, chapterOfSlug } from "./albumPages";
@@ -50,15 +53,38 @@ const dimVars = {
 const linkOpenDelay = theme.album.deepLink.delay; // ms
 // Our history entries carry this, so X knows it can go back.
 const OURS = "pmAlbum";
+// The cart's (/cos) entries carry this one.
+const CART = "pmCart";
 // A history entry's data: Next.js's own (it keeps the page in it: without
 // it, back / forward would load the page again), with our mark or without.
-function entry(ours: boolean) {
+function entry(ours: boolean, mark = OURS) {
   const next = { ...((window.history.state ?? {}) as Record<string, unknown>) };
   delete next[OURS];
-  return ours ? { ...next, [OURS]: true } : next;
+  delete next[CART];
+  return ours ? { ...next, [mark]: true } : next;
 }
 
-export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolean; initialChapter?: string }) {
+// The cart (see theme.cos), from a tap on the calculator:
+//   closed     the calculator lies on the mat
+//   open       the mat darkens, the calculator slides down to the middle,
+//              then the receipt comes out of its slot
+//   closing    the receipt goes back into the slot
+//   returning  the calculator goes back to its place, the mat lightens
+// Its address is /cos (like the album's): a tap adds a history entry, X /
+// a tap beside the receipt / Escape go back to the one before; back /
+// forward open or close it; a link to /cos opens it by itself.
+type CartState = "closed" | "open" | "closing" | "returning";
+const cos = theme.cos;
+
+export function AtelierWithAlbum({
+  lab = false,
+  initialChapter,
+  initialCart = false,
+}: {
+  lab?: boolean;
+  initialChapter?: string;
+  initialCart?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState(0);
   // Where the next opening starts (a chapter id).
@@ -180,6 +206,98 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
     [history],
   );
 
+  // --- The cart -----------------------------------------------------------
+  const [cart, setCart] = useState<CartState>("closed");
+  const cartRef = useRef(cart);
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+  const geometry = useCartGeometry();
+  const cartTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => clearTimeout(cartTimer.current), []);
+
+  const showCart = useCallback(() => {
+    if (cartRef.current === "closed") setCart("open");
+  }, []);
+  // The receipt goes back in (then CartReceipt's onClosed: the calculator
+  // goes back to its place).
+  const hideCart = useCallback(() => {
+    if (cartRef.current === "open") setCart("closing");
+  }, []);
+  const onReceiptIn = useCallback(() => {
+    setCart("returning");
+    clearTimeout(cartTimer.current);
+    cartTimer.current = window.setTimeout(() => setCart("closed"), cos.calc.move * 1000);
+  }, []);
+  // A tap on the calculator: a history entry, /cos.
+  const onCalcTap = useCallback(() => {
+    if (openRef.current || cartRef.current !== "closed") return;
+    if (history) window.history.pushState(entry(true, CART), "", "/cos");
+    showCart();
+  }, [history, showCart]);
+  // X / a tap beside the receipt / Escape: back to the entry before ours
+  // (its popstate hides it), or, without one, the address becomes /atelier.
+  const closeCart = useCallback(() => {
+    if (cartRef.current !== "open") return;
+    if (history && window.history.state?.[CART]) {
+      window.history.back();
+      return;
+    }
+    if (history) window.history.replaceState(entry(false), "", "/atelier");
+    hideCart();
+  }, [history, hideCart]);
+
+  // Arriving from a link (/cos): the entry becomes /atelier, a new one for
+  // the cart on top; it opens once the calculator has faded in on the mat.
+  // (The address once; the wait in its own effect, which React may run
+  // twice in development: each run starts its timer, the cleanup stops it.)
+  const cartArrived = useRef(false);
+  useEffect(() => {
+    if (!initialCart || cartArrived.current) return;
+    cartArrived.current = true;
+    if (history) {
+      window.history.replaceState(entry(false), "", "/atelier");
+      window.history.pushState(entry(true, CART), "", "/cos");
+    }
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!initialCart) return;
+    const wait = (theme.atelier.note.appearDelay + theme.atelier.mat.fadeIn) * 1000 + cos.linkDelay * 1000;
+    const timer = window.setTimeout(showCart, wait);
+    return () => clearTimeout(timer);
+  }, [initialCart, showCart]);
+
+  // Back / forward: to /cos it opens, away from it it closes.
+  useEffect(() => {
+    if (!history) return;
+    const onPop = () => {
+      const atCart = window.location.pathname === "/cos";
+      if (atCart && cartRef.current === "closed" && !openRef.current) showCart();
+      else if (!atCart) hideCart();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [history, showCart, hideCart]);
+
+  // Escape closes it (not while a dialog over it is open).
+  useEffect(() => {
+    if (cart !== "open") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      closeCart();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cart, closeCart]);
+
+  const cartUp = cart === "open" || cart === "closing";
+  const cartLink = useMemo(
+    () => ({ open: cartUp, raised: cart !== "closed", at: geometry?.calc ?? null, onTap: onCalcTap }),
+    [cartUp, cart, geometry, onCalcTap],
+  );
+
   const art = useMemo(
     () => ({
       // Given where the album lies on the mat (see matLayout).
@@ -207,8 +325,41 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
         albumOpen={open}
         onAlbumDown={onAlbumDown}
         // From a link: the letters lie still from the start (see above).
-        calm={initialChapter !== undefined}
+        calm={initialChapter !== undefined || initialCart}
+        cart={cartLink}
       />
+      {/* The cart: the mat darkened (a tap on it closes the cart), the
+          receipt over it, the X. */}
+      {cart !== "closed" && (
+        <div
+          aria-hidden
+          className="fixed inset-0 h-lvh"
+          style={{
+            zIndex: 40,
+            background: cos.dim.color,
+            opacity: cart === "returning" ? 0 : 1,
+            transition: `opacity ${cos.dim.fade}s ease`,
+            animation: `fade-in ${cos.dim.fade}s ease-out`,
+          }}
+          onClick={closeCart}
+        />
+      )}
+      {cartUp && geometry && (
+        <div role="dialog" aria-modal="true" aria-label={content.cart.receipt.dialog}>
+          <CartReceipt
+            bottom={geometry.receiptBottom}
+            room={geometry.room}
+            scale={geometry.scale}
+            maxScale={geometry.maxScale}
+            phase={cart === "open" ? "printing" : "closing"}
+            delay={cos.calc.move}
+            onClosed={onReceiptIn}
+          />
+          <div className={closeCorner} style={{ zIndex: 55 }}>
+            <CloseButton onClick={closeCart} label={content.cart.receipt.close} />
+          </div>
+        </div>
+      )}
       {/* The vignette, between the mat (and what lies on it) and the album;
           while open it also takes the taps meant for the things on the mat. */}
       {vignette && (
@@ -221,43 +372,15 @@ export function AtelierWithAlbum({ lab = false, initialChapter }: { lab?: boolea
         />
       )}
       {open && (
-        <div className="fixed top-[max(env(safe-area-inset-top),12px)] right-3 z-50 flex gap-2 font-sans text-sm">
+        <div className={`${closeCorner} z-50 flex gap-2 font-sans text-sm`}>
           {lab && (
             <button type="button" className={pill} onClick={() => setRun((n) => n + 1)}>
               {content.album.replay}
             </button>
           )}
-          <CloseButton onClick={close} />
+          <CloseButton onClick={close} label={content.album.closeAlbum} />
         </div>
       )}
     </div>
-  );
-}
-
-// The open album's close button: a dark round button with a cream X (two
-// lines, SVG). See theme.album.closeButton.
-function CloseButton({ onClick }: { onClick: () => void }) {
-  const { size, background, color, iconSize, lineWidth } = theme.album.closeButton;
-  return (
-    <button
-      type="button"
-      aria-label={content.album.closeAlbum}
-      onClick={onClick}
-      className="flex cursor-pointer items-center justify-center rounded-full border-0 p-0"
-      style={{ width: size, height: size, background, color }}
-    >
-      <svg
-        width={iconSize}
-        height={iconSize}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={lineWidth}
-        strokeLinecap="round"
-        aria-hidden="true"
-      >
-        <path d="M5 5l14 14M19 5L5 19" />
-      </svg>
-    </button>
   );
 }

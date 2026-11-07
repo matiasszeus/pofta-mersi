@@ -1,8 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { produse, reducereStickere, type Categorie } from "@/config/products";
-import { deVanzare, getSticker } from "@/lib/catalog";
+import { produse, type Categorie } from "@/config/products";
+import { deVanzare, getSticker, reducereStickere } from "@/lib/catalog";
 
 // The cart, shared by the whole site: kept in the browser (localStorage,
 // under KEY), so it survives a refresh and is shared by all the site's
@@ -17,12 +17,14 @@ import { deVanzare, getSticker } from "@/lib/catalog";
 
 export type CartItem = { id: string; cantitate: number };
 // total: what is to be paid (lei, the discount taken off); reducere: the
-// discount (lei, 0 if none); bucati: the pieces (quantities added up).
-// Only products that can be bought now count (see catalogItem).
-export type CartSummary = { total: number; bucati: number; reducere: number };
+// discount (lei, 0 if none); bucati: the pieces (quantities added up);
+// stickere: the stickers among them (for the discount, see
+// reducereStickere). Only products that can be bought now count (see
+// catalogItem).
+export type CartSummary = { total: number; bucati: number; reducere: number; stickere: number };
 
 const KEY = "pofta-cos";
-const EMPTY: CartSummary = { total: 0, bucati: 0, reducere: 0 };
+const EMPTY: CartSummary = { total: 0, bucati: 0, reducere: 0, stickere: 0 };
 
 // The cart kept in memory when localStorage does not work.
 let memory: string | null = null;
@@ -101,6 +103,19 @@ export function adauga(id: string, cantitate = 1, max = Infinity): number {
   return now;
 }
 
+// Sets how many of a product the cart holds (0 to `max`; 0 takes it out).
+// A product not in the cart yet is added at the end.
+export function seteaza(id: string, cantitate: number, max = Infinity) {
+  const n = Math.max(0, Math.min(max, Math.round(cantitate)));
+  const items = citeste();
+  const there = items.find((i) => i.id === id);
+  if (n === 0) scrie(items.filter((i) => i.id !== id));
+  else if (there) {
+    there.cantitate = n;
+    scrie(items);
+  } else scrie([...items, { id, cantitate: n }]);
+}
+
 // Takes a product out of the cart (all of it).
 export function scoate(id: string) {
   scrie(citeste().filter((i) => i.id !== id));
@@ -108,6 +123,12 @@ export function scoate(id: string) {
 
 export function goleste() {
   scrie([]);
+}
+
+// Puts back a cart exactly as it was (its lines, in their order): undoing
+// "golește coșul".
+export function restaureaza(items: CartItem[]) {
+  scrie(items.filter(isItem).map((i) => ({ id: i.id, cantitate: i.cantitate })));
 }
 
 // useSyncExternalStore: React's way to read something outside React that
@@ -148,11 +169,11 @@ export function summarize(items: CartItem[]): CartSummary {
   const subtotal = lines.reduce((sum, l) => sum + l.p.pret * l.cantitate, 0);
   const bucati = lines.reduce((sum, l) => sum + l.cantitate, 0);
   const r = reducereStickere;
-  const stickers = lines.filter((l) => l.p.categorie === r.categorie);
+  const stickers = lines.filter((l) => l.p.categorie === "stickere");
   const stickerCount = stickers.reduce((sum, l) => sum + l.cantitate, 0);
   const stickerSubtotal = stickers.reduce((sum, l) => sum + l.p.pret * l.cantitate, 0);
   const reducere = stickerCount >= r.minim ? bani((stickerSubtotal * r.procent) / 100) : 0;
-  return { total: bani(subtotal - reducere), bucati, reducere };
+  return { total: bani(subtotal - reducere), bucati, reducere, stickere: stickerCount };
 }
 
 // The cart's total (lei) and number of pieces (the quantities added up).
@@ -160,6 +181,19 @@ export function summarize(items: CartItem[]): CartSummary {
 // HTML from the server (no hydration mismatch); right after, the real cart.
 export function useCos(): CartSummary {
   return useSyncExternalStore(subscribe, getSnapshot, () => EMPTY);
+}
+
+// The cart's lines ({id, cantitate}, in the order they were added), kept
+// up to date; the same array while the cart does not change (see last).
+let lastItems: { raw: string | null; items: CartItem[] } = { raw: null, items: [] };
+const NO_ITEMS: CartItem[] = [];
+function getItems(): CartItem[] {
+  const raw = readRaw();
+  if (raw !== lastItems.raw) lastItems = { raw, items: parse(raw) };
+  return lastItems.items;
+}
+export function useCosItems(): CartItem[] {
+  return useSyncExternalStore(subscribe, getItems, () => NO_ITEMS);
 }
 
 // How many of one product the cart holds (0: none), kept up to date.

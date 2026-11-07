@@ -10,8 +10,11 @@ import { DymoLabel } from "./DymoLabel";
 import { PlayButton } from "./PlayButton";
 import { WashiTape } from "./WashiTape";
 import { hideOnError } from "@/lib/mediaError";
+import { BuyControls } from "@/components/cart/BuyControls";
+import { CloseButton, closeCorner } from "@/components/site/CloseButton";
 
 const { photos, zoom } = theme.album;
+const buy = zoom.buy;
 // The photo's picture area on the page, in u: the big one's square is as
 // many u wide, so the frame, the label and the shadow keep their
 // proportions (--u on the big frame).
@@ -44,10 +47,16 @@ type PhotoZoomProps = {
 // It grows from the photo on the page and shrinks back into it (FLIP:
 // laid out at its big size in the middle, then started with a transform
 // that puts it exactly over the small one; only transform and opacity
-// move). Closes with a tap outside it, "închide", Escape, or a swipe down.
+// move). Closes with a tap outside it, the X (the site's one close
+// button, top right), Escape, or a swipe down.
+// Under it, once it has grown, with no ground of its own: "o vreau" and
+// the quantity (BuyControls, exactly as on the stickers' card); room is kept for that
+// (zoom.buy.reserve: the photo moves up by half of it). Taps there are its
+// own: they never close the view nor touch the video.
 export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, onClosed }: PhotoZoomProps) {
   const [screen] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
-  const side = sideFor(screen.w, screen.h);
+  const side = sideFor(screen.w, screen.h - buy.reserve);
+  const lift = buy.reserve / 2; // the photo's middle, above the screen's
   const k = side / AREA; // px per u at this size
   const width = photos.width * k;
   const height = side + (photos.padding.side + photos.padding.bottom) * k;
@@ -59,11 +68,14 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, on
   const blurred = useRef<HTMLImageElement>(null);
   const play = useRef<HTMLSpanElement>(null);
   const closing = useRef(false);
+  const panel = useRef<HTMLDivElement>(null);
+  // Closing: the panel under it goes at once.
+  const [shutting, setShutting] = useState(false);
   const swipeFrom = useRef<number | null>(null);
 
   // Over the small photo (see overPhoto).
   const onPage = () => overPhoto(from, fromRotation, width);
-  const inMiddle = `translate(0px, 0px) rotate(${zoom.rotation}deg) scale(1)`;
+  const inMiddle = `translate(0px, ${-lift}px) rotate(${zoom.rotation}deg) scale(1)`;
   const timing = { duration: zoom.duration * 1000, easing: zoom.easing, fill: "both" as const };
 
   // Opening: from the page to the middle, the backdrop in.
@@ -88,6 +100,7 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, on
   const shut = () => {
     if (closing.current) return;
     closing.current = true;
+    setShutting(true);
     video.current?.pause();
     const el = frame.current;
     // From where it is now (closed while still opening: no jump to the
@@ -131,7 +144,8 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, on
       style={{ zIndex: 60, touchAction: "none" }}
       // A tap outside the photo closes it; so does a swipe down.
       onClick={(e) => {
-        if (!frame.current?.contains(e.target as Node)) shut();
+        const t = e.target as Node;
+        if (!frame.current?.contains(t) && !panel.current?.contains(t)) shut();
       }}
       onPointerDown={(e) => (swipeFrom.current = e.clientY)}
       onPointerUp={(e) => {
@@ -201,17 +215,28 @@ export function PhotoZoom({ product, from, fromRotation, labelRotation, tape, on
         </div>
         <WashiTape color={tape.color} rotation={tape.rotation} />
       </div>
-      <button
-        ref={close}
-        type="button"
-        className="fixed top-[max(env(safe-area-inset-top),12px)] right-3 rounded-full bg-white/85 px-3 py-1.5 font-sans text-sm text-black shadow"
-        onClick={(e) => {
-          e.stopPropagation();
-          shut();
+      <div className={closeCorner}>
+        <CloseButton ref={close} onClick={shut} label={content.album.closeView} />
+      </div>
+      {/* "o vreau" and the quantity: right under the photo, centred. */}
+      <div
+        ref={panel}
+        className="absolute left-1/2 flex flex-col items-center"
+        style={{
+          top: `calc(50% + ${height / 2 - lift + buy.gap}px)`,
+          translate: "-50% 0",
+          opacity: shutting ? 0 : 1,
+          transition: `opacity ${buy.fade / 2}s`,
+          animation: `fade-in ${buy.fade}s ease-out ${zoom.duration}s backwards`,
+          touchAction: "manipulation",
         }}
+        // Its own taps: no swipe-to-close starting here, no closing.
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        {content.album.close}
-      </button>
+        <BuyControls id={product.id} label={content.album.video.vreau} tone="dark" />
+      </div>
     </div>,
     document.body,
   );

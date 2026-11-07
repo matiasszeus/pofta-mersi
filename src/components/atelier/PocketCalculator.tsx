@@ -1,11 +1,13 @@
 "use client";
 
+import { useTapGate } from "@/lib/useTapGate";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { crazeRetro } from "@/app/fonts";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { useCos } from "@/lib/cart";
+import type { CartGeometry } from "@/components/cart/cartGeometry";
 import type { Placed } from "./objectLayout";
 
 const calc = theme.atelier.calc;
@@ -111,7 +113,16 @@ const KEYS: [string, string][] = [
 //
 // place: its box on the mat, in CSS px, and its turn around the middle
 // (see matLayout).
-export function PocketCalculator({ place: rect }: { place: Placed }) {
+// cart (optional, see AtelierWithAlbum): a tap opens the cart right here
+// instead of going to /cos; while it is `open`, the calculator slides down
+// to the middle of the screen and straightens (to `at`: transform only),
+// and a slot shows on its top for the receipt to come out of.
+// raised: over the darkened mat (also while going back to its place).
+export type CartLink = { open: boolean; raised: boolean; at: CartGeometry["calc"] | null; onTap: () => void };
+// active: answers taps and Tab (false while the album is still falling,
+// see AtelierStage; nothing changes to the eye).
+export function PocketCalculator({ place: rect, cart, active = true }: { place: Placed; cart?: CartLink; active?: boolean }) {
+  const accepts = useTapGate(active);
   const { total, bucati } = useCos();
   const lcd = lcdCells(total);
   const totalText = total.toFixed(2).replace(".", ",");
@@ -127,15 +138,61 @@ export function PocketCalculator({ place: rect }: { place: Placed }) {
     rotate: `${rect.rotation}deg`,
     filter: `drop-shadow(0 ${px(16.2)} ${px(14.4)} ${colors.shadow})`,
   } as CSSProperties;
+  // The cart open: moved from its place on the mat (its middle to the
+  // target's middle), straight, to the target's width; over the darkened
+  // mat and the receipt.
+  const move = theme.cos.calc;
+  const moving = { transition: ["translate", "rotate", "scale"].map((p) => `${p} ${move.move}s ${move.easing}`).join(", ") };
+  if (cart?.open && cart.at) {
+    const a = cart.at;
+    const dx = a.left + a.width / 2 - (rect.left + rect.width / 2);
+    const dy = a.top + a.height / 2 - (rect.top + rect.height / 2);
+    Object.assign(vars, moving, { translate: `${dx}px ${dy}px`, rotate: "0deg", scale: `${a.width / rect.width}` });
+  } else if (cart) {
+    Object.assign(vars, moving, { translate: "0px 0px", scale: "1" });
+  }
+  if (cart?.raised) vars.zIndex = 50;
+  if (!active) vars.pointerEvents = "none";
 
   return (
     <Link
       href="/cos"
       data-calc
+      tabIndex={active ? undefined : -1}
       aria-label={content.cart.calcLabel(bucati, totalText)}
       className="note-appear mat-dims absolute z-10 block"
       style={vars}
+      onClick={(e) => {
+        // Before the album has landed (or a press that began before): nothing.
+        if (!accepts(e)) {
+          e.preventDefault();
+          return;
+        }
+        if (!cart) return;
+        // The cart opens right here (the address becomes /cos by itself).
+        e.preventDefault();
+        if (!cart.open) cart.onTap();
+      }}
     >
+      {/* The slot the receipt comes out of (only while the cart is open). */}
+      {cart && (
+        <div
+          aria-hidden
+          className="absolute"
+          style={{
+            left: px(move.slot.side),
+            right: px(move.slot.side),
+            top: px(move.slot.top),
+            height: px(move.slot.height),
+            borderRadius: px(move.slot.height / 2),
+            background: move.slot.color,
+            boxShadow: `inset 0 ${px(2)} ${px(3)} rgb(0 0 0 / 0.8)`,
+            opacity: cart.open ? 1 : 0,
+            transition: `opacity ${move.move}s`,
+            zIndex: 1,
+          }}
+        />
+      )}
       {/* The body */}
       <div
         className="absolute inset-0"
