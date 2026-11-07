@@ -258,3 +258,18 @@ body {
   55% { transform: var(--pour-b); }
   100% { transform: var(--park); }
 }
+
+/* The small bag in the corner, once its stickers have landed: one short
+   shake (like the closed bags' wiggle), to show it can be tapped. */
+@keyframes bag-nudge {
+  0%, 100% { transform: var(--park); }
+  25% { transform: var(--park) rotate(-3deg); }
+  55% { transform: var(--park) rotate(3deg); }
+  80% { transform: var(--park) rotate(-1.5deg); }
+}
+
+/* The small bag going back to its place, closing. */
+@keyframes bag-back {
+  from { transform: var(--park); }
+  to { transform: var(--base); }
+}

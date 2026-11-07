@@ -14,13 +14,18 @@
 //                  in -holo
 //       fisier     the original's file name
 //       categorie  "normale" or "holografice" (its folder)
+//       activ      true; false = taken off the site (see below), its entry
+//                  kept (the cart still knows its id)
 //       stoc       "da" | "epuizat" | "ascuns" (ascuns: not on the site)
 //       imagine    the picture's address on the site
 //       latime, inaltime  the picture's size in px
 //     and optionally (written by hand) pret: in lei; without it, the
 //     category's price (src/lib/catalog.ts).
-// Entries already in the catalog are left exactly as they are (edited by
-// hand: names, stock, prices); only a picture that is missing is made again.
+// Entries already in the catalog are left as they are (edited by hand:
+// names, stock, prices, activ); only a picture that is missing is made
+// again. Never deleted: an entry whose PNG is gone from assets-src gets
+// "activ": false (and "lipsaFisier": true: why); if that PNG comes back, it
+// is active again. An entry set "activ": false by hand stays so.
 // Needs Python 3 with numpy and Pillow (pip install numpy pillow); its
 // command: PYTHON, else python (Windows) / python3.
 import { execFileSync } from "node:child_process";
@@ -91,11 +96,35 @@ const known = new Set(catalog.map((s) => `${s.categorie}/${s.fisier}`));
 const ids = new Set(catalog.map((s) => s.id));
 let added = 0;
 
-// Pictures of entries already there that went missing: made again.
+// The fields in this order in the JSON (any other, like pret, after them).
+const ORDER = ["id", "fisier", "nume", "categorie", "activ", "stoc", "imagine", "latime", "inaltime"];
+const ordered = (s) => Object.fromEntries([...ORDER.filter((k) => k in s), ...Object.keys(s).filter((k) => !ORDER.includes(k))].map((k) => [k, s[k]]));
+
+let deactivated = 0;
+let reactivated = 0;
 for (const s of catalog) {
   const out = path.join("public", s.imagine);
   const source = path.join(SOURCE, s.categorie, s.fisier);
-  if (!existsSync(out) && existsSync(source)) {
+  if (s.activ === undefined) s.activ = true;
+  if (!existsSync(source)) {
+    // Its original is gone: off the site, entry kept.
+    if (s.activ) {
+      s.activ = false;
+      s.lipsaFisier = true;
+      deactivated++;
+      console.log(`(off: ${s.categorie}/${s.fisier} is gone) ${s.id}`);
+    }
+    continue;
+  }
+  if (s.lipsaFisier) {
+    // Its original is back: on the site again.
+    s.activ = true;
+    delete s.lipsaFisier;
+    reactivated++;
+    console.log(`(on again) ${s.id}`);
+  }
+  // Its picture for the site went missing: made again.
+  if (!existsSync(out)) {
     console.log(`(again) ${s.id}`);
     makePicture(source, out);
   }
@@ -120,10 +149,11 @@ for (const categorie of CATEGORIES) {
     console.log(`(new) ${id}`);
     makePicture(path.join(dir, fisier), out);
     const [latime, inaltime] = webpSize(out);
-    catalog.push({ id, fisier, nume, categorie, stoc: "da", imagine: `/images/stickere/${id}.webp`, latime, inaltime });
+    catalog.push({ id, fisier, nume, categorie, activ: true, stoc: "da", imagine: `/images/stickere/${id}.webp`, latime, inaltime });
     added++;
   }
 }
 
-writeFileSync(CATALOG, JSON.stringify(catalog, null, 2) + "\n");
-console.log(`${CATALOG}: ${catalog.length} stickers (${added} new)`);
+writeFileSync(CATALOG, JSON.stringify(catalog.map(ordered), null, 2) + "\n");
+const active = catalog.filter((s) => s.activ).length;
+console.log(`${CATALOG}: ${catalog.length} stickers, ${active} active (${added} new, ${deactivated} off, ${reactivated} on again)`);

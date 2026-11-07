@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { getStickere, pretCategorie, type CategorieSticker, type Sticker } from "@/lib/catalog";
@@ -17,7 +17,9 @@ const r = (px: number) => u(px * bags.refScale);
 // "0 6u 12u ..." with every "Nu" in the reference's px (see r).
 const rCss = (value: string) => value.replace(/([\d.]+)u\b/g, (_, n) => r(Number(n)));
 
-// Taps here are this page's own: they never turn the album's page.
+// Taps here are this page's own: they never turn the album's page. The
+// bags and stickers have touch-action: manipulation (no waiting for a
+// double tap: the tap counts at once on a phone).
 const keep = (e: SyntheticEvent) => e.stopPropagation();
 const keepAll = (e: SyntheticEvent) => {
   e.preventDefault();
@@ -29,12 +31,12 @@ const ORDER: CategorieSticker[] = ["normale", "holografice"];
 // What the page is doing (one bag at a time, `opened`):
 //   closed      both bags in their places, wiggling now and then
 //   pouring     the bag opens and pours; its stickers wait in its mouth
-//   out         the stickers fly out and lie spread on the page
-//   collecting  they fly back into its mouth, the bag still small (its
-//               pour runs to its end even if "strânge" came early)
-//   parked      a moment small in the corner, the pour done with
-//   returning   both bags go back to their places
-type Phase = "closed" | "pouring" | "out" | "collecting" | "parked" | "returning";
+//   out         the stickers fly out and land, spread on the page
+//   settled     all landed; the small bag in the corner shakes once: a tap
+//               on it puts them back
+//   collecting  they fly back into it, the last one first
+//   returning   both bags go back to their places (as the last one goes in)
+type Phase = "closed" | "pouring" | "out" | "settled" | "collecting" | "returning";
 
 // A bag's turn in its place, and small in the corner (see open.park).
 const baseOf = (c: CategorieSticker) => `rotate(${bags.bags[c].rotation}deg)`;
@@ -56,16 +58,23 @@ function mouthOf(c: CategorieSticker, parked = false) {
 }
 
 // The stickers' page: two closed ziploc bags, "normale" and "holografice",
-// the first stickers of each showing through the plastic. A tap on one
-// opens it: it pours its stickers out over the page and lands small in the
-// corner, the other one fades; "strânge în pungă" puts them back. Timings
-// and curves as in the reference. Only transform and opacity move; no
-// filter, backdrop-filter or blend mode (the page is in 3D: Safari).
-// Leaving the page (live false) closes everything at once.
+// the first stickers of each showing through the plastic, over two
+// ornaments. A tap on one opens it: it pours its stickers out over the page
+// and lands small in the corner, the other one fades; a tap on the small
+// bag puts them back. Timings and curves as in the reference. Only
+// transform and opacity move; no filter, backdrop-filter or blend mode (the
+// page is in 3D: Safari). Leaving the page (live false) closes everything
+// at once.
+//
+// All the stickers of both bags are on the page from the start, unseen in
+// their bag's mouth, and decoded while the page is shown: a tap only
+// changes their styles (no new elements, no download, no decoding then),
+// so the bag moves at once.
 export function StickerBags({ live }: { live: boolean }) {
   const [opened, setOpened] = useState<CategorieSticker | null>(null);
   const [phase, setPhase] = useState<Phase>("closed");
   const timers = useRef<number[]>([]);
+  const layer = useRef<HTMLDivElement>(null);
   const later = (seconds: number, fn: () => void) => {
     timers.current.push(window.setTimeout(fn, seconds * 1000));
   };
@@ -84,9 +93,12 @@ export function StickerBags({ live }: { live: boolean }) {
       setPhase("closed");
     }
   }
-  // ...and the pending steps of an animation forgotten.
+  // ...the pending steps of an animation forgotten; and on the page, the
+  // stickers' pictures decoded now (decode(): ready to be drawn, so their
+  // first frame on the move costs nothing).
   useEffect(() => {
-    if (!live) clearTimers();
+    if (!live) return clearTimers();
+    layer.current?.querySelectorAll("img").forEach((img) => img.decode().catch(() => {}));
   }, [live]);
   useEffect(() => clearTimers, []);
 
@@ -97,28 +109,37 @@ export function StickerBags({ live }: { live: boolean }) {
 
   const openBag = (c: CategorieSticker) => {
     if (phase !== "closed" || !stickere[c].length) return;
+    const n = stickere[c].length;
     setOpened(c);
     setPhase("pouring");
     later(open.flyAfter, () => setPhase("out"));
+    // The last one leaves (n - 1) staggers after the first, then flies.
+    later(open.flyAfter + (n - 1) * open.fly.stagger + open.fly.duration, () => setPhase("settled"));
   };
 
   const collect = () => {
-    if (phase !== "out" || !opened) return;
+    if (phase !== "settled" || !opened) return;
     const n = stickere[opened].length;
     setPhase("collecting");
-    // The last one leaves (n - 1) staggers after the first, then flies.
-    const flown = Math.max(open.collect.after, (n - 1) * open.collect.stagger + open.fly.duration);
-    later(flown, () => setPhase("parked"));
-    // A moment later (the parked place drawn first): glide back from it.
-    later(flown + 0.05, () => setPhase("returning"));
-    later(flown + 0.05 + open.back.duration, () => {
+    const inBag = (n - 1) * open.collect.stagger + open.fly.duration;
+    later(inBag, () => setPhase("returning"));
+    later(inBag + open.back.duration, () => {
       setOpened(null);
       setPhase("closed");
     });
   };
 
+  const modeOf = (c: CategorieSticker): Mode => {
+    if (opened === null || phase === "closed") return "idle";
+    if (opened !== c) return phase === "returning" ? "idle-back" : "gone";
+    if (phase === "pouring" || phase === "out") return "pour";
+    if (phase === "settled" || phase === "collecting") return "parked";
+    return "back";
+  };
+
   return (
     <>
+      <Ornaments />
       {ORDER.map((c, i) => (
         <Bag
           key={c}
@@ -126,65 +147,66 @@ export function StickerBags({ live }: { live: boolean }) {
           stickere={stickere[c]}
           live={live}
           delay={i * bags.wiggle.delay}
-          // Its own state: in its place, opening, small, gone.
-          mode={
-            opened === null || phase === "closed"
-              ? "idle"
-              : opened !== c
-                ? phase === "returning"
-                  ? "idle-back"
-                  : "gone"
-                : phase === "pouring" || phase === "out" || phase === "collecting"
-                  ? "pour"
-                  : phase === "parked"
-                    ? "parked"
-                    : "back"
-          }
-          onOpen={() => openBag(c)}
+          mode={modeOf(c)}
+          onTap={() => (opened === c ? collect() : openBag(c))}
         />
       ))}
-      {opened && (phase === "pouring" || phase === "out" || phase === "collecting") && (
-        <Spread categorie={opened} stickere={stickere[opened]} atMouth={phase !== "out"} reverse={phase === "collecting"} />
-      )}
-      {opened && phase === "out" && (
-        <button
-          type="button"
-          onPointerDown={keep}
-          onClick={(e) => {
-            keepAll(e);
-            collect();
-          }}
-          className="absolute cursor-pointer rounded-full border-0"
-          style={{
-            left: "50%",
-            bottom: r(open.button.bottom),
-            translate: "-50% 0",
-            padding: rCss(open.button.padding.replace(/px/g, "u")),
-            fontFamily: "var(--font-hanken), sans-serif",
-            fontWeight: 600,
-            fontSize: r(open.button.size),
-            lineHeight: 1.2,
-            whiteSpace: "nowrap",
-            background: open.button.background,
-            color: open.button.color,
-            zIndex: 60,
-          }}
-        >
-          {texts.strange}
-        </button>
-      )}
+      <div ref={layer} className="pointer-events-none absolute inset-0" style={{ zIndex: 50 }}>
+        {ORDER.map((c) => (
+          <Spread
+            key={c}
+            categorie={c}
+            stickere={stickere[c]}
+            state={
+              opened !== c || phase === "closed" || phase === "returning"
+                ? "hidden"
+                : phase === "pouring"
+                  ? "waiting"
+                  : phase === "collecting"
+                    ? "back"
+                    : "out"
+            }
+          />
+        ))}
+      </div>
     </>
   );
 }
+
+// The two ornaments, under everything on the page and never tapped: the
+// picture as a mask, filled with the theme's color (see bags.ornament).
+const Ornaments = memo(function Ornaments() {
+  const o = bags.ornament;
+  const look: CSSProperties = {
+    height: o.pageHeight,
+    aspectRatio: `${o.width} / ${o.height}`,
+    background: o.color,
+    opacity: o.opacity,
+    WebkitMaskImage: `url(${o.src})`,
+    maskImage: `url(${o.src})`,
+    WebkitMaskSize: "100% 100%",
+    maskSize: "100% 100%",
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+  };
+  return (
+    <>
+      <div aria-hidden className="pointer-events-none absolute top-0" style={{ ...look, right: u(-o.overhang) }} />
+      <div aria-hidden className="pointer-events-none absolute bottom-0 left-0" style={{ ...look, rotate: "180deg" }} />
+    </>
+  );
+});
 
 // How a bag looks at the moment:
 //   idle       in its place (wiggling)
 //   idle-back  the other bag coming back (fading in, then wiggling)
 //   gone       faded out while the other is open
-//   pour       opened: tips over, pours, lands small in the corner and
-//              stays there (the stickers fly out and back)
-//   parked     small in the corner, still (before gliding back)
+//   pour       opened: tips over, pours, lands small in the corner
+//   parked     small in the corner, its stickers out: shakes once (it can
+//              be tapped), then waits there while they fly back in
 //   back       going back to its place, closing
+// One CSS animation after the other (pour, nudge, back), each starting
+// where the one before ended: no jump and no pause between them.
 type Mode = "idle" | "idle-back" | "gone" | "pour" | "parked" | "back";
 
 type BagProps = {
@@ -193,28 +215,31 @@ type BagProps = {
   live: boolean;
   delay: number;
   mode: Mode;
-  onOpen: () => void;
+  onTap: () => void;
 };
 
-function Bag({ categorie, stickere, live, delay, mode, onOpen }: BagProps) {
+function Bag({ categorie, stickere, live, delay, mode, onTap }: BagProps) {
   const place = bags.bags[categorie];
   const { body, zip, pull, label, inside } = bags;
   const shown = stickere.slice(0, inside.slots.length);
+  const slots = slotsFor(shown.length);
   const holo = categorie === "holografice";
   const isOpen = mode === "pour" || mode === "parked";
+  // Small in the corner, its stickers out: a tap puts them back.
+  const collects = mode === "parked";
   const base = baseOf(categorie);
   const { first, second, grow } = open.pour;
 
   // Its movement: wiggling in its place, pouring (CSS keyframes, so the
-  // easing applies to each step as in the reference), still in the corner,
-  // gliding back.
+  // easing applies to each step as in the reference), shaking once in the
+  // corner, going back.
   const motion: CSSProperties =
     mode === "pour"
       ? { animation: `bag-pour ${open.pour.duration}s ${open.pour.easing} forwards` }
       : mode === "parked"
-        ? { transform: "var(--park)" }
+        ? { animation: `bag-nudge ${open.nudge}s ease-in-out forwards` }
         : mode === "back"
-          ? { transform: "var(--base)", transition: `transform ${open.back.duration}s ${open.back.easing}` }
+          ? { animation: `bag-back ${open.back.duration}s ${open.back.easing} forwards` }
           : mode === "gone"
             ? { opacity: 0, pointerEvents: "none", transition: `opacity ${open.other}s` }
             : mode === "idle-back"
@@ -224,15 +249,15 @@ function Bag({ categorie, stickere, live, delay, mode, onOpen }: BagProps) {
   return (
     <button
       type="button"
-      aria-label={texts.deschide(texts[categorie])}
+      aria-label={collects ? texts.strange(texts[categorie]) : texts.deschide(texts[categorie])}
       aria-expanded={isOpen}
       disabled={!live}
       onPointerDown={keep}
       onClick={(e) => {
         keepAll(e);
-        onOpen();
+        onTap();
       }}
-      className="absolute cursor-pointer border-0 bg-transparent p-0"
+      className="absolute cursor-pointer touch-manipulation border-0 bg-transparent p-0"
       style={
         {
           left: r(place.left),
@@ -259,7 +284,7 @@ function Bag({ categorie, stickere, live, delay, mode, onOpen }: BagProps) {
           style={{ top: r(inside.top), opacity: isOpen ? 0 : 1, transition: `opacity ${open.insideFade}s` }}
         >
           {shown.map((s, k) => {
-            const slot = inside.slots[k];
+            const slot = slots[k];
             const [w, h] = fit(s, inside.sticker);
             return (
               // eslint-disable-next-line @next/next/no-img-element
@@ -359,72 +384,107 @@ function Bag({ categorie, stickere, live, delay, mode, onOpen }: BagProps) {
   );
 }
 
+// Where the stickers seen through a bag's plastic lie: with 6 or more (only
+// the first 6 show), its slots; with fewer, centred so the bag never looks
+// lopsided: one row for 1-3, two rows (3, then the rest) for 4-5, each row
+// centred across the bag, the rows in the middle of the lower part.
+function slotsFor(n: number) {
+  const { slots, rowGap, middle } = bags.inside;
+  if (n >= slots.length) return slots;
+  const rows = n <= 3 ? [n] : [3, n - 3];
+  const step = slots[1].x - slots[0].x; // as far apart as in the slots
+  const centre = bags.size.width / 2;
+  const out: { x: number; y: number; rotation: number }[] = [];
+  rows.forEach((count, row) => {
+    const y = middle + (row - (rows.length - 1) / 2) * rowGap;
+    for (let j = 0; j < count; j++) {
+      out.push({ x: centre + (j - (count - 1) / 2) * step, y, rotation: slots[out.length].rotation });
+    }
+  });
+  return out;
+}
+
 // A sticker's picture fitted in a square of `side` px (its proportions
 // kept): its width and height.
 function fit(s: Sticker, side: number): [number, number] {
   return s.latime >= s.inaltime ? [side, (side * s.inaltime) / s.latime] : [(side * s.latime) / s.inaltime, side];
 }
 
+// Where a bag's stickers are:
+//   hidden   unseen in its mouth, in its place (no movement: ready)
+//   waiting  the bag is pouring: still in its mouth
+//   out      flying out, one after the other, and lying spread
+//   back     flying back into the small bag, the last one first
+type SpreadState = "hidden" | "waiting" | "out" | "back";
+
 type SpreadProps = {
   categorie: CategorieSticker;
   stickere: Sticker[];
-  // In the bag's mouth (small, turned, unseen) or spread on the page.
-  atMouth: boolean;
-  // Going back in: the last one first.
-  reverse: boolean;
+  state: SpreadState;
 };
 
-// An open bag's stickers on the page: from its mouth to their spots (one
-// after the other), and back into it, small in the corner (the last one
-// first). Moved with translate / rotate / scale (the path with a little
-// overshoot, the turn and size without). They show at once (as in the
-// reference); going back, each fades only as it reaches the bag, so it is
-// seen going in.
-function Spread({ categorie, stickere, atMouth, reverse }: SpreadProps) {
+// A bag's stickers on the page: from its mouth to their spots (one after
+// the other), and back into it, small in the corner. Moved with translate /
+// rotate / scale (the path with a little overshoot, the turn and size
+// without). Each shows only as its own flight starts (with its delay) and,
+// going back, hides only as it reaches the bag: never still in the mouth. Always there
+// (see StickerBags), unseen and still while hidden; drawn again only when
+// its state changes (memo).
+const Spread = memo(function Spread({ categorie, stickere, state }: SpreadProps) {
   const spots = useMemo(() => scatterSpots(stickere.length), [stickere.length]);
-  const mouth = mouthOf(categorie, reverse);
+  const back = state === "back";
+  const atMouth = state !== "out";
+  const mouth = mouthOf(categorie, back);
   const { fly } = open;
   const n = stickere.length;
   return (
-    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 50 }}>
+    <>
       {stickere.map((s, i) => {
         const spot: Spot = spots[i];
         const [w, h] = fit(s, spot.size);
         const at = atMouth ? mouth : spot;
-        const delay = reverse ? (n - 1 - i) * open.collect.stagger : i * fly.stagger;
+        const delay = back ? (n - 1 - i) * open.collect.stagger : i * fly.stagger;
         const turn = atMouth ? fly.startRotations[i % fly.startRotations.length] : spot.rotation;
         return (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={s.id}
             src={s.imagine}
-            alt={s.nume}
+            alt={state === "out" ? s.nume : ""}
+            aria-hidden={state !== "out"}
             width={s.latime}
             height={s.inaltime}
+            loading="eager"
+            decoding="async"
             draggable={false}
             onPointerDown={keep}
             onClick={keepAll}
-            className="art absolute left-0 top-0"
+            className="art absolute left-0 top-0 touch-manipulation"
             style={{
               width: r(w),
               height: r(h),
               maxWidth: "none",
-              pointerEvents: "auto",
+              pointerEvents: state === "out" ? "auto" : "none",
               translate: `${r(at.x - w / 2)} ${r(at.y - h / 2)}`,
               rotate: `${turn}deg`,
               scale: atMouth ? `${fly.startScale}` : "1",
               opacity: atMouth ? 0 : 1,
               zIndex: 10 + i,
-              transition: [
-                `translate ${fly.duration}s ${fly.move} ${delay}s`,
-                `rotate ${fly.duration}s ${fly.turn} ${delay}s`,
-                `scale ${fly.duration}s ${fly.turn} ${delay}s`,
-                reverse ? `opacity ${fly.fade}s linear ${delay + fly.duration - fly.fade}s` : `opacity ${fly.fade}s`,
-              ].join(", "),
+              transition:
+                state === "hidden"
+                  ? "none"
+                  : [
+                      `translate ${fly.duration}s ${fly.move} ${delay}s`,
+                      `rotate ${fly.duration}s ${fly.turn} ${delay}s`,
+                      `scale ${fly.duration}s ${fly.turn} ${delay}s`,
+                      // Seen only while it flies: shows as its flight starts
+                      // (same delay), hides as it reaches the bag.
+                      `opacity ${fly.fade}s linear ${back ? delay + fly.duration - fly.hideEarly - fly.fade : delay}s`,
+                    ].join(", "),
             }}
           />
         );
       })}
-    </div>
+    </>
   );
-}
+});

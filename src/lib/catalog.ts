@@ -13,6 +13,10 @@ type StickerJson = {
   fisier: string; // the original's file name, in assets-src/stickere/<categorie>/
   nume: string;
   categorie: CategorieSticker;
+  // false: off the site (its PNG removed, or by hand); the entry stays, so
+  // the cart still knows its id
+  activ: boolean;
+  lipsaFisier?: boolean; // set by npm run stickere: off because its PNG is gone
   pret?: number; // lei; without it, the category's price
   stoc: StocSticker; // ascuns: not on the site
   imagine: string; // its picture on the site (white outline, shadow)
@@ -28,10 +32,11 @@ export type Sticker = StickerJson & { pret: number };
 // the JSON costs that instead).
 export const pretCategorie: Record<CategorieSticker, number> = { normale: 5, holografice: 5 };
 
-// The stickers of a category, in the catalog's order, without the hidden
-// ones; each with its price (its own, or the category's).
+// The stickers of a category on the site, in the catalog's order: only the
+// active ones, without the hidden ones; each with its price (its own, or
+// the category's).
 export function getStickere(categorie: CategorieSticker): Sticker[] {
   return (stickere as StickerJson[])
-    .filter((s) => s.categorie === categorie && s.stoc !== "ascuns")
+    .filter((s) => s.categorie === categorie && s.activ !== false && s.stoc !== "ascuns")
     .map((s) => ({ ...s, pret: s.pret ?? pretCategorie[categorie] }));
 }

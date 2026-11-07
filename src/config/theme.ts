@@ -38,11 +38,9 @@ export const palette = {
   // The album.
   paper: "#F4EEE0", // cream pages
   coverBlack: "#1B1B1D", // its hard cover (as in the album photo)
-  // Warm accent, only for small objects: the album's bookmark ribbon and
-  // the price tags.
+  // Warm accent, only for small objects: the album's bookmark ribbon, the
+  // price tags, the stickers' bags' zippers.
   mustar: "#F2C14E",
-  // The stickers' ziploc bags: the zipper's stripe and its slider.
-  coral: "#E9867A",
   forest: "#081E12", // very dark green: the layer that darkens the mat
   pageLine: "#C9C2B2", // the lines on the edge of the stack of pages
 };
@@ -922,9 +920,9 @@ export const theme = {
         height: 7,
         background: "linear-gradient(#FFFFFF, #E9E9E9)",
         shadow: "0 1u 0 rgb(29 38 51 / 0.12)",
-        stripe: { top: 9, height: 3, color: palette.coral },
+        stripe: { top: 9, height: 3, color: palette.mustar },
       },
-      pull: { left: 4, top: 8, width: 12, height: 16, radius: 3, color: palette.coral, shadow: "0 1u 2u rgb(29 38 51 / 0.3)" },
+      pull: { left: 4, top: 8, width: 12, height: 16, radius: 3, color: palette.mustar, shadow: "0 1u 2u rgb(29 38 51 / 0.3)" },
       label: {
         side: 12,
         top: 30,
@@ -944,6 +942,10 @@ export const theme = {
         top: 76,
         sticker: 42,
         opacity: 0.9,
+        // Fewer than 6: centred (see StickerBags' slotsFor), the rows'
+        // middle `middle` px down the lower part, `rowGap` px apart.
+        middle: 50,
+        rowGap: 46,
         slots: [
           { x: 41.5, y: 29.5, rotation: -8 },
           { x: 83.5, y: 24.5, rotation: 6 },
@@ -961,18 +963,21 @@ export const theme = {
       //   other    the other bag fades out (and in again)
       //   fly      the stickers come out of the bag's mouth (the middle of
       //            its top), one after the other (stagger), turned and
-      //            small at first; they show at once (fade)
+      //            small at first; each shows (fade, s) just as its own
+      //            flight starts, and going back hides as it reaches the
+      //            bag, done `hideEarly` s before its flight ends (the path
+      //            barely moves then: never seen still in the mouth)
       //   scatter  where they land: a grid of square cells as wide as this
       //            part of the page (px), the group centred on the page's
       //            middle (px from its top) but never out of the part; each
       //            as big as its cell allows (up to maxSize: few stickers
       //            are bigger), a little out of line (jitter: of a cell) and
-      //            turned (rotations, in turn); clear of the small bag and
-      //            the button below
-      //   collect  "strânge în pungă": back into the bag, last one first
-      //            (stagger); at least `after` s, then both bags go back
-      //            to their places (back)
-      //   button   the button, low in the middle of the page
+      //            turned (rotations, in turn); clear of the small bag
+      //   nudge    once they have all landed, the small bag shakes a little
+      //            (like the closed bags' wiggle, s): it can be tapped
+      //   collect  a tap on the small bag: back into it, last one first
+      //            (stagger); as the last one goes in, both bags go back to
+      //            their places (back)
       open: {
         pull: { shift: 126, duration: 0.45, easing: "cubic-bezier(0.5, 0, 0.3, 1)" },
         insideFade: 0.3,
@@ -994,7 +999,8 @@ export const theme = {
           move: "cubic-bezier(0.25, 1.35, 0.45, 1)",
           turn: "cubic-bezier(0.3, 0.7, 0.3, 1)",
           stagger: 0.07,
-          fade: 0.3,
+          fade: 0.12,
+          hideEarly: 0.06,
           startScale: 0.35,
           startRotations: [-220, 200],
         },
@@ -1009,15 +1015,23 @@ export const theme = {
           jitter: 0.08,
           rotations: [13, -4, 14, -5, 3, -14, 12, -6, -12, 8, -9, 5],
         },
-        collect: { stagger: 0.04, after: 1.1 },
+        nudge: 0.65,
+        collect: { stagger: 0.04 },
         back: { duration: 0.7, easing: "cubic-bezier(0.3, 0.7, 0.3, 1)" },
-        button: {
-          bottom: 22,
-          padding: "9px 14px",
-          size: 13,
-          background: palette.ink,
-          color: palette.paper,
-        },
+      },
+      // Two ornaments on the page, under the bags and the stickers (never
+      // tapped): one picture (transparent), drawn in `color` through it (a
+      // CSS mask), `height` of the page high, its width from the picture's
+      // proportions. Top right: at the top, `overhang` u past the right
+      // edge; bottom left: at the bottom and the left edge, turned 180°.
+      ornament: {
+        src: "/images/stickere/ornament.png",
+        width: 348,
+        height: 1045,
+        pageHeight: "39%",
+        color: palette.ink,
+        opacity: 0.8,
+        overhang: 3,
       },
     },
     // A price tag (u), high in the free space above the second photo: a
