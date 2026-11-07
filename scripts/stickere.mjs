@@ -3,9 +3,11 @@
 //
 // For every PNG in assets-src/stickere/normale/ and .../holografice/ (the
 // originals: never renamed, never changed) that is not in the catalog yet:
-//   - its picture for the site, public/images/stickere/<id>.webp: cut out
-//     with a white outline and a small shadow (scripts/sticker-outline.py,
-//     WIDTH px wide)
+//   - its pictures for the site, cut out with a white outline and a small
+//     shadow (scripts/sticker-outline.py): public/images/stickere/<id>.webp
+//     (WIDTH px wide: on the page and in the bags) and <id>-mare.webp
+//     (WIDTH_BIG px: its card, big on the screen, sharp on a retina phone;
+//     loaded only when the card opens)
 //   - an entry at the end of the catalog:
 //       nume       the file name without .png, cleaned (see cleanName):
 //                  "POFTA_SUGACI STICKER 7X7 2.png" -> "Pofta sugaci"
@@ -18,9 +20,10 @@
 //                  kept (the cart still knows its id)
 //       stoc       "da" | "epuizat" | "ascuns" (ascuns: not on the site)
 //       imagine    the picture's address on the site
-//       latime, inaltime  the picture's size in px
-//     and optionally (written by hand) pret: in lei; without it, the
-//     category's price (src/lib/catalog.ts).
+//       imagineMare  the big one's (its card)
+//       latime, inaltime  the (small) picture's size in px
+//     and optionally (written by hand) pret: in lei, and dimensiune: like
+//     "7×7 cm"; without them, the category's (src/lib/catalog.ts).
 // Entries already in the catalog are left as they are (edited by hand:
 // names, stock, prices, activ); only a picture that is missing is made
 // again. Never deleted: an entry whose PNG is gone from assets-src gets
@@ -36,7 +39,10 @@ const SOURCE = "assets-src/stickere";
 const CATEGORIES = ["normale", "holografice"];
 const OUT_DIR = "public/images/stickere";
 const CATALOG = "src/data/stickere.json";
-const WIDTH = 480; // px: ~2x the biggest a sticker is shown on a phone
+const WIDTH = 480; // px: ~2x the biggest a sticker is shown on a page
+// px: the card is up to ~365 CSS px wide on a phone (85% of a 430px
+// screen), x3 on a retina iPhone; about the originals' own width.
+const WIDTH_BIG = 1100;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 
 // Kept in capitals in a name (initialisms).
@@ -84,9 +90,10 @@ function webpSize(file) {
   throw new Error(`${file}: not a WebP`);
 }
 
-function makePicture(source, out) {
-  execFileSync(PYTHON, ["scripts/sticker-outline.py", source, out, String(WIDTH)], { stdio: "inherit" });
+function makePicture(source, out, width = WIDTH) {
+  execFileSync(PYTHON, ["scripts/sticker-outline.py", source, out, String(width)], { stdio: "inherit" });
 }
+const bigOf = (id) => `/images/stickere/${id}-mare.webp`;
 
 const catalog = existsSync(CATALOG) ? JSON.parse(readFileSync(CATALOG, "utf8")) : [];
 mkdirSync(OUT_DIR, { recursive: true });
@@ -97,7 +104,7 @@ const ids = new Set(catalog.map((s) => s.id));
 let added = 0;
 
 // The fields in this order in the JSON (any other, like pret, after them).
-const ORDER = ["id", "fisier", "nume", "categorie", "activ", "stoc", "imagine", "latime", "inaltime"];
+const ORDER = ["id", "fisier", "nume", "categorie", "activ", "stoc", "imagine", "imagineMare", "latime", "inaltime"];
 const ordered = (s) => Object.fromEntries([...ORDER.filter((k) => k in s), ...Object.keys(s).filter((k) => !ORDER.includes(k))].map((k) => [k, s[k]]));
 
 let deactivated = 0;
@@ -128,6 +135,12 @@ for (const s of catalog) {
     console.log(`(again) ${s.id}`);
     makePicture(source, out);
   }
+  // Its big picture (for its card): made if missing (or new).
+  if (!s.imagineMare) s.imagineMare = bigOf(s.id);
+  if (!existsSync(path.join("public", s.imagineMare))) {
+    console.log(`(big) ${s.id}`);
+    makePicture(source, path.join("public", s.imagineMare), WIDTH_BIG);
+  }
 }
 
 for (const categorie of CATEGORIES) {
@@ -148,8 +161,9 @@ for (const categorie of CATEGORIES) {
     const out = path.join(OUT_DIR, `${id}.webp`);
     console.log(`(new) ${id}`);
     makePicture(path.join(dir, fisier), out);
+    makePicture(path.join(dir, fisier), path.join("public", bigOf(id)), WIDTH_BIG);
     const [latime, inaltime] = webpSize(out);
-    catalog.push({ id, fisier, nume, categorie, activ: true, stoc: "da", imagine: `/images/stickere/${id}.webp`, latime, inaltime });
+    catalog.push({ id, fisier, nume, categorie, activ: true, stoc: "da", imagine: `/images/stickere/${id}.webp`, imagineMare: bigOf(id), latime, inaltime });
     added++;
   }
 }

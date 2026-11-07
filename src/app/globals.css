@@ -273,3 +273,16 @@ body {
   from { transform: var(--park); }
   to { transform: var(--base); }
 }
+
+/* A sticker's card (StickerCard): it pops in, the dark ground fades in. */
+@keyframes sticker-pop {
+  from { transform: scale(var(--pop-scale)) rotate(var(--pop-turn)); }
+  to { transform: scale(1) rotate(0deg); }
+}
+@keyframes sticker-card-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Its peeling corner: bigger while the sticker is hovered. */
+.sticker-peel { width: var(--peel); height: var(--peel); transition: width var(--peel-time), height var(--peel-time); }
+.sticker-big:hover .sticker-peel { width: var(--peel-hover); height: var(--peel-hover); }

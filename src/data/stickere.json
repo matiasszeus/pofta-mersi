@@ -7,6 +7,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/doamna-laptareasa.webp",
+    "imagineMare": "/images/stickere/doamna-laptareasa-mare.webp",
     "latime": 480,
     "inaltime": 687
   },
@@ -18,6 +19,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/mil-bagi.webp",
+    "imagineMare": "/images/stickere/mil-bagi-mare.webp",
     "latime": 480,
     "inaltime": 466
   },
@@ -29,6 +31,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/mil-moi.webp",
+    "imagineMare": "/images/stickere/mil-moi-mare.webp",
     "latime": 480,
     "inaltime": 493
   },
@@ -40,6 +43,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/muncesti-de-luni.webp",
+    "imagineMare": "/images/stickere/muncesti-de-luni-mare.webp",
     "latime": 480,
     "inaltime": 475
   },
@@ -51,6 +55,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/pink-devil-pofta.webp",
+    "imagineMare": "/images/stickere/pink-devil-pofta-mare.webp",
     "latime": 480,
     "inaltime": 427
   },
@@ -62,6 +67,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/pofta-boy.webp",
+    "imagineMare": "/images/stickere/pofta-boy-mare.webp",
     "latime": 480,
     "inaltime": 357
   },
@@ -73,6 +79,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/pofta-sugaci.webp",
+    "imagineMare": "/images/stickere/pofta-sugaci-mare.webp",
     "latime": 480,
     "inaltime": 371
   },
@@ -84,6 +91,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/pokemon-pofta.webp",
+    "imagineMare": "/images/stickere/pokemon-pofta-mare.webp",
     "latime": 480,
     "inaltime": 436
   },
@@ -95,6 +103,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/spongebob-pofta-sayan.webp",
+    "imagineMare": "/images/stickere/spongebob-pofta-sayan-mare.webp",
     "latime": 480,
     "inaltime": 427
   },
@@ -106,6 +115,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/vezi-ca-suna-mata.webp",
+    "imagineMare": "/images/stickere/vezi-ca-suna-mata-mare.webp",
     "latime": 480,
     "inaltime": 492
   },
@@ -117,6 +127,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/de-fumat-holo.webp",
+    "imagineMare": "/images/stickere/de-fumat-holo-mare.webp",
     "latime": 480,
     "inaltime": 371
   },
@@ -128,6 +139,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/dream-work-holo.webp",
+    "imagineMare": "/images/stickere/dream-work-holo-mare.webp",
     "latime": 480,
     "inaltime": 489
   },
@@ -139,6 +151,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/dvd-pofta-holo.webp",
+    "imagineMare": "/images/stickere/dvd-pofta-holo-mare.webp",
     "latime": 480,
     "inaltime": 394
   },
@@ -150,6 +163,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/practice-makes-perfect-holo.webp",
+    "imagineMare": "/images/stickere/practice-makes-perfect-holo-mare.webp",
     "latime": 480,
     "inaltime": 326
   },
@@ -161,6 +175,7 @@
     "activ": true,
     "stoc": "da",
     "imagine": "/images/stickere/emblema-pofta-holo.webp",
+    "imagineMare": "/images/stickere/emblema-pofta-holo-mare.webp",
     "latime": 480,
     "inaltime": 378
   }

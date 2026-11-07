@@ -19,6 +19,9 @@ const ms = (seconds: number) => seconds * 1000;
 // What a tap or a press on these does is theirs (a photo, a link, the
 // coupon, the contents' rows, the tabs): it never turns the page.
 const OWN_TAP = "button, a, input, select, textarea, label, [role='button'], [role='dialog']";
+// A tap on these is theirs too (never the page's edge), but a swipe that
+// starts on them still turns the page (the stickers spread on page 3).
+const NO_EDGE_TAP = "[data-no-edge-tap]";
 // A press held longer than this (ms) is not a tap.
 const TAP_MAX_MS = 400;
 
@@ -359,7 +362,7 @@ export function MatAlbum({ place, open, run, initialPage = "inventar", onChapter
   // Returns 1 = next, -1 = back, 0 = nothing (also: nowhere to go).
   const edgeStep = (target: Element, x: number): number => {
     const bookEl = book.current;
-    if (!layout || !bookEl || target.closest(OWN_TAP)) return 0;
+    if (!layout || !bookEl || target.closest(OWN_TAP) || target.closest(NO_EDGE_TAP)) return 0;
     const rectOf = (sel: string) => bookEl.querySelector(sel)?.getBoundingClientRect();
     let step = 0;
     if (!layout.spread) {
@@ -434,8 +437,12 @@ export function MatAlbum({ place, open, run, initialPage = "inventar", onChapter
       } else if (Math.hypot(dx, dy) <= tapSlop && e.timeStamp - s.t <= TAP_MAX_MS) {
         // A tap (only here, on pointerup: no click / touchend as well, so
         // one tap is never counted twice). During a turn go() ignores it.
+        // The page shown may take an edge tap for itself first (an open
+        // bag of stickers collects them): "album:edge-tap", cancelable; if
+        // it was cancelled, the page stays.
         const step = latest.current.edgeStep(s.target, s.x);
-        if (step) latest.current.go(step);
+        const pageTookIt = step && !window.dispatchEvent(new CustomEvent("album:edge-tap", { cancelable: true, detail: { step } }));
+        if (step && !pageTookIt) latest.current.go(step);
       }
     };
     // The browser took the touch over (scrolling, zooming): no gesture.

@@ -1,15 +1,19 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type SyntheticEvent } from "react";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
 import { getStickere, pretCategorie, type CategorieSticker, type Sticker } from "@/lib/catalog";
 import { u } from "./albumUnits";
 import { scatterSpots, type Spot } from "./stickerScatter";
+import { StickerCard } from "./StickerCard";
 
 const bags = theme.album.stickerBags;
 const open = bags.open;
 const texts = content.album.pungi;
+// A press that moved more than this (screen px) was not a tap (the album's
+// own measure: a swipe that started on a sticker turns the page instead).
+const TAP_SLOP = theme.album.swipeThreshold.tapSlop;
 
 // Lengths in the reference's px (docs/pungi-stickere-referinta.html, a
 // 340px page) as CSS: in u, so they follow the page's size.
@@ -73,6 +77,8 @@ function mouthOf(c: CategorieSticker, parked = false) {
 export function StickerBags({ live }: { live: boolean }) {
   const [opened, setOpened] = useState<CategorieSticker | null>(null);
   const [phase, setPhase] = useState<Phase>("closed");
+  // The sticker shown on its card.
+  const [focus, setFocus] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
   const layer = useRef<HTMLDivElement>(null);
   const later = (seconds: number, fn: () => void) => {
@@ -91,6 +97,7 @@ export function StickerBags({ live }: { live: boolean }) {
     if (!live) {
       setOpened(null);
       setPhase("closed");
+      setFocus(null);
     }
   }
   // ...the pending steps of an animation forgotten; and on the page, the
@@ -129,6 +136,27 @@ export function StickerBags({ live }: { live: boolean }) {
     });
   };
 
+  // A tap on the page's edge (MatAlbum asks first, see "album:edge-tap")
+  // while a bag is open: the stickers go back into it, the page stays.
+  // Swipes, the tabs and the arrow keys still turn the page (leaving it
+  // closes the bags).
+  const collectLatest = useRef(collect);
+  useEffect(() => {
+    collectLatest.current = collect;
+  });
+  const isOpen = opened !== null && phase !== "closed" && phase !== "returning";
+  useEffect(() => {
+    if (!live || !isOpen) return;
+    const onEdge = (e: Event) => {
+      e.preventDefault();
+      collectLatest.current();
+    };
+    window.addEventListener("album:edge-tap", onEdge);
+    return () => window.removeEventListener("album:edge-tap", onEdge);
+  }, [live, isOpen]);
+
+  const closeCard = useCallback(() => setFocus(null), []);
+
   const modeOf = (c: CategorieSticker): Mode => {
     if (opened === null || phase === "closed") return "idle";
     if (opened !== c) return phase === "returning" ? "idle-back" : "gone";
@@ -164,11 +192,21 @@ export function StickerBags({ live }: { live: boolean }) {
                   ? "waiting"
                   : phase === "collecting"
                     ? "back"
-                    : "out"
+                    : phase === "settled"
+                      ? "settled"
+                      : "out"
             }
+            onTap={setFocus}
           />
         ))}
       </div>
+      {opened && focus && (
+        <StickerCard
+          sticker={stickere[opened].find((s) => s.id === focus) ?? stickere[opened][0]}
+          categorie={opened}
+          onClose={closeCard}
+        />
+      )}
     </>
   );
 }
@@ -237,7 +275,9 @@ function Bag({ categorie, stickere, live, delay, mode, onTap }: BagProps) {
     mode === "pour"
       ? { animation: `bag-pour ${open.pour.duration}s ${open.pour.easing} forwards` }
       : mode === "parked"
-        ? { animation: `bag-nudge ${open.nudge}s ease-in-out forwards` }
+        ? // Over the stickers (their layer is at 50): one dropped on it
+          // slides under, the bag can always be tapped.
+          { animation: `bag-nudge ${open.nudge}s ease-in-out forwards`, zIndex: 60 }
         : mode === "back"
           ? { animation: `bag-back ${open.back.duration}s ${open.back.easing} forwards` }
           : mode === "gone"
@@ -413,30 +453,41 @@ function fit(s: Sticker, side: number): [number, number] {
 // Where a bag's stickers are:
 //   hidden   unseen in its mouth, in its place (no movement: ready)
 //   waiting  the bag is pouring: still in its mouth
-//   out      flying out, one after the other, and lying spread
+//   out      flying out, one after the other, and landing
+//   settled  all landed, in their grid: a tap opens one's card (they never
+//            move under the finger)
 //   back     flying back into the small bag, the last one first
-type SpreadState = "hidden" | "waiting" | "out" | "back";
+type SpreadState = "hidden" | "waiting" | "out" | "settled" | "back";
 
 type SpreadProps = {
   categorie: CategorieSticker;
   stickere: Sticker[];
   state: SpreadState;
+  onTap: (id: string) => void;
 };
 
 // A bag's stickers on the page: from its mouth to their spots (one after
 // the other), and back into it, small in the corner. Moved with translate /
 // rotate / scale (the path with a little overshoot, the turn and size
 // without). Each shows only as its own flight starts (with its delay) and,
-// going back, hides only as it reaches the bag: never still in the mouth. Always there
-// (see StickerBags), unseen and still while hidden; drawn again only when
-// its state changes (memo).
-const Spread = memo(function Spread({ categorie, stickere, state }: SpreadProps) {
+// going back, hides only as it reaches the bag: never still in the mouth.
+// Always there (see StickerBags), unseen and still while hidden; drawn
+// again only when its state changes (memo).
+//
+// A tap on one (all landed) opens its card. A tap on it is never the
+// page's edge (data-no-edge-tap, see MatAlbum), but a swipe that starts on
+// it still turns the page: so the press is not stopped here, and a "click"
+// after a press that moved (a mouse swipe) is not a tap.
+const Spread = memo(function Spread({ categorie, stickere, state, onTap }: SpreadProps) {
   const spots = useMemo(() => scatterSpots(stickere.length), [stickere.length]);
   const back = state === "back";
-  const atMouth = state !== "out";
+  const atMouth = state !== "out" && state !== "settled";
+  const settled = state === "settled";
+  const shown = state === "out" || settled;
   const mouth = mouthOf(categorie, back);
   const { fly } = open;
   const n = stickere.length;
+  const pressedAt = useRef<{ x: number; y: number } | null>(null);
   return (
     <>
       {stickere.map((s, i) => {
@@ -450,28 +501,35 @@ const Spread = memo(function Spread({ categorie, stickere, state }: SpreadProps)
           <img
             key={s.id}
             src={s.imagine}
-            alt={state === "out" ? s.nume : ""}
-            aria-hidden={state !== "out"}
+            alt={shown ? s.nume : ""}
+            aria-hidden={!shown}
+            data-no-edge-tap=""
             width={s.latime}
             height={s.inaltime}
             loading="eager"
             decoding="async"
             draggable={false}
-            onPointerDown={keep}
-            onClick={keepAll}
+            onPointerDown={(e: PointerEvent<HTMLImageElement>) => (pressedAt.current = { x: e.clientX, y: e.clientY })}
+            onClick={(e) => {
+              keepAll(e);
+              const p = pressedAt.current;
+              const still = !p || Math.hypot(e.clientX - p.x, e.clientY - p.y) <= TAP_SLOP;
+              if (settled && still) onTap(s.id);
+            }}
             className="art absolute left-0 top-0 touch-manipulation"
             style={{
               width: r(w),
               height: r(h),
               maxWidth: "none",
-              pointerEvents: state === "out" ? "auto" : "none",
+              pointerEvents: shown ? "auto" : "none",
+              cursor: settled ? "pointer" : undefined,
               translate: `${r(at.x - w / 2)} ${r(at.y - h / 2)}`,
               rotate: `${turn}deg`,
               scale: atMouth ? `${fly.startScale}` : "1",
               opacity: atMouth ? 0 : 1,
               zIndex: 10 + i,
               transition:
-                state === "hidden"
+                state === "hidden" || settled
                   ? "none"
                   : [
                       `translate ${fly.duration}s ${fly.move} ${delay}s`,

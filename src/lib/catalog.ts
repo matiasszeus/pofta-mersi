@@ -18,25 +18,36 @@ type StickerJson = {
   activ: boolean;
   lipsaFisier?: boolean; // set by npm run stickere: off because its PNG is gone
   pret?: number; // lei; without it, the category's price
+  dimensiune?: string; // like "7×7 cm"; without it, the category's
   stoc: StocSticker; // ascuns: not on the site
   imagine: string; // its picture on the site (white outline, shadow)
-  latime: number; // the picture's size, px
+  imagineMare?: string; // the same, big: its card (npm run stickere)
+  latime: number; // the (small) picture's size, px
   inaltime: number;
 };
 
-// As the site gets it: always with its price.
-export type Sticker = StickerJson & { pret: number };
+// As the site gets it: always with its price, size and big picture.
+export type Sticker = StickerJson & { pret: number; dimensiune: string; imagineMare: string };
 
 // A category's price per sticker, in lei: the only place it is written
 // (the bags' labels take it from here; a sticker with its own `pret` in
 // the JSON costs that instead).
 export const pretCategorie: Record<CategorieSticker, number> = { normale: 5, holografice: 5 };
 
+// A category's sticker size, as shown on the card's back (a sticker with
+// its own `dimensiune` in the JSON shows that instead).
+export const dimensiuneCategorie: Record<CategorieSticker, string> = { normale: "7×7 cm", holografice: "7×7 cm" };
+
 // The stickers of a category on the site, in the catalog's order: only the
-// active ones, without the hidden ones; each with its price (its own, or
-// the category's).
+// active ones, without the hidden ones; each with its price and size (its
+// own, or the category's), and its big picture (the small one if missing).
 export function getStickere(categorie: CategorieSticker): Sticker[] {
   return (stickere as StickerJson[])
     .filter((s) => s.categorie === categorie && s.activ !== false && s.stoc !== "ascuns")
-    .map((s) => ({ ...s, pret: s.pret ?? pretCategorie[categorie] }));
+    .map((s) => ({
+      ...s,
+      pret: s.pret ?? pretCategorie[categorie],
+      dimensiune: s.dimensiune ?? dimensiuneCategorie[categorie],
+      imagineMare: s.imagineMare ?? s.imagine,
+    }));
 }

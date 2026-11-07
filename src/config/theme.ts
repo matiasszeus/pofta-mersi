@@ -1019,6 +1019,56 @@ export const theme = {
         collect: { stagger: 0.04 },
         back: { duration: 0.7, easing: "cubic-bezier(0.3, 0.7, 0.3, 1)" },
       },
+      // A sticker's card, big over the album (px: outside the album, in
+      // <body>, like the bracelets' big view). The front: the sticker,
+      // straight and still, popping in (popIn), its bottom-right corner
+      // peeling (bigger when hovered), cut to the sticker's shape. The back
+      // (flip): its kind, size and price, "îl vreau" with the quantity.
+      // Its size (the sticker's shape; the page has no zoom, so it shows the
+      // design clearly): as big as fits in a room of, on a phone (narrower
+      // than `phoneBelow` px), `phone.vw` % of the screen's width and
+      // `phone.vh` % of its visible height; wider, `desktop.vh` % of the
+      // height and `desktop.vw` % of the width. The sticker fills `sticker`
+      // of it (1: all).
+      card: {
+        backdrop: "rgb(16 24 33 / 0.72)",
+        fadeIn: 0.3,
+        gap: 22,
+        size: { phoneBelow: 768, phone: { vw: 85, vh: 60 }, desktop: { vh: 55, vw: 80 } },
+        sticker: 1, // the sticker fills the card (the picture has a margin for its shadow)
+        perspective: 900,
+        flip: { duration: 0.7, easing: "cubic-bezier(0.45, 0.05, 0.25, 1)" },
+        popIn: { duration: 0.5, easing: "cubic-bezier(0.3, 1.5, 0.5, 1)", scale: 0.4, turn: -20 },
+        peel: {
+          size: 44,
+          hover: 60,
+          duration: 0.3,
+          background: "linear-gradient(135deg, rgb(0 0 0 / 0) 50%, #E9E4D8 50%, #FFFFFF 75%)",
+          shadow: "-3px -3px 6px rgb(0 0 0 / 0.18)",
+          radius: 6,
+        },
+        // The back: its kind (Whitenice), size and price (Hanken), then
+        // "îl vreau" and the quantity (a native <select>, 1 to quantityMax).
+        back: {
+          background: palette.paper,
+          color: palette.ink,
+          radius: 18,
+          shadow: "0 14px 30px rgb(0 0 0 / 0.35)",
+          gap: 6,
+          kindSize: 18,
+          kindOpacity: 0.75,
+          sizeSize: 14,
+          sizeOpacity: 0.7,
+          priceSize: 26,
+        },
+        quantityMax: 10,
+        button: {
+          padding: "9px 14px",
+          size: 13,
+          dark: { background: palette.ink, color: palette.paper },
+          light: { background: palette.paper, color: palette.ink },
+        },
+      },
       // Two ornaments on the page, under the bags and the stickers (never
       // tapped): one picture (transparent), drawn in `color` through it (a
       // CSS mask), `height` of the page high, its width from the picture's

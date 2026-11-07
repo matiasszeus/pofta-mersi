@@ -137,6 +137,17 @@ export const content = {
       // The small bag in the corner, its stickers spread on the page: a tap
       // puts them back (what screen readers say for it).
       strange: (categorie: string) => `Strânge stickerele ${categorie} în pungă`,
+      // A sticker's card (a tap on it, spread on the page). Its name is
+      // never shown: only for screen readers.
+      card: {
+        detalii: "vezi detalii",
+        sticker: "vezi stickerul",
+        inchide: "închide",
+        vreau: "îl vreau",
+        cantitate: "Câte bucăți",
+        tip: { normale: "sticker normal", holografice: "sticker holografic" },
+        pret: (lei: number) => `${lei} lei`,
+      },
     },
     // The buttons over the open album (replay: /lab/album only).
     close: "închide",
