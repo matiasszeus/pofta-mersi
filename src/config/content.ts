@@ -34,7 +34,7 @@ export type AlbumCredit = {
   url: string;
   ariaLabel: string;
   cod: string;
-  codLabel: string;
+  codLabel: string[]; // on the washi tape, one string per line
   copyLabel: string;
   copied: string;
 };
@@ -143,9 +143,17 @@ export const content = {
         detalii: "vezi detalii",
         sticker: "vezi stickerul",
         inchide: "închide",
+        // Its name on the card's back, between Romanian quotes.
+        nume: (nume: string) => `„${nume}”`,
         vreau: "îl vreau",
         cantitate: "Câte bucăți",
-        tip: { normale: "sticker normal", holografice: "sticker holografic" },
+        // After "îl vreau": on the button for a moment, and under it.
+        adaugat: "adăugat ✓",
+        inCos: (n: number) => `ai ${n} în coș`,
+        // At the most per sticker (see card.quantityMax).
+        maxim: (n: number) => `ai ${n} în coș (maximum)`,
+        // A sticker with "stoc": "epuizat" (it cannot be added).
+        epuizat: "epuizat",
         pret: (lei: number) => `${lei} lei`,
       },
     },
@@ -188,11 +196,12 @@ export const content = {
         pageColor: palette.lilacLight,
         oferta: { mare: "−20%", mic: "la 10+ stickere" },
         credit: {
-          text: ["eu le creez,", "ei le printează ↗"],
+          text: ["eu le creez,", "ei le printează"],
           url: "https://etichetecreative.ro/",
           ariaLabel: "Etichete Creative, site",
           cod: "poftamersi10",
-          codLabel: "cod de reducere",
+          // The code is for their site only.
+          codLabel: ["cod de reducere", "la ei pe site"],
           copyLabel: "Copiază codul de reducere poftamersi10",
           copied: "copiat!",
         },

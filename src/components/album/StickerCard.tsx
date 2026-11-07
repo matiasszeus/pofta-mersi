@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties, type SyntheticEvent } 
 import { createPortal } from "react-dom";
 import { content } from "@/config/content";
 import { theme } from "@/config/theme";
-import type { CategorieSticker, Sticker } from "@/lib/catalog";
+import type { Sticker } from "@/lib/catalog";
+import { adauga, useInCos } from "@/lib/cart";
 
 const card = theme.album.stickerBags.card;
 const texts = content.album.pungi.card;
@@ -25,20 +26,34 @@ function roomFor(width: number, height: number) {
 
 type StickerCardProps = {
   sticker: Sticker;
-  categorie: CategorieSticker;
   onClose: () => void;
 };
 
 // A sticker big over the album, as in docs/pungi-stickere-referinta.html,
 // straight and still. The front: the sticker (popping in), its corner
-// peeling; "vezi detalii" turns the card: its kind, size and price, and
-// "îl vreau" with the quantity (not wired to the cart yet). Its name is
-// never shown (only said to screen readers). Closed with "închide", a tap
+// peeling; "vezi detalii" turns the card: its name, size and price, and
+// "îl vreau" with the quantity: added to the cart (src/lib/cart.ts; at most
+// card.quantityMax of one sticker), "ai 3 în coș" under it; sold out: said
+// so, nothing can be added. Its name shows only there, on the back (never
+// on the bags, the page or the front). Closed with "închide", a tap
 // on the dark ground, or Escape. In <body>, outside the album's 3D (Safari),
 // like the bracelets' big view.
-export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
+export function StickerCard({ sticker, onClose }: StickerCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  // How many of it the cart holds (kept up to date), and "adăugat ✓" on.
+  const inCart = useInCos(sticker.id);
+  const [added, setAdded] = useState(false);
+  const addedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => clearTimeout(addedTimer.current), []);
+  const soldOut = sticker.stoc === "epuizat";
+  const want = () => {
+    if (soldOut) return;
+    adauga(sticker.id, quantity, card.quantityMax);
+    setAdded(true);
+    clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setAdded(false), card.added * 1000);
+  };
   const [room, setRoom] = useState(() => roomFor(window.innerWidth, window.innerHeight));
   // The big picture shows once loaded (the small one, already there, until then).
   const [bigReady, setBigReady] = useState(false);
@@ -114,7 +129,11 @@ export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative" style={{ width: w, height: h, perspective: card.perspective }} onClick={keep}>
+      <div
+        className="relative"
+        style={{ width: w, height: Math.max(h, card.back.minHeight), perspective: card.perspective }}
+        onClick={keep}
+      >
         <div
           className="absolute inset-0"
           style={{
@@ -181,9 +200,17 @@ export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
               borderRadius: card.back.radius,
               boxShadow: card.back.shadow,
               gap: card.back.gap,
+              padding: `0 ${card.back.padding}px`,
             }}
           >
-            <div style={{ fontSize: card.back.kindSize, opacity: card.back.kindOpacity }}>{texts.tip[categorie]}</div>
+            {/* Its name, handwritten: the site's own font (Whitenice, Hanken
+                for ă ș ț and the like, see globals.css). */}
+            <div
+              className="text-center"
+              style={{ fontSize: card.back.nameSize, lineHeight: card.back.nameLineHeight, fontWeight: card.back.nameWeight }}
+            >
+              {texts.nume(sticker.nume)}
+            </div>
             <div
               style={{
                 fontFamily: "var(--font-hanken), sans-serif",
@@ -198,20 +225,36 @@ export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
                 fontFamily: "var(--font-hanken), sans-serif",
                 fontWeight: 700,
                 fontSize: card.back.priceSize,
-                margin: "4px 0 12px",
+                margin: soldOut ? "4px 0 0" : "4px 0 12px",
               }}
             >
               {texts.pret(sticker.pret)}
             </div>
-            <div className="flex items-center" style={{ gap: 8 }}>
-              {/* Not wired yet (the cart comes in the next step). */}
-              <button type="button" tabIndex={flipped ? 0 : -1} style={button("dark")} onClick={keep}>
-                {texts.vreau}
+            {soldOut && (
+              <div style={{ fontSize: card.soldOut.size, color: card.soldOut.color, marginBottom: 8 }}>{texts.epuizat}</div>
+            )}
+            <div
+              className="flex items-center"
+              style={{ gap: 8, opacity: soldOut ? card.soldOut.controlsOpacity : 1 }}
+            >
+              <button
+                type="button"
+                tabIndex={flipped ? 0 : -1}
+                disabled={soldOut}
+                aria-live="polite"
+                style={{ ...button("dark"), cursor: soldOut ? "not-allowed" : "pointer" }}
+                onClick={(e) => {
+                  keep(e);
+                  want();
+                }}
+              >
+                {added ? texts.adaugat : texts.vreau}
               </button>
               {/* Native: on a phone it opens the system's own picker. */}
               <select
                 aria-label={texts.cantitate}
                 tabIndex={flipped ? 0 : -1}
+                disabled={soldOut}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 onClick={keep}
@@ -220,6 +263,7 @@ export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
                   padding: "8px 10px",
                   border: `1px solid ${card.back.color}`,
                   background: "#FFFFFF",
+                  cursor: soldOut ? "not-allowed" : "pointer",
                 }}
               >
                 {Array.from({ length: card.quantityMax }, (_, i) => i + 1).map((n) => (
@@ -228,6 +272,18 @@ export function StickerCard({ sticker, categorie, onClose }: StickerCardProps) {
                   </option>
                 ))}
               </select>
+            </div>
+            {/* How many of it the cart holds (once there is any). */}
+            <div
+              aria-live="polite"
+              style={{
+                fontFamily: "var(--font-hanken), sans-serif",
+                fontSize: card.inCart.size,
+                opacity: inCart > 0 ? card.inCart.opacity : 0,
+                marginTop: card.inCart.gap,
+              }}
+            >
+              {inCart >= card.quantityMax ? texts.maxim(inCart) : texts.inCos(inCart)}
             </div>
           </div>
         </div>

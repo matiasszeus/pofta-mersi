@@ -404,6 +404,7 @@ function PageContent({ page, live, onGoToChapter }: Omit<PageProps, "side" | "hi
           accent={page.accent}
           oferta={page.oferta}
           credit={page.credit}
+          live={live}
         />
       )}
       {page.kind === "page" && <ChapterPage title={page.title} content={page.content} live={live} />}
@@ -476,8 +477,8 @@ function ContentsList({ onGoToChapter }: { onGoToChapter?: (chapterId: string) =
 type DividerTextProps = Pick<
   Extract<BookPage, { kind: "divider" }>,
   "chapterId" | "title" | "blurb" | "accent" | "oferta" | "credit"
->;
-function DividerText({ chapterId, title, blurb, accent, oferta, credit }: DividerTextProps) {
+> & { live: boolean };
+function DividerText({ chapterId, title, blurb, accent, oferta, credit, live }: DividerTextProps) {
   const at = blurb && accent ? blurb.indexOf(accent) : -1;
   // With an offer or a credit (the stickers): the title on the left, the
   // tag and the credit around it (see theme.album.stickereDivider).
@@ -494,7 +495,7 @@ function DividerText({ chapterId, title, blurb, accent, oferta, credit }: Divide
           {drawnTitle(title)}
         </h2>
         {oferta && <PriceTag big={oferta.mare} small={oferta.mic} look={d.offerTag} />}
-        {credit && <PartnerCredit credit={credit} />}
+        {credit && <PartnerCredit credit={credit} live={live} />}
       </>
     );
   }

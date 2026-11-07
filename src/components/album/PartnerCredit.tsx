@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import Image from "next/image";
 import type { AlbumCredit } from "@/config/content";
 import { theme } from "@/config/theme";
@@ -39,9 +39,11 @@ async function copy(text: string) {
 }
 
 // The credit for the stickers' printer on the stickers' divider: their logo
-// and a handwritten line, both a link to their site; under it a strip of
-// washi tape with a discount code at their shop, which a tap copies.
-export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
+// and a handwritten line with a wavy line drawn under it, together one link
+// to their site; under it a strip of washi tape with a discount code at
+// their shop, which a tap copies. live: the page lies on the screen (the
+// wavy line draws itself then).
+export function PartnerCredit({ credit, live }: { credit: AlbumCredit; live: boolean }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -49,7 +51,27 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
     return () => clearTimeout(t);
   }, [copied]);
 
-  const { logo, text, washi } = look;
+  const { logo, text, washi, underline: line, link } = look;
+
+  // The wavy line: drawn (its dash offset from 1 to 0, the path's length
+  // being 1) when the page shows, then again every line.every s. Only while
+  // the page is on the screen; otherwise unseen, ready to draw.
+  const wave = useRef<SVGPathElement>(null);
+  useEffect(() => {
+    const path = wave.current;
+    if (!path || !live) return;
+    const drawn = line.draw / line.every;
+    const anim = path.animate(
+      [
+        { strokeDashoffset: 1, easing: "ease-out" },
+        { strokeDashoffset: 0, offset: drawn },
+        { strokeDashoffset: 0 },
+      ],
+      { duration: line.every * 1000, iterations: Infinity },
+    );
+    return () => anim.cancel();
+  }, [live, line.draw, line.every]);
+
   return (
     <>
       <a
@@ -60,6 +82,13 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
         onPointerDown={keep}
         onClick={keep}
       >
+        {/* The whole logo-and-text area taps through to their site (gaps
+            included; far more than 44px), under the logo and the text. */}
+        <span
+          aria-hidden
+          className="absolute block"
+          style={{ left: u(link.left), top: u(link.top), width: u(link.width), height: u(link.height) }}
+        />
         <Image onError={hideOnError} ref={hideIfBroken}
           src={logo.src}
           width={logo.width}
@@ -76,11 +105,30 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
           className="absolute"
           style={{ left: u(text.left), top: u(text.top), fontSize: u(text.size), lineHeight: text.lineHeight, rotate: `${text.rotation}deg` }}
         >
-          {credit.text.map((line) => (
-            <span key={line} className="block whitespace-nowrap">
-              {line}
+          {credit.text.map((row) => (
+            <span key={row} className="block whitespace-nowrap">
+              {row}
             </span>
           ))}
+          <svg
+            aria-hidden
+            className="absolute overflow-visible"
+            viewBox={`0 0 ${line.width} ${line.height}`}
+            style={{ left: u(line.left), top: u(line.top), width: u(line.width), height: u(line.height) }}
+          >
+            <path
+              ref={wave}
+              d={line.path}
+              pathLength={1}
+              fill="none"
+              stroke={line.color}
+              strokeWidth={line.stroke}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="1 1"
+              strokeDashoffset={1}
+            />
+          </svg>
         </span>
       </a>
       <button
@@ -107,7 +155,13 @@ export function PartnerCredit({ credit }: { credit: AlbumCredit }) {
           color: theme.album.colors.ink,
         }}
       >
-        <span style={{ fontSize: u(washi.labelSize) }}>{credit.codLabel}</span>
+        <span className="text-center" style={{ fontSize: u(washi.labelSize), lineHeight: washi.labelLineHeight }}>
+          {credit.codLabel.map((row) => (
+            <span key={row} className="block whitespace-nowrap">
+              {row}
+            </span>
+          ))}
+        </span>
         <span
           aria-live="polite"
           style={{

@@ -203,7 +203,6 @@ export function StickerBags({ live }: { live: boolean }) {
       {opened && focus && (
         <StickerCard
           sticker={stickere[opened].find((s) => s.id === focus) ?? stickere[opened][0]}
-          categorie={opened}
           onClose={closeCard}
         />
       )}

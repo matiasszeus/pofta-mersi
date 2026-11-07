@@ -38,16 +38,30 @@ export const pretCategorie: Record<CategorieSticker, number> = { normale: 5, hol
 // its own `dimensiune` in the JSON shows that instead).
 export const dimensiuneCategorie: Record<CategorieSticker, string> = { normale: "7×7 cm", holografice: "7×7 cm" };
 
+// One entry as the site gets it (its price, size and big picture filled in).
+const complete = (s: StickerJson): Sticker => ({
+  ...s,
+  pret: s.pret ?? pretCategorie[s.categorie],
+  dimensiune: s.dimensiune ?? dimensiuneCategorie[s.categorie],
+  imagineMare: s.imagineMare ?? s.imagine,
+});
+
+// Whether a sticker can be bought now: on the site (active, not hidden)
+// and not sold out.
+export const deVanzare = (s: Sticker) => s.activ !== false && s.stoc === "da";
+
+// A sticker by its id, even one taken off the site (the cart keeps ids):
+// undefined only for an id the catalog has never had.
+export function getSticker(id: string): Sticker | undefined {
+  const s = (stickere as StickerJson[]).find((x) => x.id === id);
+  return s && complete(s);
+}
+
 // The stickers of a category on the site, in the catalog's order: only the
 // active ones, without the hidden ones; each with its price and size (its
 // own, or the category's), and its big picture (the small one if missing).
 export function getStickere(categorie: CategorieSticker): Sticker[] {
   return (stickere as StickerJson[])
     .filter((s) => s.categorie === categorie && s.activ !== false && s.stoc !== "ascuns")
-    .map((s) => ({
-      ...s,
-      pret: s.pret ?? pretCategorie[categorie],
-      dimensiune: s.dimensiune ?? dimensiuneCategorie[categorie],
-      imagineMare: s.imagineMare ?? s.imagine,
-    }));
+    .map(complete);
 }

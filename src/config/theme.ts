@@ -857,19 +857,38 @@ export const theme = {
           rotation: -6,
         },
         text: { left: 168, top: 268, size: 16, lineHeight: 1.25, rotation: -3 }, // ~17px
+        // A hand-drawn wavy line under the text's last line (in the text's
+        // place and turn, u): mustard, round ends. It draws itself when the
+        // page shows, then again every `every` s (in `draw` s; only its
+        // stroke-dashoffset moves).
+        underline: {
+          left: -1,
+          top: 34,
+          width: 90, // as long as "ei le printează"
+          height: 9,
+          path: "M2 5.5 C 9 1.5, 15 8.5, 23 5 S 37 1.5, 45 5 S 60 8.5, 68 4.5 S 82 2, 88 5",
+          stroke: 2,
+          color: palette.mustar,
+          draw: 0.7,
+          every: 6,
+        },
+        // The logo and the text are one link to their site; this box (u) is
+        // where a tap opens it (the washi tape, over it, keeps its own taps).
+        link: { left: 3, top: 212, width: 276, height: 166 },
         washi: {
           left: 165,
           top: 327,
           // Its right end at ~267u: clear of the shade along the spine (the
           // last 16% of the page, see AlbumBook's .ab-left::after).
           width: 100,
-          height: 46,
+          height: 56, // the label on two lines (taller downwards, never wider)
           rotation: -4,
           color: palette.sage,
           opacity: 0.92,
           clipPath: "polygon(2% 6%, 0 30%, 3% 52%, 1% 78%, 3% 100%, 97% 96%, 100% 72%, 98% 48%, 100% 22%, 98% 0)",
           gap: 4,
           labelSize: 10, // ~11px
+          labelLineHeight: 1.1,
           codeSize: 14, // ~15px
           codeLetterSpacing: "0.04em",
           copiedFor: 1.5, // seconds "copiat!" shows
@@ -1023,7 +1042,7 @@ export const theme = {
       // <body>, like the bracelets' big view). The front: the sticker,
       // straight and still, popping in (popIn), its bottom-right corner
       // peeling (bigger when hovered), cut to the sticker's shape. The back
-      // (flip): its kind, size and price, "îl vreau" with the quantity.
+      // (flip): its name, size and price, "îl vreau" with the quantity.
       // Its size (the sticker's shape; the page has no zoom, so it shows the
       // design clearly): as big as fits in a room of, on a phone (narrower
       // than `phoneBelow` px), `phone.vw` % of the screen's width and
@@ -1047,21 +1066,36 @@ export const theme = {
           shadow: "-3px -3px 6px rgb(0 0 0 / 0.18)",
           radius: 6,
         },
-        // The back: its kind (Whitenice), size and price (Hanken), then
-        // "îl vreau" and the quantity (a native <select>, 1 to quantityMax).
+        // The back: its name on top (handwritten: Whitenice, Hanken for the
+        // letters it lacks, like ă ș ț), then its size and price (Hanken),
+        // then "îl vreau" and the quantity (a native <select>, 1 to
+        // quantityMax).
         back: {
+          nameSize: 24,
+          // Bold: Whitenice has one weight, so the browser thickens it; the
+          // letters it lacks (ă ș ț) come from Hanken's own bold, matching.
+          nameWeight: 700,
+          nameLineHeight: 1.1,
+          padding: 14, // px each side: a long name wraps inside
+          // px: the card is never lower than this (a very wide sticker's),
+          // so its back has room above and below (the front stays centred).
+          minHeight: 260,
           background: palette.paper,
           color: palette.ink,
           radius: 18,
           shadow: "0 14px 30px rgb(0 0 0 / 0.35)",
           gap: 6,
-          kindSize: 18,
-          kindOpacity: 0.75,
           sizeSize: 14,
           sizeOpacity: 0.7,
           priceSize: 26,
         },
+        // Also the most of one sticker the cart takes (more is cut to it).
         quantityMax: 10,
+        // "adăugat ✓" on the button for this long (s); the line under it
+        // ("ai 3 în coș"); a sold-out sticker's controls, faded.
+        added: 1.5,
+        inCart: { size: 13, opacity: 0.75, gap: 8 },
+        soldOut: { size: 15, color: palette.ink, controlsOpacity: 0.4 },
         button: {
           padding: "9px 14px",
           size: 13,
